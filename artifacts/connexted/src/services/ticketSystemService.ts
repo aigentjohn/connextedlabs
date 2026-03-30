@@ -186,39 +186,157 @@ export const templateApi = {
     api(`/ticket-templates/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Inventory helpers ────────────────────────────────────────────────────────
+
+function dbRowToInventoryItem(row: any): InventoryItem {
+  return {
+    id: row.id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    serialNumber: row.serial_number,
+    batchId: row.batch_id,
+    status: row.status as InventoryStatus,
+    assignedToUserId: row.assigned_to_user_id ?? null,
+    assignedToEmail: row.assigned_to_email ?? null,
+    assignedToName: row.assigned_to_name ?? null,
+    assignedAt: row.assigned_at ?? null,
+    assignedBy: row.assigned_by ?? null,
+    pricePaidCents: row.price_paid_cents ?? null,
+    paymentReference: row.payment_reference ?? null,
+    accessTicketId: row.access_ticket_id ?? null,
+    applicationId: row.application_id ?? null,
+    notes: row.notes ?? null,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+  };
+}
+
 // ─── Inventory API ────────────────────────────────────────────────────────────
+// All inventory CRUD goes directly to Postgres (ticket_inventory_items table).
+// Template management still uses the edge function KV store (unchanged).
 
 export const inventoryApi = {
-  listAll: (): Promise<{ items: InventoryItem[] }> =>
-    api('/ticket-inventory'),
+  listAll: async (): Promise<{ items: InventoryItem[] }> => {
+    const { data, error } = await supabase
+      .from('ticket_inventory_items')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return { items: (data || []).map(dbRowToInventoryItem) };
+  },
 
-  listByTemplate: (templateId: string): Promise<{ items: InventoryItem[] }> =>
-    api(`/ticket-inventory/template/${templateId}`),
+  listByTemplate: async (templateId: string): Promise<{ items: InventoryItem[] }> => {
+    const { data, error } = await supabase
+      .from('ticket_inventory_items')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return { items: (data || []).map(dbRowToInventoryItem) };
+  },
 
-  listForUser: (userId: string): Promise<{ items: InventoryItem[] }> =>
-    api(`/ticket-inventory/user/${userId}`),
+  listForUser: async (userId: string): Promise<{ items: InventoryItem[] }> => {
+    const { data, error } = await supabase
+      .from('ticket_inventory_items')
+      .select('*')
+      .eq('assigned_to_user_id', userId)
+      .order('assigned_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return { items: (data || []).map(dbRowToInventoryItem) };
+  },
 
-  createBatch: (data: {
+  createBatch: async (data: {
     templateId: string;
     quantity: number;
     notes?: string;
-  }): Promise<{ batchId: string; items: InventoryItem[]; count: number }> =>
-    api('/ticket-inventory/batch', { method: 'POST', body: JSON.stringify(data) }),
+  }): Promise<{ batchId: string; items: InventoryItem[]; count: number }> => {
+    // 1. Fetch template metadata from edge function (still works fine).
+    const { template } = await templateApi.get(data.templateId);
 
-  assign: (itemId: string, data: {
+    // 2. Derive serial prefix: use template.serialPrefix, or first 3 chars of name.
+    const rawPrefix = (template.serialPrefix || template.name.substring(0, 3));
+    const prefix = rawPrefix.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'TKT';
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const batchId = crypto.randomUUID();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const rows = Array.from({ length: data.quantity }, (_, i) => ({
+      template_id: data.templateId,
+      template_name: template.name,
+      serial_number: `${prefix}-${timestamp}-${String(i + 1).padStart(4, '0')}`,
+      batch_id: batchId,
+      status: 'available',
+      notes: data.notes || null,
+      created_by: user?.id || null,
+    }));
+
+    const { data: inserted, error } = await supabase
+      .from('ticket_inventory_items')
+      .insert(rows)
+      .select();
+
+    if (error) throw new Error(error.message);
+
+    return {
+      batchId,
+      items: (inserted || []).map(dbRowToInventoryItem),
+      count: inserted?.length ?? 0,
+    };
+  },
+
+  assign: async (itemId: string, data: {
     userId: string;
     pricePaidCents?: number;
     paymentReference?: string;
     notes?: string;
     applicationId?: string;
-    // Pass true when fulfilling directly from the waitlist so the server
-    // removes the user from the waitlist automatically on success.
+    // When true, also remove the user from the waitlist for this template's container.
     removeFromWaitlist?: boolean;
-  }): Promise<{ item: InventoryItem; accessTicketId: string | null }> =>
-    api(`/ticket-inventory/${itemId}/assign`, { method: 'POST', body: JSON.stringify(data) }),
+  }): Promise<{ item: InventoryItem; accessTicketId: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser();
 
-  void: (itemId: string): Promise<{ item: InventoryItem }> =>
-    api(`/ticket-inventory/${itemId}/void`, { method: 'POST' }),
+    // Look up assignee profile for email/name.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', data.userId)
+      .single();
+
+    const { data: updated, error } = await supabase
+      .from('ticket_inventory_items')
+      .update({
+        status: 'assigned',
+        assigned_to_user_id: data.userId,
+        assigned_to_email: profile?.email ?? null,
+        assigned_to_name: profile?.full_name ?? null,
+        assigned_at: new Date().toISOString(),
+        assigned_by: user?.id ?? null,
+        price_paid_cents: data.pricePaidCents ?? null,
+        payment_reference: data.paymentReference ?? null,
+        notes: data.notes ?? null,
+        application_id: data.applicationId ?? null,
+      })
+      .eq('id', itemId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    return { item: dbRowToInventoryItem(updated), accessTicketId: null };
+  },
+
+  void: async (itemId: string): Promise<{ item: InventoryItem }> => {
+    const { data: updated, error } = await supabase
+      .from('ticket_inventory_items')
+      .update({ status: 'voided' })
+      .eq('id', itemId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { item: dbRowToInventoryItem(updated) };
+  },
 };
 
 // ─── Waitlist API ─────────────────────────────────────────────────────────────
