@@ -147,7 +147,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
 
   // Auto-expand MY GROWTH section when viewing any of its child routes
   useEffect(() => {
-    const growthPaths = ['/my-courses', '/my-programs', '/my-pathways', '/my-growth', '/profile/badges', '/moments', '/portfolio', '/discovery', '/explore'];
+    const growthPaths = ['/my-courses', '/my-programs', '/my-pathways', '/my-growth', '/browse-pathways', '/profile/badges', '/moments', '/portfolio', '/discovery', '/explore'];
     const isGrowthRoute = growthPaths.some((p) =>
       location.pathname === p || location.pathname.startsWith(p + '/')
     );

@@ -61,7 +61,10 @@ export function MyGrowthSection({ isExpanded, onToggle, profileId }: MyGrowthSec
           </GrowthLink>
 
           {/* Achievement */}
-          <GrowthLink to="/my-growth" icon={Compass} pathname={location.pathname}>
+          <GrowthLink to="/browse-pathways" icon={Compass} pathname={location.pathname}>
+            Browse Pathways
+          </GrowthLink>
+          <GrowthLink to="/my-growth" icon={TrendingUp} pathname={location.pathname}>
             My Pathways
           </GrowthLink>
           <GrowthLink to="/profile/badges" icon={Award} pathname={location.pathname}>

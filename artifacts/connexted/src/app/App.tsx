@@ -155,6 +155,7 @@ const MyEngagementPage = lazy(() => import('@/app/components/MyEngagementPage'))
 const MyAccountPage = lazy(() => import('@/app/components/MyAccountPage'));
 const MyBadgesPage = lazy(() => import('@/app/components/MyBadgesPage'));
 const MyGrowthPage = lazy(() => import('@/app/components/growth/MyGrowthPage'));
+const BrowsePathwaysPage = lazy(() => import('@/app/components/growth/BrowsePathwaysPage'));
 const PathwayAdminPage = lazy(() => import('@/app/components/growth/PathwayAdminPage'));
 const PathwayProgressTracker = lazy(() => import('@/app/components/growth/PathwayProgressTracker'));
 const FollowersPage = lazy(() => import('@/app/components/FollowersPage'));
@@ -557,6 +558,7 @@ const router = createBrowserRouter([
           { path: '/profile/badges', element: <MyBadgesPage /> },
           { path: '/badges/:badgeTypeId', element: <BadgeDetailPage /> },
           { path: '/my-growth', element: <MyGrowthPage /> },
+          { path: '/browse-pathways', element: <BrowsePathwaysPage /> },
           { path: '/profile/followers', element: <FollowersPage /> },
           { path: '/profile/following', element: <FollowingPage /> },
           { path: '/profile/venues', element: <VenuesPage /> },
