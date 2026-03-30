@@ -1,0 +1,109 @@
+Six Generalised Personas — All 16 Archetypes Covered
+Persona 1: "The Deep Diver"
+Core driver profile
+
+Individual: Personal Growth & Learning, Autonomy & Control
+Business: Risk Management, Knowledge & Culture Building
+Community: Knowledge & Culture Building
+Primary archetypes: 🦉 Curious (Owl), 🐙 Cataloguers (Octopus)
+Also fits: 🐘 Coaches (Elephant) (learning dimension), 🦎 Careerseekers (Chameleon) (early-stage learning focus)
+
+Who they are: Someone whose innovation energy comes from understanding — researching, capturing, organising, or passing knowledge on. They are the community's intellectual infrastructure. They produce insights, preserve learning, and manage the organisation's understanding of risk. They are often undervalued because their output is invisible until it's missing.
+
+User stories
+
+As a Deep Diver, I want to tag my contributions with my Individual Driver (Personal Growth) so that the community understands why I contribute, not just what I contribute
+As a Deep Diver, I want to find other members who share the Knowledge & Culture Building community driver so that my work feeds into something lasting rather than disappearing
+As a Deep Diver, I want to see which business problems (Risk Management, Customer Insight) my archetype is most suited to solve so that I can position myself usefully inside organisations
+As a Deep Diver, I want a structured way to publish research or knowledge — not just a discussion post — so that depth is preserved and searchable by others
+As a Deep Diver, I want to find complementary archetypes (Lions, Eagles) who will act on my findings so that my work moves from insight to impact
+Persona 2: "The Maker & Solver"
+Core driver profile
+
+Individual: Problem-Solving Satisfaction, Creative Expression
+Business: Customer Value Creation, Operational Efficiency
+Community: Quality of Life Enhancement
+Primary archetypes: 🦫 Catalysts (Beaver), 🕷️ Creators (Spider), 🐜 Contractors (Ant)
+Also fits: 🦊 Consultants (Fox) (problem-solving dimension), 🐦 Contrarians (Raven) (problem identification)
+
+Who they are: Energised by making things work. Whether that's building a prototype, designing a concept, or running an airtight operational system — their satisfaction comes from something tangible being produced. They contribute at the execution layer of innovation, and the community serves them best when it helps them find direction, resources, and champions for the work.
+
+User stories
+
+As a Maker & Solver, I want to post a project I'm working on and tag it with both my Individual Driver (Problem-Solving) and Community Driver (Quality of Life) so that mission-aligned collaborators can find it
+As a Maker & Solver, I want to identify which archetypes in the community can champion or fund my work so that my skills are not wasted for lack of direction or resource
+As a Maker & Solver, I want to share a STAR story about something I've built so that my craft is visible and not just my job title
+As a Maker & Solver, I want guidance on working with archetypes that challenge me (Eagles, Squirrels) so that I can engage with strategic and financial partners without friction
+As a Maker & Solver, I want to filter the member directory by Business Driver (Customer Value Creation) so that I can find people whose organisational goals align with what I build
+Persona 3: "The People Enabler"
+Core driver profile
+
+Individual: Social Impact & Purpose
+Business: Talent Attraction & Retention, Ecosystem Resilience
+Community: Ecosystem Resilience, Social Problem Solving
+Primary archetypes: 🐘 Coaches (Elephant), 🐬 Cheerleaders (Dolphin), 🐝 Connectors (Honeybee)
+Also fits: 🦁 Champions (Lion) (social impact dimension), 🦎 Careerseekers (Chameleon) (talent side)
+
+Who they are: Their innovation contribution is other people flourishing. They mentor, energise, and connect. Their value to organisations is that teams perform better because of them. Their value to communities is that the ecosystem holds together. The community must actively make their contribution visible — because it is the easiest type of work to take for granted.
+
+User stories
+
+As a People Enabler, I want a visible record of connections I've facilitated, mentoring relationships I've held, and energy I've contributed so that my work is recognised, not assumed
+As a People Enabler, I want to see which orientations are underrepresented in the community so that I can deliberately connect people who fill those gaps
+As a People Enabler, I want to filter members by Community Driver (Ecosystem Resilience) so that I can find others who share responsibility for community health
+As a People Enabler, I want to signal that I am open to mentoring Careerseekers so that people who need guidance can find me without awkward cold outreach
+As a People Enabler, I want the community to surface who has been recently active or recently quiet so that I can direct encouragement and energy where it's most needed
+Persona 4: "The Strategic Visionary"
+Core driver profile
+
+Individual: Recognition & Achievement, Competitive Advantage
+Business: Competitive Advantage, Growth & Expansion, Risk Management
+Community: Economic Development
+Primary archetypes: 🦅 Captains (Eagle), 🦁 Champions (Lion)
+Also fits: 🐿️ Capital Investors (Squirrel) (growth & economic development), 🦉 Curious (Owl) (competitive intelligence)
+
+Who they are: Motivated by building something significant and being known for it. They think at the system level — organisations, markets, economies. In the community they need peer-level conversations with others who understand the pressure of high-stakes decisions. They often cannot have these conversations inside their own organisations.
+
+User stories
+
+As a Strategic Visionary, I want a trusted peer space with other Eagles and Lions where I can discuss challenges I can't raise internally, without competitive risk
+As a Strategic Visionary, I want to see how my business drivers (Competitive Advantage, Growth) are shared across members so that I can connect with peers navigating similar organisational pressures
+As a Strategic Visionary, I want to find Deep Divers (Owls) working on adjacent research so that I can build my strategic intelligence through community rather than always commissioning it
+As a Strategic Visionary, I want my Community Driver (Economic Development) visible on my profile so that I am known as an ecosystem contributor, not just an organisational actor
+As a Strategic Visionary, I want to see which projects in the community are aligned with Growth & Expansion so that I can attach resource or advocacy where it creates the most leverage
+Persona 5: "The Critical Guardian"
+Core driver profile
+
+Individual: Problem-Solving Satisfaction, Social Impact & Purpose
+Business: Risk Management, Operational Efficiency
+Community: Ecosystem Resilience, Social Problem Solving
+Primary archetypes: 🐦 Contrarians (Raven), 🐢 Conscience Keepers (Tortoise)
+Also fits: 🦉 Curious (Owl) (risk management), 🐜 Contractors (Ant) (operational efficiency)
+
+Who they are: Their role is to ask the uncomfortable question, spot the flaw, or hold the long-term view when everyone else is focused on speed. They are frequently misunderstood — seen as blockers rather than protectors. The community should help others understand why this archetype is essential, and give Critical Guardians a constructive channel for their perspective.
+
+User stories
+
+As a Critical Guardian, I want to be able to respond to community projects or ideas with a structured "risk or ethics perspective" format so that my challenge is seen as a contribution, not an attack
+As a Critical Guardian, I want to find projects tagged with Risk Management or Social Problem Solving business drivers so that I can direct my critical lens where it's most valued
+As a Critical Guardian, I want my profile to clearly explain why my archetype challenges ideas — and link to examples — so that new members understand my role before assuming I'm being negative
+As a Critical Guardian, I want to find Champions and Coaches who can help me frame my concerns constructively so that my input improves outcomes rather than stalling them
+As a Critical Guardian, I want the community to surface "decisions being made without a Raven or Tortoise in the room" so that I can contribute before the damage is done
+Persona 6: "The Growth Amplifier"
+Core driver profile
+
+Individual: Recognition & Achievement, Autonomy & Control, Creative Expression
+Business: Growth & Expansion, Talent Attraction & Retention
+Community: Economic Development, Knowledge & Culture Building
+Primary archetypes: 🐿️ Capital Investors (Squirrel), 🦚 Content Influencers (Peacock), 🦊 Consultants (Fox), 🦎 Careerseekers (Chameleon)
+Also fits: 🐝 Connectors (Honeybee) (economic development), 🦁 Champions (Lion) (recognition)
+
+Who they are: Motivated by scale — of ideas, audiences, resources, or their own careers. The broadest persona because Growth Orientation covers very different people: the investor managing resources, the content creator building audiences, the consultant offering expertise across contexts, and the career-builder using the community as a development platform. What they share is that they measure success by expansion — of reach, impact, capital, or capability.
+
+User stories
+
+As a Growth Amplifier, I want to see a "triple alignment" view showing where my Individual, Business, and Community drivers overlap so that I can find the highest-leverage opportunities to contribute
+As a Growth Amplifier, I want to post content (articles, insights, case studies) and have it attributed to my archetype and drivers so that my thought leadership is visible and purposeful
+As a Growth Amplifier, I want to find projects at an early stage that match my growth focus so that I can add resource, reach, or expertise at a point where it makes the most difference
+As a Growth Amplifier, I want a development pathway that shows how I can build secondary archetype capabilities over time so that I grow beyond my current strengths
+As a Growth Amplifier, I want to connect with People Enablers (Elephants, Honeybees) who can open doors for me so that my ambition is supported by strong relationships rather than cold networking
