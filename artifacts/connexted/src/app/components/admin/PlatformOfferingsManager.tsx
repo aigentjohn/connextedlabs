@@ -569,6 +569,9 @@ export default function PlatformOfferingsManager() {
                         {offering.purchase_type === 'contact_only' && (
                           <Badge className="bg-amber-500">📧 Contact Only</Badge>
                         )}
+                        {offering.purchase_type === 'free_claim' && (
+                          <Badge className="bg-green-500">🎁 Free Claim</Badge>
+                        )}
                         {!offering.purchase_type && (
                           <Badge variant="outline">Not set</Badge>
                         )}
@@ -726,6 +729,9 @@ export default function PlatformOfferingsManager() {
                   <SelectValue placeholder="Select purchase type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="free_claim">
+                    🎁 Free — self-service claim, no payment required
+                  </SelectItem>
                   <SelectItem value="kit_commerce">
                     💳 Kit Commerce — full integration with pricing
                   </SelectItem>
@@ -738,11 +744,20 @@ export default function PlatformOfferingsManager() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">
+                {formData.purchase_type === 'free_claim' && 'Users click one button to instantly receive a free access ticket — no ConvertKit needed'}
                 {formData.purchase_type === 'kit_commerce' && 'Users purchase directly via Kit Commerce with pricing display'}
                 {formData.purchase_type === 'external_link' && 'Users are redirected to an external URL in a new tab'}
                 {formData.purchase_type === 'contact_only' && 'Users can only contact you about this offering'}
               </p>
             </div>
+
+            {formData.purchase_type === 'free_claim' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  <span className="font-semibold">🎁 Free self-service access.</span> When a logged-in user visits this offering page they will see a green "Claim Free Access" button. Clicking it instantly creates an access ticket for them — no ConvertKit, no payment, no admin action needed. Ideal for MVPs, beta programs, and complimentary access.
+                </p>
+              </div>
+            )}
 
             {formData.purchase_type === 'kit_commerce' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">

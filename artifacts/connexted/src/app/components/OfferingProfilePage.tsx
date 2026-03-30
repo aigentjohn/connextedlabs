@@ -41,6 +41,8 @@ import {
   DollarSign,
   ShieldCheck,
   ChevronRight,
+  Gift,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -98,6 +100,7 @@ export default function OfferingProfilePage() {
   // Whether the current user already has an active access ticket for this offering
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -314,6 +317,37 @@ export default function OfferingProfilePage() {
 
   const isOwner = profile?.id === offering.owner_user_id;
 
+  const handleFreeClaim = async () => {
+    if (!profile) {
+      toast.error('Please sign in to claim free access');
+      return;
+    }
+    try {
+      setClaiming(true);
+      await accessTicketService.createTicket({
+        userId: profile.id,
+        containerType: 'marketplace_offering' as any,
+        containerId: offering.id,
+        acquisitionSource: 'direct_enrollment',
+        ticketType: 'free',
+        pricePaidCents: 0,
+        originalPriceCents: 0,
+      });
+      setHasAccess(true);
+      toast.success('Access granted! You can now access this offering.');
+    } catch (err: any) {
+      console.error('Free claim error:', err);
+      if (err?.message?.includes('duplicate') || err?.code === '23505') {
+        setHasAccess(true);
+        toast.info('You already have access to this offering.');
+      } else {
+        toast.error('Could not grant access. Please try again or contact support.');
+      }
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Breadcrumbs
@@ -434,6 +468,30 @@ export default function OfferingProfilePage() {
               profile={profile}
               displayName={offering.name}
             />
+          )}
+
+          {/* Free Claim Button */}
+          {!hasAccess && offering.purchase_type === 'free_claim' && (
+            profile ? (
+              <Button
+                size="lg"
+                className="w-full md:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                onClick={handleFreeClaim}
+                disabled={claiming}
+              >
+                {claiming ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Gift className="w-4 h-4 mr-2" />
+                )}
+                {claiming ? 'Granting access…' : (offering.cta_text || 'Claim Free Access')}
+              </Button>
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                <Gift className="w-4 h-4 inline mr-1" />
+                This offering is free — sign in to claim your access.
+              </div>
+            )
           )}
 
           {/* Kit Commerce Purchase Button */}
