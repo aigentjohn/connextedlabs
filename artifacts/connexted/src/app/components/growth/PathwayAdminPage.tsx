@@ -335,11 +335,17 @@ export default function PathwayAdminPage() {
   const [tagInput, setTagInput] = useState('');
   const [roleInput, setRoleInput] = useState('');
 
-  // Instance picker state (select a specific item for an activity step)
+  // Instance picker state (select a specific item when ADDING an activity step)
   const [pendingActivityType, setPendingActivityType] = useState<string | null>(null);
   const [instanceQuery, setInstanceQuery] = useState('');
   const [instanceResults, setInstanceResults] = useState<{ id: string; title: string }[]>([]);
   const [searchingInstances, setSearchingInstances] = useState(false);
+
+  // Inline assignment state (assign/change a specific item on an EXISTING step)
+  const [editingInstanceStepId, setEditingInstanceStepId] = useState<string | null>(null);
+  const [editInstanceQuery, setEditInstanceQuery] = useState('');
+  const [editInstanceResults, setEditInstanceResults] = useState<{ id: string; title: string }[]>([]);
+  const [searchingEditInstances, setSearchingEditInstances] = useState(false);
 
   // Only load pathways once profile is available (auth session ready)
   useEffect(() => {
@@ -495,6 +501,61 @@ export default function PathwayAdminPage() {
     setPendingActivityType(null);
     setInstanceQuery('');
     setInstanceResults([]);
+  }
+
+  async function searchEditInstances(activityType: string, query: string) {
+    const tableInfo = ACTIVITY_TABLE_MAP[activityType];
+    if (!tableInfo) return;
+    setSearchingEditInstances(true);
+    try {
+      const { data } = await supabase
+        .from(tableInfo.table as any)
+        .select(`id, ${tableInfo.titleField}`)
+        .ilike(tableInfo.titleField, `%${query}%`)
+        .limit(12);
+      setEditInstanceResults(
+        (data || []).map((row: any) => ({
+          id: row.id,
+          title: row[tableInfo.titleField] || 'Untitled',
+        }))
+      );
+    } catch (err) {
+      console.error('Edit instance search error:', err);
+    } finally {
+      setSearchingEditInstances(false);
+    }
+  }
+
+  function updateStepInstance(stepId: string, targetId: string | null, targetTitle: string | null) {
+    setForm(prev => ({
+      ...prev,
+      steps: prev.steps.map(s =>
+        s.id === stepId
+          ? {
+              ...s,
+              step_id: targetId || '',
+              activity_criteria: targetId
+                ? { ...(s.activity_criteria || {}), target_id: targetId, target_title: targetTitle }
+                : undefined,
+            }
+          : s
+      ),
+    }));
+    setEditingInstanceStepId(null);
+    setEditInstanceQuery('');
+    setEditInstanceResults([]);
+  }
+
+  function openStepInstancePicker(stepId: string) {
+    setEditingInstanceStepId(stepId);
+    setEditInstanceQuery('');
+    setEditInstanceResults([]);
+  }
+
+  function closeStepInstancePicker() {
+    setEditingInstanceStepId(null);
+    setEditInstanceQuery('');
+    setEditInstanceResults([]);
   }
 
   function updateStepVerification(stepId: string, method: 'self_report' | 'admin_verify' | 'auto_detect') {
@@ -1205,14 +1266,6 @@ export default function PathwayAdminPage() {
                       {/* Title */}
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium truncate block">{step.title}</span>
-                        {step.step_type === 'activity' && step.activity_criteria?.target_title && (
-                          <span className="text-xs text-green-700 font-medium truncate block">
-                            → {step.activity_criteria.target_title}
-                          </span>
-                        )}
-                        {step.step_type === 'activity' && !step.activity_criteria?.target_title && (
-                          <span className="text-[10px] text-gray-400 italic">Any instance</span>
-                        )}
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
                             step.step_type === 'activity' ? 'text-green-600 border-green-300' : ''
@@ -1303,7 +1356,7 @@ export default function PathwayAdminPage() {
 
                     {/* Activity verification method selector */}
                     {step.step_type === 'activity' && (
-                      <div className="mt-2 ml-10 flex items-center gap-2">
+                      <div className="mt-2 ml-10 flex items-center gap-2 flex-wrap">
                         <span className="text-xs text-gray-500">Verification:</span>
                         {VERIFICATION_METHODS.map(vm => (
                           <button
@@ -1319,6 +1372,100 @@ export default function PathwayAdminPage() {
                             {vm.label}
                           </button>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Inline instance assignment — for activity steps that have a table */}
+                    {step.step_type === 'activity' && ACTIVITY_TABLE_MAP[step.activity_type || ''] && (
+                      <div className="mt-2 ml-10">
+                        {editingInstanceStepId === step.id ? (
+                          /* Picker open */
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                <Input
+                                  value={editInstanceQuery}
+                                  onChange={e => {
+                                    setEditInstanceQuery(e.target.value);
+                                    if (e.target.value.length >= 2)
+                                      searchEditInstances(step.activity_type!, e.target.value);
+                                    if (e.target.value === '') setEditInstanceResults([]);
+                                  }}
+                                  onKeyDown={e =>
+                                    e.key === 'Enter' &&
+                                    (e.preventDefault(), searchEditInstances(step.activity_type!, editInstanceQuery))
+                                  }
+                                  placeholder={`Search ${ACTIVITY_TYPES[step.activity_type || '']?.label.toLowerCase()}s...`}
+                                  className="pl-7 h-7 text-xs bg-white"
+                                  autoFocus
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs px-2"
+                                onClick={closeStepInstancePicker}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+
+                            {editInstanceResults.length > 0 && (
+                              <div className="border rounded-md divide-y max-h-36 overflow-y-auto bg-white text-xs shadow-sm">
+                                {editInstanceResults.map(result => (
+                                  <button
+                                    key={result.id}
+                                    onClick={() => updateStepInstance(step.id, result.id, result.title)}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-green-50 transition-colors text-left"
+                                  >
+                                    {getActivityIcon(step.activity_type)}
+                                    <span className="flex-1 truncate">{result.title}</span>
+                                    <Plus className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {editInstanceQuery.length >= 2 && !searchingEditInstances && editInstanceResults.length === 0 && (
+                              <p className="text-[10px] text-gray-400 italic">No results found</p>
+                            )}
+
+                            {step.activity_criteria?.target_id && (
+                              <button
+                                onClick={() => updateStepInstance(step.id, null, null)}
+                                className="text-[10px] text-red-400 hover:text-red-600"
+                              >
+                                Clear specific assignment
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          /* Picker closed — show current assignment + action button */
+                          <div className="flex items-center gap-2">
+                            {step.activity_criteria?.target_title ? (
+                              <>
+                                <span className="text-xs text-green-700 font-medium">
+                                  → {step.activity_criteria.target_title}
+                                </span>
+                                <button
+                                  onClick={() => openStepInstancePicker(step.id)}
+                                  className="text-[10px] text-indigo-500 hover:text-indigo-700 hover:underline underline-offset-1"
+                                >
+                                  Change
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => openStepInstancePicker(step.id)}
+                                className="text-[10px] text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Assign specific item
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
