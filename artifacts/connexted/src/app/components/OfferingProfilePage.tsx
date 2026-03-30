@@ -102,6 +102,14 @@ export default function OfferingProfilePage() {
   const [checkingAccess, setCheckingAccess] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
+  // Inquiry form state
+  const [inquirerName, setInquirerName] = useState('');
+  const [inquirerEmail, setInquirerEmail] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [inquiryType, setInquiryType] = useState('general');
+  const [inquirySubject, setInquirySubject] = useState('');
+  const [submittingInquiry, setSubmittingInquiry] = useState(false);
+
   useEffect(() => {
     if (slug) {
       fetchOffering();
