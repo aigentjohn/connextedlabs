@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -21,41 +21,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/app/components/ui/dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/app/components/ui/tabs';
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Star,
-  Zap,
-  TrendingUp,
-  ArrowRight,
-  Copy,
-  ExternalLink,
-  AlertCircle,
-  CheckCircle2,
-  DollarSign,
-  Tag,
-  Calendar,
-  Upload,
-  RefreshCw,
-  Package,
-  Sparkles,
-  Eye,
-  CheckCircle,
-  Edit,
-} from 'lucide-react';
-import Breadcrumbs from '@/app/components/Breadcrumbs';
-import { toast } from 'sonner';
-import { KitCommerceButton } from '@/app/components/KitCommerceButton';
 import {
   Table,
   TableBody,
@@ -65,6 +32,26 @@ import {
   TableRow,
 } from '@/app/components/ui/table';
 import {
+  Plus,
+  Edit,
+  Trash2,
+  Upload,
+  RefreshCw,
+  Package,
+  Sparkles,
+  Eye,
+  CheckCircle,
+  AlertCircle,
+  DollarSign,
+  Copy,
+  ExternalLink,
+  Building2,
+  ChevronRight,
+} from 'lucide-react';
+import Breadcrumbs from '@/app/components/Breadcrumbs';
+import { toast } from 'sonner';
+import { KitCommerceButton } from '@/app/components/KitCommerceButton';
+import {
   getMarketingLevelConfig,
   calculateMarketingLevel,
   MarketingLevelName,
@@ -72,6 +59,12 @@ import {
 } from '@/utils/offerings-marketing-levels';
 import { importCompanyOfferings } from '@/utils/simple-offering-import';
 import { copyToClipboard } from '@/lib/clipboard-utils';
+
+interface Company {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface PlatformOffering {
   id: string;
@@ -98,7 +91,6 @@ interface PlatformOffering {
   marketing_level?: string;
   interest_tracking_enabled?: boolean;
   interest_form_type?: string;
-  // Pricing fields stored directly
   base_price?: number;
   current_discount_code?: string;
   discount_description?: string;
@@ -108,20 +100,31 @@ interface PlatformOffering {
 
 export default function PlatformOfferingsManager() {
   const { profile } = useAuth();
+
+  // ── Company selection ────────────────────────────────────────────────────────
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+  // ── Offerings ────────────────────────────────────────────────────────────────
   const [offerings, setOfferings] = useState<PlatformOffering[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingOfferings, setLoadingOfferings] = useState(false);
+
+  // ── Dialogs ──────────────────────────────────────────────────────────────────
   const [showDialog, setShowDialog] = useState(false);
   const [editingOffering, setEditingOffering] = useState<PlatformOffering | null>(null);
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // ── Linked content ───────────────────────────────────────────────────────────
   const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [availablePrograms, setAvailablePrograms] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [linkedCourseId, setLinkedCourseId] = useState<string>('');
   const [linkedProgramId, setLinkedProgramId] = useState<string>('');
 
-  // Form state
+  // ── Form state ───────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     name: '',
     tagline: '',
@@ -132,11 +135,10 @@ export default function PlatformOfferingsManager() {
     cta_text: 'Get Started',
     is_active: true,
     is_featured: false,
-    purchase_type: 'kit_commerce', // 'kit_commerce', 'external_link', 'contact_only'
+    purchase_type: 'kit_commerce',
     external_url: '',
   });
 
-  // Pricing form state
   const [pricingForm, setPricingForm] = useState({
     base_price: 99,
     current_discount_code: '',
@@ -144,110 +146,105 @@ export default function PlatformOfferingsManager() {
     discount_percentage: 0,
   });
 
-  // Features list
   const [features, setFeatures] = useState<string[]>([]);
   const [newFeature, setNewFeature] = useState('');
 
+  // ── Init ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchOfferings();
+    fetchCompanies();
     fetchAvailableCourses();
     fetchAvailablePrograms();
   }, []);
 
-  const fetchOfferings = async () => {
+  useEffect(() => {
+    if (selectedCompanyId) fetchOfferings();
+    else setOfferings([]);
+  }, [selectedCompanyId]);
+
+  // ── Data fetching ─────────────────────────────────────────────────────────────
+
+  const fetchCompanies = async () => {
     try {
-      setLoading(true);
-      
-      // Get platform company
-      const { data: company } = await supabase
+      setLoadingCompanies(true);
+      const { data, error } = await supabase
         .from('market_companies')
-        .select('id')
-        .eq('company_type', 'platform_company')
-        .single();
-
-      if (!company) {
-        toast.error('Platform company not found. Please initialize first.');
-        setLoading(false);
-        return;
-      }
-
-      // Get offerings
-      const { data: offeringsData, error } = await supabase
-        .from('market_offerings')
-        .select('*')
-        .eq('company_id', company.id)
-        .order('created_at', { ascending: false });
-
+        .select('id, name, slug')
+        .order('name');
       if (error) throw error;
-
-      setOfferings(offeringsData || []);
-    } catch (error: any) {
-      console.error('Error fetching platform offerings:', error);
-      toast.error('Failed to load offerings');
+      setCompanies(data || []);
+    } catch (err: any) {
+      console.error('Error fetching companies:', err);
+      toast.error('Failed to load companies');
     } finally {
-      setLoading(false);
+      setLoadingCompanies(false);
     }
   };
 
+  const fetchOfferings = useCallback(async () => {
+    if (!selectedCompanyId) return;
+    try {
+      setLoadingOfferings(true);
+      const { data, error } = await supabase
+        .from('market_offerings')
+        .select('*')
+        .eq('company_id', selectedCompanyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setOfferings(data || []);
+    } catch (err: any) {
+      console.error('Error fetching offerings:', err);
+      toast.error('Failed to load offerings');
+    } finally {
+      setLoadingOfferings(false);
+    }
+  }, [selectedCompanyId]);
+
   const fetchAvailableCourses = async () => {
     try {
-      const { data: courses, error } = await supabase
+      const { data, error } = await supabase
         .from('courses')
         .select('id, title, slug')
         .eq('is_published', true)
         .order('title');
-
-      if (!error) {
-        setAvailableCourses(courses || []);
-      }
-    } catch (error: any) {
-      console.error('Error fetching available courses:', error);
+      if (!error) setAvailableCourses(data || []);
+    } catch (err: any) {
+      console.error('Error fetching courses:', err);
     }
   };
 
   const fetchAvailablePrograms = async () => {
     try {
-      const { data: programs, error } = await supabase
+      const { data, error } = await supabase
         .from('programs')
         .select('id, name, slug')
         .order('name');
-
-      if (!error) {
-        setAvailablePrograms(programs || []);
-      }
-    } catch (error: any) {
-      console.error('Error fetching available programs:', error);
+      if (!error) setAvailablePrograms(data || []);
+    } catch (err: any) {
+      console.error('Error fetching programs:', err);
     }
   };
 
+  // ── CRUD ──────────────────────────────────────────────────────────────────────
+
   const handleSaveOffering = async () => {
+    if (!selectedCompanyId) {
+      toast.error('Please select a company first');
+      return;
+    }
+
     try {
-      // Get platform company
-      const { data: company } = await supabase
-        .from('market_companies')
-        .select('id')
-        .eq('company_type', 'platform_company')
-        .single();
-
-      if (!company) {
-        toast.error('Platform company not found');
-        return;
-      }
-
       const slug = formData.name.toLowerCase().replace(/\s+/g, '-');
 
       const offeringData = {
-        // ── Columns that have always existed in market_offerings ─────────────
         name: formData.name,
         slug,
         tagline: formData.tagline || null,
         description: formData.description || null,
-        company_id: company.id,
+        company_id: selectedCompanyId,
         owner_user_id: profile?.id,
         offering_type: 'membership',
         is_public: true,
         is_active: formData.is_active,
-        // ── Kit Commerce columns (added via apply-offerings-columns migration) ─
         purchase_type: formData.purchase_type,
         kit_product_id: formData.kit_product_id || null,
         kit_product_url: formData.kit_product_url || null,
@@ -260,40 +257,33 @@ export default function PlatformOfferingsManager() {
       };
 
       if (editingOffering) {
-        // Update
         const { error } = await supabase
           .from('market_offerings')
           .update(offeringData)
           .eq('id', editingOffering.id);
-
         if (error) throw error;
-        toast.success('Offering updated successfully');
+        toast.success('Offering updated');
       } else {
-        // Create
         const { error } = await supabase
           .from('market_offerings')
           .insert([offeringData]);
-
         if (error) throw error;
-        toast.success('Offering created successfully');
+        toast.success('Offering created');
       }
 
       setShowDialog(false);
       resetForm();
       fetchOfferings();
-    } catch (error: any) {
-      console.error('Error saving offering:', error);
+    } catch (err: any) {
+      console.error('Error saving offering:', err);
       toast.error('Failed to save offering');
     }
   };
 
   const handleSavePricing = async () => {
     if (!editingOffering) return;
-
     try {
       const finalPrice = pricingForm.base_price * (1 - pricingForm.discount_percentage / 100);
-
-      // Update pricing fields directly in market_offerings
       const { error } = await supabase
         .from('market_offerings')
         .update({
@@ -304,14 +294,12 @@ export default function PlatformOfferingsManager() {
           final_price: finalPrice,
         })
         .eq('id', editingOffering.id);
-
       if (error) throw error;
-
-      toast.success('Pricing updated successfully');
+      toast.success('Pricing updated');
       setShowPricingDialog(false);
       fetchOfferings();
-    } catch (error: any) {
-      console.error('Error saving pricing:', error);
+    } catch (err: any) {
+      console.error('Error saving pricing:', err);
       toast.error('Failed to save pricing');
     }
   };
@@ -349,10 +337,9 @@ export default function PlatformOfferingsManager() {
   };
 
   const handleAddFeature = () => {
-    if (newFeature.trim()) {
-      setFeatures([...features, newFeature.trim()]);
-      setNewFeature('');
-    }
+    if (!newFeature.trim()) return;
+    setFeatures([...features, newFeature.trim()]);
+    setNewFeature('');
   };
 
   const handleRemoveFeature = (index: number) => {
@@ -360,6 +347,7 @@ export default function PlatformOfferingsManager() {
   };
 
   const resetForm = () => {
+    setEditingOffering(null);
     setFormData({
       name: '',
       tagline: '',
@@ -374,7 +362,6 @@ export default function PlatformOfferingsManager() {
       external_url: '',
     });
     setFeatures([]);
-    setEditingOffering(null);
     setLinkedCourseId('');
     setLinkedProgramId('');
   };
@@ -384,36 +371,23 @@ export default function PlatformOfferingsManager() {
   };
 
   const handleImportOfferings = async () => {
-    if (!importJson.trim()) {
-      toast.error('Please paste JSON data');
+    if (!selectedCompanyId) {
+      toast.error('Please select a company first');
       return;
     }
-
+    if (!importJson.trim()) {
+      toast.error('Please paste JSON data first');
+      return;
+    }
     try {
       setImporting(true);
       const offeringsToImport = JSON.parse(importJson);
-
-      // Get platform company ID
-      const { data: company } = await supabase
-        .from('market_companies')
-        .select('id')
-        .eq('company_type', 'platform_company')
-        .single();
-
-      if (!company) {
-        toast.error('Platform company not found');
-        return;
-      }
-
-      const result = await importCompanyOfferings(supabase, company.id, offeringsToImport);
-
-      toast.success(`✅ Imported ${result.imported} offerings!`);
-
+      const result = await importCompanyOfferings(supabase, selectedCompanyId, offeringsToImport);
+      toast.success(`Imported ${result.imported} offerings!`);
       if (result.errors.length > 0) {
         console.error('Import errors:', result.errors);
-        toast.error(`${result.errors.length} failed - see console`);
+        toast.error(`${result.errors.length} failed — see console`);
       }
-
       setShowImportDialog(false);
       setImportJson('');
       fetchOfferings();
@@ -425,14 +399,10 @@ export default function PlatformOfferingsManager() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  // ── Derived ───────────────────────────────────────────────────────────────────
+  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <Breadcrumbs
@@ -449,208 +419,265 @@ export default function PlatformOfferingsManager() {
             Platform Offerings
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage CONNEXTED LABS memberships, programs, and services in the Market
+            Select a company, then manage its offerings in the Market
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setShowImportDialog(true)}
+            disabled={!selectedCompanyId}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Import JSON
           </Button>
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+          <Button
+            onClick={() => { resetForm(); setShowDialog(true); }}
+            disabled={!selectedCompanyId}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Offering
           </Button>
         </div>
       </div>
 
-      {/* Info Banner */}
-      <Card className="bg-blue-50 border-blue-200">
+      {/* ── Company Picker ──────────────────────────────────────────────────── */}
+      <Card className="border-indigo-200 bg-indigo-50">
         <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-semibold text-blue-900">Platform Offerings in the Market</p>
-              <p className="text-sm text-blue-700">
-                These offerings appear in the Markets section alongside member companies. They link to Kit Commerce
-                for payment processing. Update pricing and discount codes here to control what users see.
-              </p>
+          <div className="flex items-center gap-4">
+            <Building2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+            <div className="flex-1">
+              <Label className="text-indigo-900 font-semibold mb-1 block">
+                Select Company
+              </Label>
+              {loadingCompanies ? (
+                <p className="text-sm text-indigo-600">Loading companies…</p>
+              ) : (
+                <Select
+                  value={selectedCompanyId}
+                  onValueChange={setSelectedCompanyId}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Choose a company to manage its offerings…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
+            {selectedCompany && (
+              <div className="flex items-center gap-1 text-sm text-indigo-700">
+                <ChevronRight className="w-4 h-4" />
+                <span className="font-medium">{selectedCompany.name}</span>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Offerings List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Platform Offerings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {offerings.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">No platform offerings yet</p>
-              <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create First Offering
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Offering</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Pricing</TableHead>
-                  <TableHead>Discount Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {offerings.map((offering) => (
-                  <TableRow key={offering.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-semibold">{offering.name}</p>
-                        <p className="text-sm text-gray-500">{offering.tagline}</p>
-                        {offering.is_featured && (
-                          <Badge className="mt-1 bg-yellow-500">Featured</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {offering.purchase_type === 'kit_commerce' && (
-                        <div>
-                          <Badge className="bg-blue-500">💳 Kit Commerce</Badge>
-                          {offering.kit_product_id && (
-                            <code className="text-xs bg-gray-100 px-2 py-1 rounded block mt-1">
-                              {offering.kit_product_id}
-                            </code>
-                          )}
-                        </div>
-                      )}
-                      {offering.purchase_type === 'external_link' && (
-                        <div>
-                          <Badge className="bg-purple-500">🔗 External Link</Badge>
-                          {offering.external_url && (
-                            <a
-                              href={offering.external_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline block mt-1 flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              Open
-                            </a>
-                          )}
-                        </div>
-                      )}
-                      {offering.purchase_type === 'contact_only' && (
-                        <Badge className="bg-amber-500">📧 Contact Only</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {offering.base_price ? (
-                        <div className="space-y-1">
-                          <p className="text-sm">
-                            {offering.discount_percentage && offering.discount_percentage > 0 ? (
-                              <>
-                                <span className="line-through text-gray-400">
-                                  ${offering.base_price}
-                                </span>
-                                {' → '}
-                                <span className="font-semibold text-green-600">
-                                  ${offering.final_price?.toFixed(2) || offering.base_price}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="font-semibold">
-                                ${offering.base_price}
-                              </span>
-                            )}
-                          </p>
-                          {offering.discount_percentage && offering.discount_percentage > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              {offering.discount_percentage}% off
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">Not configured</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {offering.current_discount_code ? (
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
-                            {offering.current_discount_code}
-                          </code>
-                          <button
-                            onClick={() => {
-                              copyToClipboard(offering.current_discount_code!);
-                              toast.success('Code copied!');
-                            }}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {offering.is_active ? (
-                        <Badge className="bg-green-500">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Inactive</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditPricing(offering)}
-                        >
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          Pricing
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditOffering(offering)}
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/markets/offerings/${offering.slug}`, '_blank')}
-                        >
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {!selectedCompanyId && !loadingCompanies && (
+            <p className="text-xs text-indigo-600 mt-2 ml-9">
+              Pick any company above to view and manage its offerings. You can add offerings on behalf of any company.
+            </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Edit Offering Dialog */}
+      {/* ── Offerings List ──────────────────────────────────────────────────── */}
+      {selectedCompanyId && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              Offerings — {selectedCompany?.name}
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchOfferings}
+              disabled={loadingOfferings}
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingOfferings ? 'animate-spin' : ''}`} />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loadingOfferings ? (
+              <div className="flex items-center justify-center h-32">
+                <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            ) : offerings.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">No offerings yet for {selectedCompany?.name}</p>
+                <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Offering
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Offering</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Pricing</TableHead>
+                    <TableHead>Discount Code</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {offerings.map((offering) => (
+                    <TableRow key={offering.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-semibold">{offering.name}</p>
+                          <p className="text-sm text-gray-500">{offering.tagline}</p>
+                          {offering.is_featured && (
+                            <Badge className="mt-1 bg-yellow-500">Featured</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {offering.purchase_type === 'kit_commerce' && (
+                          <div>
+                            <Badge className="bg-blue-500">💳 Kit Commerce</Badge>
+                            {offering.kit_product_id && (
+                              <code className="text-xs bg-gray-100 px-2 py-1 rounded block mt-1">
+                                {offering.kit_product_id}
+                              </code>
+                            )}
+                          </div>
+                        )}
+                        {offering.purchase_type === 'external_link' && (
+                          <div>
+                            <Badge className="bg-purple-500">🔗 External Link</Badge>
+                            {offering.external_url && (
+                              <a
+                                href={offering.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Open
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {offering.purchase_type === 'contact_only' && (
+                          <Badge className="bg-amber-500">📧 Contact Only</Badge>
+                        )}
+                        {!offering.purchase_type && (
+                          <Badge variant="outline">Not set</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {offering.base_price ? (
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              {offering.discount_percentage && offering.discount_percentage > 0 ? (
+                                <>
+                                  <span className="line-through text-gray-400">
+                                    ${offering.base_price}
+                                  </span>
+                                  {' → '}
+                                  <span className="font-semibold text-green-600">
+                                    ${offering.final_price?.toFixed(2) || offering.base_price}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="font-semibold">${offering.base_price}</span>
+                              )}
+                            </p>
+                            {offering.discount_percentage && offering.discount_percentage > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {offering.discount_percentage}% off
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Not configured</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {offering.current_discount_code ? (
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">
+                              {offering.current_discount_code}
+                            </code>
+                            <button
+                              onClick={() => {
+                                copyToClipboard(offering.current_discount_code!);
+                                toast.success('Code copied!');
+                              }}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {offering.is_active ? (
+                          <Badge className="bg-green-500">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditPricing(offering)}
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            Pricing
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditOffering(offering)}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`/markets/offerings/${offering.slug}`, '_blank')}
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Edit / Create Offering Dialog ───────────────────────────────────── */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingOffering ? 'Edit' : 'Create'} Platform Offering
+              {editingOffering ? 'Edit' : 'Create'} Offering
+              {selectedCompany && (
+                <span className="text-gray-500 font-normal text-base ml-2">
+                  — {selectedCompany.name}
+                </span>
+              )}
             </DialogTitle>
             <DialogDescription>
               Configure the offering details. Pricing is managed separately.
@@ -664,7 +691,7 @@ export default function PlatformOfferingsManager() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="CONNEXTED LABS Membership"
+                placeholder="e.g. CONNEXTED LABS Membership"
               />
             </div>
 
@@ -674,7 +701,7 @@ export default function PlatformOfferingsManager() {
                 id="tagline"
                 value={formData.tagline}
                 onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                placeholder="Month-to-month access while we perfect the platform"
+                placeholder="Short description shown on the card"
               />
             </div>
 
@@ -685,11 +712,10 @@ export default function PlatformOfferingsManager() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                placeholder="Detailed description of what this offering includes..."
+                placeholder="Detailed description of what this offering includes…"
               />
             </div>
 
-            {/* Purchase Type Selector */}
             <div className="border-t pt-4">
               <Label htmlFor="purchase_type">Purchase Type</Label>
               <Select
@@ -701,13 +727,13 @@ export default function PlatformOfferingsManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="kit_commerce">
-                    💳 Kit Commerce - Full integration with pricing
+                    💳 Kit Commerce — full integration with pricing
                   </SelectItem>
                   <SelectItem value="external_link">
-                    🔗 External Link - Referral to external site (new tab)
+                    🔗 External Link — redirect to external site (new tab)
                   </SelectItem>
                   <SelectItem value="contact_only">
-                    📧 Contact Only - No direct purchase, inquiry form only
+                    📧 Contact Only — inquiry form, no direct purchase
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -718,7 +744,6 @@ export default function PlatformOfferingsManager() {
               </p>
             </div>
 
-            {/* Conditional Fields Based on Purchase Type */}
             {formData.purchase_type === 'kit_commerce' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
                 <div>
@@ -729,9 +754,7 @@ export default function PlatformOfferingsManager() {
                     onChange={(e) => setFormData({ ...formData, kit_product_id: e.target.value })}
                     placeholder="connexted-1-month-access"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The product permalink from ConvertKit Commerce
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">The product permalink from ConvertKit Commerce</p>
                 </div>
                 <div>
                   <Label htmlFor="kit_product_url">Kit Product URL</Label>
@@ -739,11 +762,9 @@ export default function PlatformOfferingsManager() {
                     id="kit_product_url"
                     value={formData.kit_product_url}
                     onChange={(e) => setFormData({ ...formData, kit_product_url: e.target.value })}
-                    placeholder="https://example.com/product"
+                    placeholder="https://app.kit.com/products/…"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The URL to the product page in ConvertKit Commerce
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">The URL to the product page in ConvertKit Commerce</p>
                 </div>
                 <div>
                   <Label htmlFor="kit_landing_page_url">Kit Landing Page URL</Label>
@@ -753,28 +774,23 @@ export default function PlatformOfferingsManager() {
                     onChange={(e) => setFormData({ ...formData, kit_landing_page_url: e.target.value })}
                     placeholder="https://example.com/landing"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The URL to the landing page for the product in ConvertKit Commerce
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">The landing page URL for this product</p>
                 </div>
               </div>
             )}
 
             {formData.purchase_type === 'external_link' && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-3">
-                <div>
-                  <Label htmlFor="external_url">External URL *</Label>
-                  <Input
-                    id="external_url"
-                    type="url"
-                    value={formData.external_url}
-                    onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
-                    placeholder="https://example.com/product"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The URL users will be directed to (opens in new tab)
-                  </p>
-                </div>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <Label htmlFor="external_url">External URL *</Label>
+                <Input
+                  id="external_url"
+                  type="url"
+                  value={formData.external_url}
+                  onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
+                  placeholder="https://example.com/product"
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Users will be directed here (opens in new tab)</p>
               </div>
             )}
 
@@ -799,9 +815,6 @@ export default function PlatformOfferingsManager() {
                   'Contact Us'
                 }
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Text shown on the action button
-              </p>
             </div>
 
             <div>
@@ -824,8 +837,8 @@ export default function PlatformOfferingsManager() {
                   <Input
                     value={newFeature}
                     onChange={(e) => setNewFeature(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddFeature()}
-                    placeholder="Add a feature..."
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddFeature()}
+                    placeholder="Add a feature…"
                   />
                   <Button onClick={handleAddFeature} size="sm">
                     <Plus className="w-4 h-4" />
@@ -862,10 +875,10 @@ export default function PlatformOfferingsManager() {
               <Label htmlFor="linked_course_id">Linked Course</Label>
               <Select
                 value={linkedCourseId}
-                onValueChange={(value) => setLinkedCourseId(value)}
+                onValueChange={setLinkedCourseId}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course" />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a course (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableCourses.map(course => (
@@ -875,19 +888,16 @@ export default function PlatformOfferingsManager() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Link this offering to a specific course
-              </p>
             </div>
 
             <div className="border-t pt-4">
               <Label htmlFor="linked_program_id">Linked Program</Label>
               <Select
                 value={linkedProgramId}
-                onValueChange={(value) => setLinkedProgramId(value)}
+                onValueChange={setLinkedProgramId}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a program" />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a program (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   {availablePrograms.map(program => (
@@ -897,9 +907,6 @@ export default function PlatformOfferingsManager() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Link this offering to a specific program
-              </p>
             </div>
           </div>
 
@@ -914,13 +921,13 @@ export default function PlatformOfferingsManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Pricing Dialog */}
+      {/* ── Pricing Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Pricing Configuration</DialogTitle>
             <DialogDescription>
-              Set the pricing display for {editingOffering?.name}. These values are shown to users on the offering page.
+              Set the pricing display for {editingOffering?.name}.
             </DialogDescription>
           </DialogHeader>
 
@@ -945,7 +952,7 @@ export default function PlatformOfferingsManager() {
                 onChange={(e) => setPricingForm({ ...pricingForm, current_discount_code: e.target.value.toUpperCase() })}
                 placeholder="BETA50"
               />
-              <p className="text-xs text-gray-500 mt-1">The code users should use at checkout</p>
+              <p className="text-xs text-gray-500 mt-1">The code users should enter at checkout</p>
             </div>
 
             <div>
@@ -956,7 +963,6 @@ export default function PlatformOfferingsManager() {
                 onChange={(e) => setPricingForm({ ...pricingForm, discount_description: e.target.value })}
                 placeholder="50% off for beta testers"
               />
-              <p className="text-xs text-gray-500 mt-1">How you describe the discount</p>
             </div>
 
             <div>
@@ -970,10 +976,8 @@ export default function PlatformOfferingsManager() {
                 min="0"
                 max="100"
               />
-              <p className="text-xs text-gray-500 mt-1">Used to calculate final displayed price</p>
             </div>
 
-            {/* Price Preview */}
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <h4 className="font-semibold text-green-900 mb-2">Price Preview</h4>
@@ -1011,20 +1015,19 @@ export default function PlatformOfferingsManager() {
             <Button variant="outline" onClick={() => setShowPricingDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSavePricing}>
-              Update Pricing
-            </Button>
+            <Button onClick={handleSavePricing}>Update Pricing</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
+      {/* ── Import Dialog ───────────────────────────────────────────────────── */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Import Offerings from JSON</DialogTitle>
             <DialogDescription>
-              Paste JSON data to import multiple offerings at once.
+              Paste JSON data to import multiple offerings at once into{' '}
+              <strong>{selectedCompany?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -1036,7 +1039,7 @@ export default function PlatformOfferingsManager() {
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 rows={10}
-                placeholder="Paste JSON data here..."
+                placeholder="Paste JSON data here…"
               />
             </div>
           </div>
@@ -1046,7 +1049,7 @@ export default function PlatformOfferingsManager() {
               Cancel
             </Button>
             <Button onClick={handleImportOfferings} disabled={importing}>
-              {importing ? 'Importing...' : 'Import Offerings'}
+              {importing ? 'Importing…' : 'Import Offerings'}
             </Button>
           </DialogFooter>
         </DialogContent>
