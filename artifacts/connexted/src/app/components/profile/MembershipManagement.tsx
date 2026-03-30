@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { accessTicketService } from '@/services/accessTicketService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -15,10 +17,22 @@ import {
   UserCheck,
   Info,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  Tag,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { toast } from 'sonner';
+
+interface MarketOffering {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  purchase_type: string;
+  external_url?: string;
+}
 
 interface MembershipManagementProps {
   userId: string;
@@ -41,10 +55,12 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
     memberContainers: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [upgradeOfferings, setUpgradeOfferings] = useState<MarketOffering[]>([]);
 
   useEffect(() => {
     fetchUserClassInfo();
     fetchUsage();
+    fetchUpgradeOfferings();
   }, [userId]);
 
   const fetchUserClassInfo = async () => {
@@ -124,6 +140,32 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
     }
   };
 
+  const fetchUpgradeOfferings = async () => {
+    try {
+      // Fetch user's existing access tickets for marketplace offerings
+      const tickets = await accessTicketService.getUserActiveTickets(userId);
+      const claimedOfferingIds = new Set(
+        tickets
+          .filter(t => t.container_type === 'marketplace_offering' && t.container_id)
+          .map(t => t.container_id as string)
+      );
+
+      // Fetch all active marketplace offerings
+      const { data: offerings, error } = await supabase
+        .from('market_offerings')
+        .select('id, name, slug, description, purchase_type, external_url')
+        .order('name');
+
+      if (error) return;
+
+      // Only show offerings the user doesn't already have
+      const available = (offerings || []).filter(o => !claimedOfferingIds.has(o.id));
+      setUpgradeOfferings(available);
+    } catch (err) {
+      // Non-blocking — upgrade suggestions are best-effort
+    }
+  };
+
   if (!profile || loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -169,6 +211,28 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
           <UsageBreakdown usage={usage} limits={userClassInfo} />
         </CardContent>
       </Card>
+
+      {/* Upgrade Opportunities */}
+      {upgradeOfferings.length > 0 && (
+        <Card className="border-2 border-emerald-200 bg-emerald-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
+              Available for You
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Offerings you can access — you don't have any of these yet.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {upgradeOfferings.map((offering) => (
+                <OfferingUpgradeCard key={offering.id} offering={offering} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tier Comparison */}
       <Card>
@@ -441,6 +505,55 @@ function TierComparisonGrid({ currentClass }: { currentClass: number }) {
         </Card>
       ))}
     </div>
+  );
+}
+
+function OfferingUpgradeCard({ offering }: { offering: MarketOffering }) {
+  const purchaseLabels: Record<string, { label: string; color: string }> = {
+    free_claim:    { label: 'Free',          color: 'bg-green-100 text-green-700 border-green-200' },
+    kit_commerce:  { label: 'Purchase',      color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    external_link: { label: 'External',      color: 'bg-purple-100 text-purple-700 border-purple-200' },
+    contact_only:  { label: 'Contact Us',    color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  };
+  const badge = purchaseLabels[offering.purchase_type] ?? { label: offering.purchase_type, color: 'bg-gray-100 text-gray-700 border-gray-200' };
+
+  const isExternal = offering.purchase_type === 'external_link' && offering.external_url;
+
+  const cardContent = (
+    <div className="flex flex-col h-full">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <span className="font-semibold text-gray-900 leading-tight">{offering.name}</span>
+        <span className={cn('text-xs border rounded-full px-2 py-0.5 whitespace-nowrap shrink-0', badge.color)}>
+          {badge.label}
+        </span>
+      </div>
+      {offering.description && (
+        <p className="text-sm text-gray-600 flex-1 line-clamp-2 mb-3">{offering.description}</p>
+      )}
+      <div className="flex items-center gap-1 text-sm font-medium text-emerald-700 mt-auto">
+        {isExternal ? (
+          <>View offering <ExternalLink className="w-3.5 h-3.5" /></>
+        ) : (
+          <>View offering <ArrowRight className="w-3.5 h-3.5" /></>
+        )}
+      </div>
+    </div>
+  );
+
+  const cardClass = 'block p-4 rounded-lg border border-emerald-200 bg-white hover:border-emerald-400 hover:shadow-sm transition-all cursor-pointer h-full';
+
+  if (isExternal) {
+    return (
+      <a href={offering.external_url} target="_blank" rel="noopener noreferrer" className={cardClass}>
+        {cardContent}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={`/markets/offerings/${offering.slug}`} className={cardClass}>
+      {cardContent}
+    </Link>
   );
 }
 
