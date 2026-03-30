@@ -273,6 +273,32 @@ function getActivityIcon(activityType?: string) {
   return ACTIVITY_ICON_MAP[iconName] || <Activity className="w-4 h-4 text-green-500" />;
 }
 
+// Maps each activity type to the Supabase table where specific instances live.
+// null = no specific instance selection (generic / open-ended)
+const ACTIVITY_TABLE_MAP: Record<string, { table: string; titleField: string } | null> = {
+  join_circle:         { table: 'circles',       titleField: 'name'  },
+  attend_meeting:      { table: 'meetings',       titleField: 'title' },
+  post_in_forum:       { table: 'forum_threads',  titleField: 'title' },
+  create_document:     { table: 'documents',      titleField: 'title' },
+  complete_checklist:  { table: 'checklists',     titleField: 'title' },
+  read_book:           { table: 'books',          titleField: 'title' },
+  explore_deck:        { table: 'decks',          titleField: 'title' },
+  attend_event:        { table: 'events',         titleField: 'title' },
+  create_build:        { table: 'builds',         titleField: 'title' },
+  give_pitch:          { table: 'pitches',        titleField: 'title' },
+  join_meetup:         { table: 'meetups',        titleField: 'title' },
+  participate_standup: { table: 'standups',       titleField: 'title' },
+  join_sprint:         { table: 'sprints',        titleField: 'title' },
+  use_table:           { table: 'tables',         titleField: 'name'  },
+  use_playlist:        { table: 'playlists',      titleField: 'title' },
+  use_library:         { table: 'libraries',      titleField: 'name'  },
+  use_elevator:        { table: 'elevators',      titleField: 'name'  },
+  watch_episode:       null,
+  post_moment:         null,
+  add_portfolio_item:  null,
+  custom:              null,
+};
+
 const VERIFICATION_METHODS = [
   { value: 'self_report', label: 'Self-Report', description: 'Member reports completion, no verification needed' },
   { value: 'admin_verify', label: 'Admin Verify', description: 'Member reports, admin must approve' },
@@ -308,6 +334,12 @@ export default function PathwayAdminPage() {
   // Tag/role inputs
   const [tagInput, setTagInput] = useState('');
   const [roleInput, setRoleInput] = useState('');
+
+  // Instance picker state (select a specific item for an activity step)
+  const [pendingActivityType, setPendingActivityType] = useState<string | null>(null);
+  const [instanceQuery, setInstanceQuery] = useState('');
+  const [instanceResults, setInstanceResults] = useState<{ id: string; title: string }[]>([]);
+  const [searchingInstances, setSearchingInstances] = useState(false);
 
   // Only load pathways once profile is available (auth session ready)
   useEffect(() => {
@@ -410,7 +442,31 @@ export default function PathwayAdminPage() {
     setSearchResults([]);
   }
 
-  function addActivityStep(activityType: string) {
+  async function searchInstances(query: string) {
+    if (!pendingActivityType) return;
+    const tableInfo = ACTIVITY_TABLE_MAP[pendingActivityType];
+    if (!tableInfo) return;
+    setSearchingInstances(true);
+    try {
+      const { data } = await supabase
+        .from(tableInfo.table as any)
+        .select(`id, ${tableInfo.titleField}`)
+        .ilike(tableInfo.titleField, `%${query}%`)
+        .limit(12);
+      setInstanceResults(
+        (data || []).map((row: any) => ({
+          id: row.id,
+          title: row[tableInfo.titleField] || 'Untitled',
+        }))
+      );
+    } catch (err) {
+      console.error('Instance search error:', err);
+    } finally {
+      setSearchingInstances(false);
+    }
+  }
+
+  function addActivityStep(activityType: string, targetId?: string, targetTitle?: string) {
     const activityDef = ACTIVITY_TYPES[activityType];
     if (!activityDef) return;
 
@@ -418,19 +474,27 @@ export default function PathwayAdminPage() {
       id: crypto.randomUUID(),
       order_index: form.steps.length,
       step_type: 'activity',
-      step_id: '',
+      step_id: targetId || '',
       title: activityDef.label,
       description: null,
       is_required: true,
       allow_skip: false,
       activity_type: activityType,
       verification_method: 'self_report',
+      activity_criteria: targetId
+        ? { target_id: targetId, target_title: targetTitle }
+        : undefined,
     };
 
     setForm(prev => ({
       ...prev,
       steps: [...prev.steps, newStep],
     }));
+
+    // Close the picker
+    setPendingActivityType(null);
+    setInstanceQuery('');
+    setInstanceResults([]);
   }
 
   function updateStepVerification(stepId: string, method: 'self_report' | 'admin_verify' | 'auto_detect') {
@@ -987,18 +1051,120 @@ export default function PathwayAdminPage() {
           <div>
             <Label className="text-xs text-gray-500 uppercase tracking-wide mb-2 block">Add Platform Activity</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {Object.entries(ACTIVITY_TYPES).map(([key, def]) => (
-                <button
-                  key={key}
-                  onClick={() => addActivityStep(key)}
-                  className="flex items-center gap-2 p-2 text-left text-xs rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors"
-                >
-                  {getActivityIcon(key)}
-                  <span className="truncate">{def.label}</span>
-                </button>
-              ))}
+              {Object.entries(ACTIVITY_TYPES).map(([key, def]) => {
+                const hasTable = !!ACTIVITY_TABLE_MAP[key];
+                const isActive = pendingActivityType === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (hasTable) {
+                        if (isActive) {
+                          setPendingActivityType(null);
+                          setInstanceQuery('');
+                          setInstanceResults([]);
+                        } else {
+                          setPendingActivityType(key);
+                          setInstanceQuery('');
+                          setInstanceResults([]);
+                        }
+                      } else {
+                        addActivityStep(key);
+                      }
+                    }}
+                    className={`flex items-center gap-2 p-2 text-left text-xs rounded-lg border transition-colors ${
+                      isActive
+                        ? 'bg-green-100 border-green-400 ring-1 ring-green-400'
+                        : 'border-gray-200 hover:bg-green-50 hover:border-green-300'
+                    }`}
+                  >
+                    {getActivityIcon(key)}
+                    <span className="truncate flex-1">{def.label}</span>
+                    {hasTable && <Search className="w-3 h-3 text-gray-400 flex-shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Instance Picker — appears when an activity type with a table is selected */}
+          {pendingActivityType && ACTIVITY_TABLE_MAP[pendingActivityType] && (
+            <div className="border border-green-300 rounded-lg bg-green-50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {getActivityIcon(pendingActivityType)}
+                  <span className="text-sm font-medium">
+                    Select a specific {ACTIVITY_TYPES[pendingActivityType]?.label.toLowerCase()}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setPendingActivityType(null);
+                    setInstanceQuery('');
+                    setInstanceResults([]);
+                  }}
+                >
+                  <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    value={instanceQuery}
+                    onChange={e => {
+                      setInstanceQuery(e.target.value);
+                      if (e.target.value.length >= 2) searchInstances(e.target.value);
+                      if (e.target.value === '') setInstanceResults([]);
+                    }}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchInstances(instanceQuery))}
+                    placeholder={`Search for a specific ${ACTIVITY_TYPES[pendingActivityType]?.label.toLowerCase()}...`}
+                    className="pl-9 bg-white"
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => searchInstances(instanceQuery)}
+                  disabled={searchingInstances}
+                >
+                  {searchingInstances ? '...' : 'Search'}
+                </Button>
+              </div>
+
+              {instanceResults.length > 0 && (
+                <div className="border rounded-lg divide-y max-h-44 overflow-y-auto bg-white">
+                  {instanceResults.map(result => (
+                    <button
+                      key={result.id}
+                      onClick={() => addActivityStep(pendingActivityType, result.id, result.title)}
+                      className="w-full flex items-center gap-3 p-2.5 hover:bg-green-50 transition-colors text-left"
+                    >
+                      {getActivityIcon(pendingActivityType)}
+                      <span className="text-sm flex-1 truncate">{result.title}</span>
+                      <Plus className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {instanceQuery.length >= 2 && !searchingInstances && instanceResults.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-1">No results found</p>
+              )}
+
+              <div className="flex items-center gap-2 pt-1 border-t border-green-200">
+                <span className="text-xs text-gray-400">Don't need a specific item?</span>
+                <button
+                  onClick={() => addActivityStep(pendingActivityType)}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                >
+                  Add as generic activity →
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Current steps */}
           {form.steps.length === 0 ? (
@@ -1039,6 +1205,14 @@ export default function PathwayAdminPage() {
                       {/* Title */}
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium truncate block">{step.title}</span>
+                        {step.step_type === 'activity' && step.activity_criteria?.target_title && (
+                          <span className="text-xs text-green-700 font-medium truncate block">
+                            → {step.activity_criteria.target_title}
+                          </span>
+                        )}
+                        {step.step_type === 'activity' && !step.activity_criteria?.target_title && (
+                          <span className="text-[10px] text-gray-400 italic">Any instance</span>
+                        )}
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
                             step.step_type === 'activity' ? 'text-green-600 border-green-300' : ''
