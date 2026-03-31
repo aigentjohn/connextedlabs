@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { accessTicketService } from '@/services/accessTicketService';
-import { templateApi } from '@/services/ticketSystemService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -23,8 +22,6 @@ import {
   Tag,
   ExternalLink,
   Ticket,
-  CheckCircle,
-  Loader2,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { toast } from 'sonner';
@@ -38,14 +35,6 @@ interface MarketOffering {
   external_url?: string;
 }
 
-interface RedeemableTicket {
-  offeringId: string;
-  offeringName: string;
-  targetClass: number;
-  targetClassName: string;
-  alreadyActive: boolean;
-}
-
 interface MembershipManagementProps {
   userId: string;
 }
@@ -57,14 +46,8 @@ interface UsageData {
   memberContainers: number;
 }
 
-const CLASS_NAMES: Record<number, string> = {
-  1: 'Visitor', 2: 'Guest', 3: 'Basic User', 4: 'Attender',
-  5: 'Regular User', 6: 'Regular User Plus', 7: 'Power User',
-  8: 'Circle Leader', 9: 'Circle Leader Plus', 10: 'Platform Admin',
-};
-
 export function MembershipManagement({ userId }: MembershipManagementProps) {
-  const { profile, refreshProfile } = useAuth();
+  const { profile } = useAuth();
   const [userClassInfo, setUserClassInfo] = useState<any>(null);
   const [usage, setUsage] = useState<UsageData>({
     adminCircles: 0,
@@ -74,14 +57,11 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
   });
   const [loading, setLoading] = useState(true);
   const [upgradeOfferings, setUpgradeOfferings] = useState<MarketOffering[]>([]);
-  const [redeemableTickets, setRedeemableTickets] = useState<RedeemableTicket[]>([]);
-  const [applyingUpgrade, setApplyingUpgrade] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUserClassInfo();
     fetchUsage();
     fetchUpgradeOfferings();
-    fetchRedeemableTickets();
   }, [userId]);
 
   const fetchUserClassInfo = async () => {
@@ -187,96 +167,6 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
     }
   };
 
-  const fetchRedeemableTickets = async () => {
-    try {
-      const currentClass = (profile as any)?.user_class || 1;
-
-      // Get all the user's active offering-level access tickets
-      const tickets = await accessTicketService.getUserActiveTickets(userId);
-      const offeringTickets = tickets.filter(
-        t => t.container_type === 'marketplace_offering' && t.container_id
-      );
-
-      if (offeringTickets.length === 0) return;
-
-      // For each offering ticket, look up what template unlocks it (via the edge function)
-      // and check if that template grants a user_class upgrade.
-      const results: RedeemableTicket[] = [];
-
-      // Fetch offering names in one query
-      const offeringIds = offeringTickets.map(t => t.container_id as string);
-      const { data: offerings } = await supabase
-        .from('market_offerings')
-        .select('id, name')
-        .in('id', offeringIds);
-
-      const offeringNameMap: Record<string, string> = {};
-      (offerings || []).forEach(o => { offeringNameMap[o.id] = o.name; });
-
-      // Look up templates for each offering
-      await Promise.all(
-        offeringTickets.map(async (ticket) => {
-          try {
-            const { templates } = await templateApi.forOffering(ticket.container_id as string);
-            const classTemplate = templates.find(
-              t => t.unlocks?.type === 'user_class' && t.unlocks?.userClass
-            );
-            if (!classTemplate) return;
-
-            const targetClass = classTemplate.unlocks.userClass!;
-            results.push({
-              offeringId: ticket.container_id as string,
-              offeringName: offeringNameMap[ticket.container_id as string] || 'Membership Ticket',
-              targetClass,
-              targetClassName: CLASS_NAMES[targetClass] || `Class ${targetClass}`,
-              alreadyActive: currentClass >= targetClass,
-            });
-          } catch (_) { /* skip this offering if template lookup fails */ }
-        })
-      );
-
-      // Sort: actionable (not yet applied) first, then by class number desc
-      results.sort((a, b) => {
-        if (a.alreadyActive !== b.alreadyActive) return a.alreadyActive ? 1 : -1;
-        return b.targetClass - a.targetClass;
-      });
-
-      setRedeemableTickets(results);
-    } catch (err) {
-      // Non-blocking
-    }
-  };
-
-  const handleApplyUpgrade = async (ticket: RedeemableTicket) => {
-    if (ticket.alreadyActive) return;
-    setApplyingUpgrade(ticket.offeringId);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ user_class: ticket.targetClass })
-        .eq('id', userId);
-
-      if (error) throw new Error(error.message);
-
-      await refreshProfile();
-
-      // Mark as applied locally
-      setRedeemableTickets(prev =>
-        prev.map(t =>
-          t.offeringId === ticket.offeringId ? { ...t, alreadyActive: true } : t
-        )
-      );
-
-      // Refresh class info panel
-      fetchUserClassInfo();
-
-      toast.success(`Upgraded to ${ticket.targetClassName} (Class ${ticket.targetClass})!`);
-    } catch (err: any) {
-      toast.error(`Failed to apply upgrade: ${err.message}`);
-    } finally {
-      setApplyingUpgrade(null);
-    }
-  };
 
   if (!profile || loading) {
     return (
@@ -311,78 +201,26 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
         </CardContent>
       </Card>
 
-      {/* Redeemable Upgrade Tickets */}
-      {redeemableTickets.length > 0 && (
-        <Card className="border-2 border-violet-200 bg-violet-50/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      {/* My Tickets link */}
+      <Card className="border-2 border-violet-200 bg-violet-50/30">
+        <CardContent className="flex items-center justify-between gap-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
               <Ticket className="w-5 h-5 text-violet-600" />
-              Your Upgrade Tickets
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
-              You have tickets that can change your user class. Apply one below.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {redeemableTickets.map((ticket) => {
-                const isApplying = applyingUpgrade === ticket.offeringId;
-                const currentClass = (profile as any).user_class || 1;
-
-                return (
-                  <div
-                    key={ticket.offeringId}
-                    className={cn(
-                      'flex items-center justify-between gap-4 p-4 rounded-lg border',
-                      ticket.alreadyActive
-                        ? 'bg-gray-50 border-gray-200'
-                        : 'bg-white border-violet-200'
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 truncate">
-                          {ticket.offeringName}
-                        </span>
-                        {ticket.alreadyActive && (
-                          <Badge variant="outline" className="text-xs border-green-300 text-green-700 shrink-0">
-                            Applied
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        Unlocks: <strong>{ticket.targetClassName}</strong> (Class {ticket.targetClass})
-                        {!ticket.alreadyActive && currentClass < ticket.targetClass && (
-                          <span className="text-violet-600 ml-1">
-                            — upgrade from Class {currentClass}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    {ticket.alreadyActive ? (
-                      <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => handleApplyUpgrade(ticket)}
-                        disabled={isApplying}
-                        className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
-                      >
-                        {isApplying ? (
-                          <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Applying…</>
-                        ) : (
-                          'Apply Ticket'
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div>
+              <p className="font-medium text-gray-900">Have upgrade tickets?</p>
+              <p className="text-sm text-gray-500">Go to My Tickets to redeem them and apply your membership upgrade.</p>
+            </div>
+          </div>
+          <Link to="/my-tickets">
+            <Button variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-100 shrink-0">
+              My Tickets
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* Usage Overview */}
       <Card>

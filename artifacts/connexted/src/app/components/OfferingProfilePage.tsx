@@ -43,12 +43,14 @@ import {
   ChevronRight,
   Gift,
   Loader2,
+  Ticket,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { KitCommerceButton } from '@/app/components/KitCommerceButton';
 import { WaitlistBlock } from '@/app/components/shared/WaitlistBlock';
-import { templateApi, type TicketTemplate } from '@/services/ticketSystemService';
+import { templateApi, inventoryApi, waitlistApi, type TicketTemplate } from '@/services/ticketSystemService';
 import { accessTicketService } from '@/services/accessTicketService';
 
 interface OfferingDetail {
@@ -114,6 +116,12 @@ export default function OfferingProfilePage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  // Inventory claim / waitlist state
+  const [claimingTicket, setClaimingTicket] = useState(false);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'on_waitlist' | 'not_on_waitlist'>('idle');
+  const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null);
+  const [waitlistTotal, setWaitlistTotal] = useState(0);
 
   // Inquiry form state
   const [inquirerName, setInquirerName] = useState('');
@@ -216,7 +224,25 @@ export default function OfferingProfilePage() {
       // Get linked ticket template (public endpoint — works for logged-out visitors)
       try {
         const { templates: tmplList } = await templateApi.forOffering(offeringData.id);
-        setLinkedTemplate(tmplList?.[0] ?? null);
+        const tmpl = tmplList?.[0] ?? null;
+        setLinkedTemplate(tmpl);
+
+        // If user is logged in, check waitlist position for this offering
+        if (profile?.id && tmpl) {
+          try {
+            const pos = await waitlistApi.getPosition('marketplace_offering', offeringData.id);
+            if (pos.onWaitlist) {
+              setWaitlistStatus('on_waitlist');
+              setWaitlistPosition(pos.position);
+              setWaitlistTotal(pos.total);
+            } else {
+              setWaitlistStatus('not_on_waitlist');
+              setWaitlistTotal(pos.total);
+            }
+          } catch {
+            setWaitlistStatus('not_on_waitlist');
+          }
+        }
       } catch (tmplErr) {
         console.warn('Could not load linked ticket template:', tmplErr);
       }
@@ -369,6 +395,66 @@ export default function OfferingProfilePage() {
     }
   };
 
+  const handleClaimTicket = async () => {
+    if (!profile || !linkedTemplate) return;
+    try {
+      setClaimingTicket(true);
+      const { items } = await inventoryApi.listByTemplate(linkedTemplate.id);
+      const available = items.find(i => i.status === 'available');
+      if (!available) {
+        toast.error('No tickets left — the inventory was just claimed. Try joining the waitlist.');
+        return;
+      }
+      await inventoryApi.assign(available.id, { userId: profile.id, pricePaidCents: 0 });
+      toast.success('Ticket claimed! Go to My Tickets to redeem it.', {
+        action: { label: 'My Tickets', onClick: () => navigate('/my-tickets') },
+      });
+    } catch (err: any) {
+      toast.error(`Could not claim ticket: ${err.message}`);
+    } finally {
+      setClaimingTicket(false);
+    }
+  };
+
+  const handleJoinWaitlist = async () => {
+    if (!profile || !linkedTemplate) return;
+    try {
+      setJoiningWaitlist(true);
+      const result = await waitlistApi.join(
+        'marketplace_offering',
+        offering.id,
+        offering.name,
+        linkedTemplate.id,
+      );
+      if (result.alreadyOnWaitlist) {
+        setWaitlistStatus('on_waitlist');
+        setWaitlistPosition(result.position);
+        setWaitlistTotal(result.total);
+        toast.info('You\'re already on this waitlist.');
+      } else {
+        setWaitlistStatus('on_waitlist');
+        setWaitlistPosition(result.position);
+        setWaitlistTotal(result.total);
+        toast.success(`You're #${result.position} on the waitlist. We'll notify you when a ticket is available.`);
+      }
+    } catch (err: any) {
+      toast.error(`Could not join waitlist: ${err.message}`);
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
+
+  const handleLeaveWaitlist = async () => {
+    try {
+      await waitlistApi.leave('marketplace_offering', offering.id);
+      setWaitlistStatus('not_on_waitlist');
+      setWaitlistPosition(null);
+      toast.success('Removed from waitlist.');
+    } catch (err: any) {
+      toast.error(`Could not leave waitlist: ${err.message}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Breadcrumbs
@@ -482,17 +568,101 @@ export default function OfferingProfilePage() {
             </div>
           )}
 
-          {/* ── WaitlistBlock — only show when user does NOT have access ── */}
-          {!hasAccess && !checkingAccess && linkedTemplate && (
-            <WaitlistBlock
-              template={linkedTemplate}
-              profile={profile}
-              displayName={offering.name}
-            />
-          )}
+          {/* ── Inventory Ticket Claim / Waitlist ── */}
+          {!hasAccess && !checkingAccess && linkedTemplate && (() => {
+            const inventoryCount = linkedTemplate.inventoryCount ?? 0;
+            const assignedCount = linkedTemplate.assignedCount ?? 0;
+            const available = Math.max(0, inventoryCount - assignedCount);
+            const hasInventory = inventoryCount > 0;
 
-          {/* Free Claim Button */}
-          {!hasAccess && offering.purchase_type === 'free_claim' && (
+            if (!profile) {
+              return (
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+                  <Ticket className="w-4 h-4 inline mr-1" />
+                  {available > 0
+                    ? 'Tickets are available — sign in to claim yours.'
+                    : 'Sign in to join the waitlist for this offering.'}
+                </div>
+              );
+            }
+
+            if (available > 0) {
+              return (
+                <div className="space-y-2">
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                    onClick={handleClaimTicket}
+                    disabled={claimingTicket}
+                  >
+                    {claimingTicket ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Ticket className="w-4 h-4 mr-2" />
+                    )}
+                    {claimingTicket ? 'Claiming…' : 'Claim Ticket'}
+                  </Button>
+                  <p className="text-xs text-gray-500">
+                    {available} ticket{available !== 1 ? 's' : ''} available — go to <a href="/my-tickets" className="underline text-indigo-600">My Tickets</a> to redeem after claiming.
+                  </p>
+                </div>
+              );
+            }
+
+            if (waitlistStatus === 'on_waitlist') {
+              return (
+                <div className="rounded-lg border-2 border-amber-200 bg-amber-50 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-800 font-semibold">
+                      <Clock className="w-4 h-4" />
+                      You're on the waitlist
+                    </div>
+                    {waitlistPosition !== null && (
+                      <span className="text-sm font-bold text-amber-900">
+                        #{waitlistPosition} of {waitlistTotal}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    We'll notify you when a ticket becomes available.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300"
+                    onClick={handleLeaveWaitlist}
+                  >
+                    Leave Waitlist
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full md:w-auto border-amber-400 text-amber-700 hover:bg-amber-50"
+                  onClick={handleJoinWaitlist}
+                  disabled={joiningWaitlist}
+                >
+                  {joiningWaitlist ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Clock className="w-4 h-4 mr-2" />
+                  )}
+                  {joiningWaitlist ? 'Joining…' : 'Join Waitlist'}
+                </Button>
+                {hasInventory && (
+                  <p className="text-xs text-gray-500">All tickets are currently claimed. Join to get notified when one opens up.</p>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Free Claim Button — only when no linked template exists */}
+          {!hasAccess && !linkedTemplate && offering.purchase_type === 'free_claim' && (
             profile ? (
               <Button
                 size="lg"

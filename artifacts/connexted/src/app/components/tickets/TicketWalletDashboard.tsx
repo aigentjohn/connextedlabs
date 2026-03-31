@@ -24,12 +24,12 @@ import {
 import {
   Ticket, Clock, DollarSign, ShieldCheck, Calendar, Hash,
   Loader2, ChevronRight, Users, TrendingUp, AlertCircle, X,
-  ExternalLink, Award, Copy,
+  ExternalLink, Award, Copy, CheckCircle, Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  inventoryApi, waitlistApi,
-  type InventoryItem, type WaitlistEntry,
+  inventoryApi, waitlistApi, templateApi,
+  type InventoryItem, type WaitlistEntry, type TicketTemplate,
   formatCents, templateColor,
 } from '@/services/ticketSystemService';
 import { supabase } from '@/lib/supabase';
@@ -50,9 +50,13 @@ function containerPath(type: string, id: string): string {
 interface TicketCardProps {
   item: InventoryItem;
   accessTicket?: any;
+  template?: TicketTemplate | null;
+  currentUserClass?: number;
+  onRedeem?: () => Promise<void>;
 }
 
-function TicketCard({ item, accessTicket }: TicketCardProps) {
+function TicketCard({ item, accessTicket, template, currentUserClass = 1, onRedeem }: TicketCardProps) {
+  const [redeeming, setRedeeming] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Try to infer a color from something unique to the template
@@ -183,6 +187,32 @@ function TicketCard({ item, accessTicket }: TicketCardProps) {
           </div>
         )}
 
+        {/* Redeem button — for user_class upgrade templates */}
+        {template?.unlocks?.type === 'user_class' && onRedeem && (() => {
+          const targetClass = template.unlocks.userClass ?? 0;
+          const alreadyUpgraded = currentUserClass >= targetClass;
+          const handleClick = async () => {
+            setRedeeming(true);
+            try { await onRedeem(); } finally { setRedeeming(false); }
+          };
+          return alreadyUpgraded ? (
+            <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 border border-green-200">
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              <span>Upgrade already applied</span>
+            </div>
+          ) : (
+            <Button
+              className="w-full mt-1 bg-violet-600 hover:bg-violet-700 text-white"
+              size="sm"
+              onClick={handleClick}
+              disabled={redeeming}
+            >
+              {redeeming ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              {redeeming ? 'Redeeming…' : 'Redeem Ticket'}
+            </Button>
+          );
+        })()}
+
         {/* CTA */}
         {unlockInfo?.containerId && unlockInfo.containerType !== 'marketplace_offering' && (
           <Link to={containerPath(unlockInfo.containerType, unlockInfo.containerId)}>
@@ -301,10 +331,11 @@ function WaitlistCard({ entry, onLeave }: { entry: WaitlistEntry; onLeave: () =>
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TicketWalletDashboard() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [waitlists, setWaitlists] = useState<WaitlistEntry[]>([]);
   const [accessTickets, setAccessTickets] = useState<Record<string, any>>({});
+  const [templates, setTemplates] = useState<Record<string, TicketTemplate>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -332,6 +363,21 @@ export function TicketWalletDashboard() {
         (tickets || []).forEach((t: any) => { map[t.id] = t; });
         setAccessTickets(map);
       }
+
+      // Batch-fetch templates for each unique templateId to get unlocks metadata
+      const uniqueTemplateIds = [...new Set(items.map(i => i.templateId).filter(Boolean))];
+      if (uniqueTemplateIds.length > 0) {
+        const results = await Promise.allSettled(
+          uniqueTemplateIds.map(id => templateApi.get(id))
+        );
+        const tmplMap: Record<string, TicketTemplate> = {};
+        results.forEach((r, idx) => {
+          if (r.status === 'fulfilled' && r.value?.template) {
+            tmplMap[uniqueTemplateIds[idx]] = r.value.template;
+          }
+        });
+        setTemplates(tmplMap);
+      }
     } catch (err: any) {
       console.error('TicketWalletDashboard load error:', err);
       // Don't show error toast if it's just an authentication issue
@@ -342,6 +388,31 @@ export function TicketWalletDashboard() {
       setLoading(false);
     }
   }, [profile?.id]);
+
+  const handleRedeem = useCallback(async (item: InventoryItem, template: TicketTemplate) => {
+    if (!profile?.id) return;
+    const targetClass = template.unlocks?.userClass;
+    if (!targetClass) {
+      toast.error('This ticket does not unlock a user class upgrade.');
+      return;
+    }
+    const currentClass = (profile as any).user_class ?? 1;
+    if (currentClass >= targetClass) {
+      toast.info('You already have this class or higher.');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ user_class: targetClass })
+        .eq('id', profile.id);
+      if (error) throw error;
+      await refreshProfile();
+      toast.success(`User class upgraded to Class ${targetClass}!`);
+    } catch (err: any) {
+      toast.error(`Redemption failed: ${err.message}`);
+    }
+  }, [profile, refreshProfile]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -439,13 +510,19 @@ export function TicketWalletDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {inventoryItems.map(item => (
-                  <TicketCard
-                    key={item.id}
-                    item={item}
-                    accessTicket={item.accessTicketId ? accessTickets[item.accessTicketId] : undefined}
-                  />
-                ))}
+                {inventoryItems.map(item => {
+                  const tmpl = templates[item.templateId] ?? null;
+                  return (
+                    <TicketCard
+                      key={item.id}
+                      item={item}
+                      accessTicket={item.accessTicketId ? accessTickets[item.accessTicketId] : undefined}
+                      template={tmpl}
+                      currentUserClass={(profile as any)?.user_class ?? 1}
+                      onRedeem={tmpl ? () => handleRedeem(item, tmpl) : undefined}
+                    />
+                  );
+                })}
               </div>
             )}
           </TabsContent>
