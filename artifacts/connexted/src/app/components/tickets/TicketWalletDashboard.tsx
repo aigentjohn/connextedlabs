@@ -24,7 +24,7 @@ import {
 import {
   Ticket, Clock, DollarSign, ShieldCheck, Calendar, Hash,
   Loader2, ChevronRight, Users, TrendingUp, AlertCircle, X,
-  ExternalLink, Award, Copy, CheckCircle, Sparkles,
+  ExternalLink, Award, Copy, CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -52,11 +52,9 @@ interface TicketCardProps {
   accessTicket?: any;
   template?: TicketTemplate | null;
   currentUserClass?: number;
-  onRedeem?: () => Promise<void>;
 }
 
-function TicketCard({ item, accessTicket, template, currentUserClass = 1, onRedeem }: TicketCardProps) {
-  const [redeeming, setRedeeming] = useState(false);
+function TicketCard({ item, accessTicket, template, currentUserClass = 1 }: TicketCardProps) {
   const [copied, setCopied] = useState(false);
 
   // Try to infer a color from something unique to the template
@@ -187,29 +185,20 @@ function TicketCard({ item, accessTicket, template, currentUserClass = 1, onRede
           </div>
         )}
 
-        {/* Redeem button — for user_class upgrade templates */}
-        {template?.unlocks?.type === 'user_class' && onRedeem && (() => {
+        {/* Status for user_class upgrade templates — admin applies the upgrade */}
+        {template?.unlocks?.type === 'user_class' && (() => {
           const targetClass = template.unlocks.userClass ?? 0;
           const alreadyUpgraded = currentUserClass >= targetClass;
-          const handleClick = async () => {
-            setRedeeming(true);
-            try { await onRedeem(); } finally { setRedeeming(false); }
-          };
           return alreadyUpgraded ? (
             <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 border border-green-200">
               <CheckCircle className="w-4 h-4 shrink-0" />
-              <span>Upgrade already applied</span>
+              <span>Upgrade applied</span>
             </div>
           ) : (
-            <Button
-              className="w-full mt-1 bg-violet-600 hover:bg-violet-700 text-white"
-              size="sm"
-              onClick={handleClick}
-              disabled={redeeming}
-            >
-              {redeeming ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-              {redeeming ? 'Redeeming…' : 'Redeem Ticket'}
-            </Button>
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+              <Clock className="w-4 h-4 shrink-0" />
+              <span>Waiting on admin</span>
+            </div>
           );
         })()}
 
@@ -331,7 +320,7 @@ function WaitlistCard({ entry, onLeave }: { entry: WaitlistEntry; onLeave: () =>
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TicketWalletDashboard() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile } = useAuth();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [waitlists, setWaitlists] = useState<WaitlistEntry[]>([]);
   const [accessTickets, setAccessTickets] = useState<Record<string, any>>({});
@@ -390,30 +379,6 @@ export function TicketWalletDashboard() {
     }
   }, [profile?.id]);
 
-  const handleRedeem = useCallback(async (item: InventoryItem, template: TicketTemplate) => {
-    if (!profile?.id) return;
-    const targetClass = template.unlocks?.userClass;
-    if (!targetClass) {
-      toast.error('This ticket does not unlock a user class upgrade.');
-      return;
-    }
-    const currentClass = (profile as any).user_class ?? 1;
-    if (currentClass >= targetClass) {
-      toast.info('You already have this class or higher.');
-      return;
-    }
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ user_class: targetClass })
-        .eq('id', profile.id);
-      if (error) throw error;
-      await refreshProfile();
-      toast.success(`User class upgraded to Class ${targetClass}!`);
-    } catch (err: any) {
-      toast.error(`Redemption failed: ${err.message}`);
-    }
-  }, [profile, refreshProfile]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -520,7 +485,6 @@ export function TicketWalletDashboard() {
                       accessTicket={item.accessTicketId ? accessTickets[item.accessTicketId] : undefined}
                       template={tmpl}
                       currentUserClass={(profile as any)?.user_class ?? 1}
-                      onRedeem={tmpl ? () => handleRedeem(item, tmpl) : undefined}
                     />
                   );
                 })}
