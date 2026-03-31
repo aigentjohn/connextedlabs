@@ -404,7 +404,7 @@ export function TicketWalletDashboard() {
     }
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .update({ user_class: targetClass })
         .eq('id', profile.id);
       if (error) throw error;
