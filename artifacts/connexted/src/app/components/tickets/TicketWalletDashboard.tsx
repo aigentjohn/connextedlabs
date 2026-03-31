@@ -364,18 +364,19 @@ export function TicketWalletDashboard() {
         setAccessTickets(map);
       }
 
-      // Batch-fetch templates for each unique templateId to get unlocks metadata
+      // Fetch templates sequentially to avoid concurrent supabase.auth.getSession()
+      // calls fighting over the browser Web Lock (which causes auth crashes).
       const uniqueTemplateIds = [...new Set(items.map(i => i.templateId).filter(Boolean))];
       if (uniqueTemplateIds.length > 0) {
-        const results = await Promise.allSettled(
-          uniqueTemplateIds.map(id => templateApi.get(id))
-        );
         const tmplMap: Record<string, TicketTemplate> = {};
-        results.forEach((r, idx) => {
-          if (r.status === 'fulfilled' && r.value?.template) {
-            tmplMap[uniqueTemplateIds[idx]] = r.value.template;
+        for (const id of uniqueTemplateIds) {
+          try {
+            const { template } = await templateApi.get(id);
+            if (template) tmplMap[id] = template;
+          } catch {
+            // skip — best effort
           }
-        });
+        }
         setTemplates(tmplMap);
       }
     } catch (err: any) {
