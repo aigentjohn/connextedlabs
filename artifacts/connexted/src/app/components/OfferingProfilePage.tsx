@@ -79,6 +79,19 @@ interface OfferingDetail {
   kit_product_url?: string;
   kit_landing_page_url?: string;
   cta_text?: string;
+  external_url?: string;
+}
+
+function getCtaLabel(purchaseType?: string, ctaText?: string): string {
+  const custom = ctaText && ctaText.trim() !== '' && ctaText.trim().toLowerCase() !== 'get started'
+    ? ctaText.trim() : null;
+  switch (purchaseType) {
+    case 'free_claim':    return custom || 'Claim Free Access';
+    case 'kit_commerce':  return custom || 'Purchase Now';
+    case 'external_link': return custom || 'Visit Website';
+    case 'contact_only':  return custom || 'Get in Touch';
+    default:              return custom || 'Learn More';
+  }
 }
 
 export default function OfferingProfilePage() {
@@ -492,7 +505,7 @@ export default function OfferingProfilePage() {
                 ) : (
                   <Gift className="w-4 h-4 mr-2" />
                 )}
-                {claiming ? 'Granting access…' : (offering.cta_text || 'Claim Free Access')}
+                {claiming ? 'Granting access…' : getCtaLabel(offering.purchase_type, offering.cta_text)}
               </Button>
             ) : (
               <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
@@ -506,10 +519,24 @@ export default function OfferingProfilePage() {
           {!hasAccess && offering.purchase_type === 'kit_commerce' && offering.kit_product_url && (
             <KitCommerceButton
               productUrl={offering.kit_product_url}
-              buttonText={offering.cta_text || 'Purchase Now'}
+              buttonText={getCtaLabel(offering.purchase_type, offering.cta_text)}
               size="lg"
               className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
             />
+          )}
+
+          {/* External Link Button */}
+          {offering.purchase_type === 'external_link' && offering.external_url && (
+            <Button
+              asChild
+              size="lg"
+              className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+            >
+              <a href={offering.external_url} target="_blank" rel="noopener noreferrer">
+                <Globe className="w-4 h-4 mr-2" />
+                {getCtaLabel(offering.purchase_type, offering.cta_text)}
+              </a>
+            </Button>
           )}
 
           {/* Kit Landing Page Link */}

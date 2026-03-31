@@ -132,7 +132,7 @@ export default function PlatformOfferingsManager() {
     kit_product_id: '',
     kit_product_url: '',
     kit_landing_page_url: '',
-    cta_text: 'Get Started',
+    cta_text: '',
     is_active: true,
     is_featured: false,
     purchase_type: 'kit_commerce',
@@ -313,7 +313,7 @@ export default function PlatformOfferingsManager() {
       kit_product_id: offering.kit_product_id || '',
       kit_product_url: offering.kit_product_url || '',
       kit_landing_page_url: offering.kit_landing_page_url || '',
-      cta_text: offering.cta_text || 'Get Started',
+      cta_text: offering.cta_text || '',
       is_active: offering.is_active,
       is_featured: offering.is_featured,
       purchase_type: offering.purchase_type,
@@ -355,7 +355,7 @@ export default function PlatformOfferingsManager() {
       kit_product_id: '',
       kit_product_url: '',
       kit_landing_page_url: '',
-      cta_text: 'Get Started',
+      cta_text: '',
       is_active: true,
       is_featured: false,
       purchase_type: 'kit_commerce',
@@ -825,9 +825,11 @@ export default function PlatformOfferingsManager() {
                 value={formData.cta_text}
                 onChange={(e) => setFormData({ ...formData, cta_text: e.target.value })}
                 placeholder={
-                  formData.purchase_type === 'kit_commerce' ? 'Get Started' :
-                  formData.purchase_type === 'external_link' ? 'Learn More' :
-                  'Contact Us'
+                  formData.purchase_type === 'free_claim' ? 'e.g. Claim Free Access' :
+                  formData.purchase_type === 'kit_commerce' ? 'e.g. Purchase Now' :
+                  formData.purchase_type === 'external_link' ? 'e.g. Visit Website' :
+                  formData.purchase_type === 'contact_only' ? 'e.g. Get in Touch' :
+                  'e.g. Learn More'
                 }
               />
             </div>
