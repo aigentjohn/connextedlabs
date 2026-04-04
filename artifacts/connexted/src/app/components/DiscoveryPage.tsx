@@ -52,30 +52,25 @@ interface FollowingActivity {
 }
 
 export default function DiscoveryPage() {
+  console.log('[DiscoveryPage] render start');
   const { profile } = useAuth();
+  console.log('[DiscoveryPage] after useAuth');
   const navigate = useNavigate();
+  console.log('[DiscoveryPage] after useNavigate');
   const [activeTab, setActiveTab] = useState('favorites');
+  console.log('[DiscoveryPage] after useState(activeTab)');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  
-  // Tags state
   const [tags, setTags] = useState<TagData[]>([]);
-  
-  // Favorites state
   const [favorites, setFavorites] = useState<FavoriteContent[]>([]);
-  
-  // Liked state
   const [likedContent, setLikedContent] = useState<FavoriteContent[]>([]);
-
-  // Following state
   const [following, setFollowing] = useState<any[]>([]);
   const [followingActivity, setFollowingActivity] = useState<FollowingActivity[]>([]);
   const [followingCount, setFollowingCount] = useState(0);
-
-  // Followers state (Follows Me)
   const [followers, setFollowers] = useState<any[]>([]);
   const [followersActivity, setFollowersActivity] = useState<FollowingActivity[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
+  console.log('[DiscoveryPage] all useState done, about to useEffect');
 
   useEffect(() => {
     if (profile) {
