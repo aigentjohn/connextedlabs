@@ -78,13 +78,29 @@ export default function EpisodeSettingsPage() {
 
   const fetchEpisode = async () => {
     try {
-      const { data: episodeData, error: episodeError } = await supabase
-        .from('episodes')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // The URL param may be a UUID or a slug — handle both, same as EpisodeDetailPage
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
 
-      if (episodeError) throw episodeError;
+      let query = supabase.from('episodes').select('*');
+      if (isUUID) {
+        query = query.eq('id', id).limit(1);
+      } else {
+        query = query.eq('slug', id).limit(1);
+      }
+
+      const { data: rows, error: episodeError } = await query;
+
+      if (episodeError) {
+        console.error('[EpisodeSettings] Fetch error:', episodeError.code, episodeError.message);
+        throw episodeError;
+      }
+
+      const episodeData = rows?.[0];
+      if (!episodeData) {
+        toast.error('Episode not found');
+        navigate('/episodes');
+        return;
+      }
 
       // Check if user is owner or admin
       const isOwner = episodeData.author_id === profile?.id;
@@ -136,7 +152,7 @@ export default function EpisodeSettingsPage() {
         .map(t => t.trim())
         .filter(Boolean);
 
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from('episodes')
         .update({
           title,
@@ -152,15 +168,27 @@ export default function EpisodeSettingsPage() {
           tags: tagsArray,
           updated_at: new Date().toISOString()
         })
-        .eq('id', episode.id);
+        .eq('id', episode.id)
+        .select('id');
 
       if (error) throw error;
+
+      // If no rows came back, RLS silently blocked the update
+      if (!updated || updated.length === 0) {
+        console.warn('[EpisodeSettings] Update returned 0 rows — possible RLS block', {
+          episodeId: episode.id,
+          userId: profile?.id,
+          authorId: episode.author_id,
+          createdBy: episode.created_by,
+        });
+        throw new Error('Your changes could not be saved. You may not have edit access to this episode.');
+      }
 
       toast.success('Episode updated successfully');
       navigate(`/episodes/${id}`);
     } catch (error) {
-      console.error('Error updating episode:', error);
-      toast.error('Failed to update episode');
+      console.error('[EpisodeSettings] Save failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update episode');
     } finally {
       setSaving(false);
     }
