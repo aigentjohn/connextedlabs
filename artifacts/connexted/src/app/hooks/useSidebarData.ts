@@ -104,13 +104,14 @@ export function useSidebarData(currentUserId: string) {
               if (table === 'moments') {
                 query = query.or(`user_id.eq.${currentUserId},is_public.eq.true`);
               } else if (table === 'courses') {
-                return; 
+                return;
+              } else if (table === 'episodes' || table === 'magazines' || table === 'checklists' || table === 'prompts') {
+                // These tables have no member_ids column — filter by creator only
+                query = query.eq('created_by', currentUserId);
               } else if (table === 'circles') {
                  query = query.contains('member_ids', [currentUserId]);
               } else if (table === 'programs') {
                  query = query.contains('member_ids', [currentUserId]);
-              } else if (table === 'prompts' && currentUserId) {
-                 query = query.or(`member_ids.cs.{${currentUserId}},admin_ids.cs.{${currentUserId}},created_by.eq.${currentUserId}`);
               } else {
                  query = query.or(`member_ids.cs.{${currentUserId}},admin_ids.cs.{${currentUserId}},created_by.eq.${currentUserId}`);
               }
