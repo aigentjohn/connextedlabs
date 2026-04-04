@@ -231,14 +231,17 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     try {
       // The "posts_belongs_to_one_feed" DB check constraint requires exactly ONE
       // singular FK column (circle_id, table_id, etc.) to be non-null.
-      // The plural array columns (circle_ids, etc.) are populated by a DB trigger.
-      const insertField = getContainerInsertField(containerType);
+      // We also set the plural array column so the feed query (.contains) can find
+      // the post immediately after insert without waiting for a trigger.
+      const insertField = getContainerInsertField(containerType);  // e.g. 'circle_id'
+      const queryField  = getContainerField(containerType);        // e.g. 'circle_ids'
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        [insertField]: containerId,
+        [insertField]: containerId,       // singular FK — satisfies constraint
+        [queryField]: [containerId],      // plural array — required by feed filter query
       };
 
       const { data, error } = await supabase

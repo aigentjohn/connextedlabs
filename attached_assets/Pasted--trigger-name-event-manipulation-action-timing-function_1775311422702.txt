@@ -1,0 +1,352 @@
+| trigger_name                         | event_manipulation | action_timing | function_name                        | function_body                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------ | ------------------ | ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| recalculate_lifecycle_on_post_change | INSERT             | AFTER         | recalculate_lifecycle_on_post_change | 
+BEGIN
+  -- Simplified version - just return without doing lifecycle calculations
+  -- This prevents errors while allowing posts to be created/updated/deleted
+  
+  IF (TG_OP = 'DELETE') THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| recalculate_lifecycle_on_post_change | DELETE             | AFTER         | recalculate_lifecycle_on_post_change | 
+BEGIN
+  -- Simplified version - just return without doing lifecycle calculations
+  -- This prevents errors while allowing posts to be created/updated/deleted
+  
+  IF (TG_OP = 'DELETE') THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| recalculate_lifecycle_on_post_change | UPDATE             | AFTER         | recalculate_lifecycle_on_post_change | 
+BEGIN
+  -- Simplified version - just return without doing lifecycle calculations
+  -- This prevents errors while allowing posts to be created/updated/deleted
+  
+  IF (TG_OP = 'DELETE') THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| trigger_detect_shares_in_posts       | INSERT             | AFTER         | detect_and_record_shares             | 
+DECLARE
+  -- Pattern to match Connexted URLs
+  url_pattern TEXT := 'https?://[^/]*connexted\.[^/]+/(prompts|documents|libraries|endorsements|courses|events|builds|pitches|programs|circles|meetups|tables|elevators)/([a-z0-9-]+)';
+  
+  -- Variables for processing
+  match_record RECORD;
+  content_type TEXT;
+  content_slug TEXT;
+  content_uuid UUID;
+  full_url TEXT;
+  
+  -- Container context
+  container_circle_id UUID;
+  container_program_id UUID;
+  container_meetup_id UUID;
+  container_table_id UUID;
+  
+  -- Text to search
+  search_text TEXT;
+BEGIN
+  -- Get the text content to search
+  search_text := COALESCE(NEW.content, NEW.body, '');
+  
+  -- Exit early if no text
+  IF search_text IS NULL OR search_text = '' THEN
+    RETURN NEW;
+  END IF;
+  
+  -- For each matched URL in the text
+  FOR match_record IN 
+    SELECT 
+      m[1] as content_type_plural,
+      m[2] as slug,
+      m[0] as full_match
+    FROM regexp_matches(search_text, url_pattern, 'gi') as m
+  LOOP
+    -- Convert plural to singular
+    content_type := CASE match_record.content_type_plural
+      WHEN 'prompts' THEN 'prompt'
+      WHEN 'documents' THEN 'document'
+      WHEN 'libraries' THEN 'library'
+      WHEN 'endorsements' THEN 'endorsement'
+      WHEN 'courses' THEN 'course'
+      WHEN 'events' THEN 'event'
+      WHEN 'builds' THEN 'build'
+      WHEN 'pitches' THEN 'pitch'
+      WHEN 'programs' THEN 'program'
+      WHEN 'circles' THEN 'circle'
+      WHEN 'meetups' THEN 'meetup'
+      WHEN 'tables' THEN 'table'
+      WHEN 'elevators' THEN 'elevator'
+      ELSE NULL
+    END;
+    
+    -- Skip if we couldn't map the content type
+    IF content_type IS NULL THEN
+      CONTINUE;
+    END IF;
+    
+    -- Look up the content ID by slug
+    BEGIN
+      EXECUTE format('SELECT id FROM %I WHERE slug = $1', match_record.content_type_plural)
+      INTO content_uuid
+      USING match_record.slug;
+    EXCEPTION WHEN OTHERS THEN
+      -- Table might not exist or other error, skip this URL
+      CONTINUE;
+    END;
+    
+    -- Skip if content doesn't exist
+    IF content_uuid IS NULL THEN
+      CONTINUE;
+    END IF;
+    
+    -- Determine container context from the post/thread
+    container_circle_id := NULL;
+    container_program_id := NULL;
+    container_meetup_id := NULL;
+    container_table_id := NULL;
+    
+    IF TG_TABLE_NAME = 'posts' THEN
+      -- Get first circle/program/meetup/table from arrays
+      IF NEW.circle_ids IS NOT NULL AND array_length(NEW.circle_ids, 1) > 0 THEN
+        container_circle_id := NEW.circle_ids[1];
+      END IF;
+      IF NEW.program_ids IS NOT NULL AND array_length(NEW.program_ids, 1) > 0 THEN
+        container_program_id := NEW.program_ids[1];
+      END IF;
+      IF NEW.meetup_ids IS NOT NULL AND array_length(NEW.meetup_ids, 1) > 0 THEN
+        container_meetup_id := NEW.meetup_ids[1];
+      END IF;
+      IF NEW.table_ids IS NOT NULL AND array_length(NEW.table_ids, 1) > 0 THEN
+        container_table_id := NEW.table_ids[1];
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'forum_threads' THEN
+      -- Get first circle from circle_ids array
+      IF NEW.circle_ids IS NOT NULL AND array_length(NEW.circle_ids, 1) > 0 THEN
+        container_circle_id := NEW.circle_ids[1];
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'comments' THEN
+      -- Inherit container from parent post/thread
+      IF NEW.post_id IS NOT NULL THEN
+        SELECT circle_ids[1], program_ids[1], meetup_ids[1], table_ids[1]
+        INTO container_circle_id, container_program_id, container_meetup_id, container_table_id
+        FROM posts WHERE id = NEW.post_id;
+      ELSIF NEW.thread_id IS NOT NULL THEN
+        SELECT circle_ids[1]
+        INTO container_circle_id
+        FROM forum_threads WHERE id = NEW.thread_id;
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'replies' THEN
+      -- Inherit from thread
+      IF NEW.thread_id IS NOT NULL THEN
+        SELECT circle_ids[1]
+        INTO container_circle_id
+        FROM forum_threads WHERE id = NEW.thread_id;
+      END IF;
+    END IF;
+    
+    -- Record the share
+    INSERT INTO content_shares (
+      content_type,
+      content_id,
+      shared_in_type,
+      shared_in_id,
+      circle_id,
+      program_id,
+      meetup_id,
+      table_id,
+      shared_by,
+      share_url,
+      created_at
+    ) VALUES (
+      content_type,
+      content_uuid,
+      TG_TABLE_NAME::TEXT,
+      NEW.id,
+      container_circle_id,
+      container_program_id,
+      container_meetup_id,
+      container_table_id,
+      NEW.author_id,
+      match_record.full_match,
+      NOW()
+    )
+    ON CONFLICT (content_type, content_id, shared_in_type, shared_in_id) 
+    DO NOTHING;  -- Already recorded, don't duplicate
+    
+  END LOOP;
+  
+  RETURN NEW;
+END;
+ |
+| trigger_detect_shares_in_posts       | UPDATE             | AFTER         | detect_and_record_shares             | 
+DECLARE
+  -- Pattern to match Connexted URLs
+  url_pattern TEXT := 'https?://[^/]*connexted\.[^/]+/(prompts|documents|libraries|endorsements|courses|events|builds|pitches|programs|circles|meetups|tables|elevators)/([a-z0-9-]+)';
+  
+  -- Variables for processing
+  match_record RECORD;
+  content_type TEXT;
+  content_slug TEXT;
+  content_uuid UUID;
+  full_url TEXT;
+  
+  -- Container context
+  container_circle_id UUID;
+  container_program_id UUID;
+  container_meetup_id UUID;
+  container_table_id UUID;
+  
+  -- Text to search
+  search_text TEXT;
+BEGIN
+  -- Get the text content to search
+  search_text := COALESCE(NEW.content, NEW.body, '');
+  
+  -- Exit early if no text
+  IF search_text IS NULL OR search_text = '' THEN
+    RETURN NEW;
+  END IF;
+  
+  -- For each matched URL in the text
+  FOR match_record IN 
+    SELECT 
+      m[1] as content_type_plural,
+      m[2] as slug,
+      m[0] as full_match
+    FROM regexp_matches(search_text, url_pattern, 'gi') as m
+  LOOP
+    -- Convert plural to singular
+    content_type := CASE match_record.content_type_plural
+      WHEN 'prompts' THEN 'prompt'
+      WHEN 'documents' THEN 'document'
+      WHEN 'libraries' THEN 'library'
+      WHEN 'endorsements' THEN 'endorsement'
+      WHEN 'courses' THEN 'course'
+      WHEN 'events' THEN 'event'
+      WHEN 'builds' THEN 'build'
+      WHEN 'pitches' THEN 'pitch'
+      WHEN 'programs' THEN 'program'
+      WHEN 'circles' THEN 'circle'
+      WHEN 'meetups' THEN 'meetup'
+      WHEN 'tables' THEN 'table'
+      WHEN 'elevators' THEN 'elevator'
+      ELSE NULL
+    END;
+    
+    -- Skip if we couldn't map the content type
+    IF content_type IS NULL THEN
+      CONTINUE;
+    END IF;
+    
+    -- Look up the content ID by slug
+    BEGIN
+      EXECUTE format('SELECT id FROM %I WHERE slug = $1', match_record.content_type_plural)
+      INTO content_uuid
+      USING match_record.slug;
+    EXCEPTION WHEN OTHERS THEN
+      -- Table might not exist or other error, skip this URL
+      CONTINUE;
+    END;
+    
+    -- Skip if content doesn't exist
+    IF content_uuid IS NULL THEN
+      CONTINUE;
+    END IF;
+    
+    -- Determine container context from the post/thread
+    container_circle_id := NULL;
+    container_program_id := NULL;
+    container_meetup_id := NULL;
+    container_table_id := NULL;
+    
+    IF TG_TABLE_NAME = 'posts' THEN
+      -- Get first circle/program/meetup/table from arrays
+      IF NEW.circle_ids IS NOT NULL AND array_length(NEW.circle_ids, 1) > 0 THEN
+        container_circle_id := NEW.circle_ids[1];
+      END IF;
+      IF NEW.program_ids IS NOT NULL AND array_length(NEW.program_ids, 1) > 0 THEN
+        container_program_id := NEW.program_ids[1];
+      END IF;
+      IF NEW.meetup_ids IS NOT NULL AND array_length(NEW.meetup_ids, 1) > 0 THEN
+        container_meetup_id := NEW.meetup_ids[1];
+      END IF;
+      IF NEW.table_ids IS NOT NULL AND array_length(NEW.table_ids, 1) > 0 THEN
+        container_table_id := NEW.table_ids[1];
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'forum_threads' THEN
+      -- Get first circle from circle_ids array
+      IF NEW.circle_ids IS NOT NULL AND array_length(NEW.circle_ids, 1) > 0 THEN
+        container_circle_id := NEW.circle_ids[1];
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'comments' THEN
+      -- Inherit container from parent post/thread
+      IF NEW.post_id IS NOT NULL THEN
+        SELECT circle_ids[1], program_ids[1], meetup_ids[1], table_ids[1]
+        INTO container_circle_id, container_program_id, container_meetup_id, container_table_id
+        FROM posts WHERE id = NEW.post_id;
+      ELSIF NEW.thread_id IS NOT NULL THEN
+        SELECT circle_ids[1]
+        INTO container_circle_id
+        FROM forum_threads WHERE id = NEW.thread_id;
+      END IF;
+      
+    ELSIF TG_TABLE_NAME = 'replies' THEN
+      -- Inherit from thread
+      IF NEW.thread_id IS NOT NULL THEN
+        SELECT circle_ids[1]
+        INTO container_circle_id
+        FROM forum_threads WHERE id = NEW.thread_id;
+      END IF;
+    END IF;
+    
+    -- Record the share
+    INSERT INTO content_shares (
+      content_type,
+      content_id,
+      shared_in_type,
+      shared_in_id,
+      circle_id,
+      program_id,
+      meetup_id,
+      table_id,
+      shared_by,
+      share_url,
+      created_at
+    ) VALUES (
+      content_type,
+      content_uuid,
+      TG_TABLE_NAME::TEXT,
+      NEW.id,
+      container_circle_id,
+      container_program_id,
+      container_meetup_id,
+      container_table_id,
+      NEW.author_id,
+      match_record.full_match,
+      NOW()
+    )
+    ON CONFLICT (content_type, content_id, shared_in_type, shared_in_id) 
+    DO NOTHING;  -- Already recorded, don't duplicate
+    
+  END LOOP;
+  
+  RETURN NEW;
+END;
+ |
