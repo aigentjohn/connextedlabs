@@ -65,7 +65,7 @@ interface ContainerFeedProps {
   isAdmin?: boolean;
 }
 
-// Helper to get the field name for a container type
+// For SELECT/filter queries: the plural array column (e.g. circle_ids)
 const getContainerField = (type: ContainerType): string => {
   switch (type) {
     case 'circle': return 'circle_ids';
@@ -77,6 +77,21 @@ const getContainerField = (type: ContainerType): string => {
     case 'meetup': return 'meetup_ids';
     case 'program': return 'program_ids';
     default: return 'circle_ids';
+  }
+};
+
+// For INSERT: the singular FK column checked by the "posts_belongs_to_one_feed" constraint
+const getContainerInsertField = (type: ContainerType): string => {
+  switch (type) {
+    case 'circle': return 'circle_id';
+    case 'table': return 'table_id';
+    case 'elevator': return 'elevator_id';
+    case 'meeting': return 'meeting_id';
+    case 'build': return 'build_id';
+    case 'pitch': return 'pitch_id';
+    case 'meetup': return 'meetup_id';
+    case 'program': return 'program_id';
+    default: return 'circle_id';
   }
 };
 
@@ -214,15 +229,16 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     if (!newPost.trim() || !profile) return;
 
     try {
-      // Only include the relevant container field — the DB check constraint
-      // "posts_belongs_to_one_feed" requires exactly one feed column to be set.
-      // Explicitly sending the others as [] counts as "set" and violates the constraint.
+      // The "posts_belongs_to_one_feed" DB check constraint requires exactly ONE
+      // singular FK column (circle_id, table_id, etc.) to be non-null.
+      // The plural array columns (circle_ids, etc.) are populated by a DB trigger.
+      const insertField = getContainerInsertField(containerType);
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        [containerField]: [containerId],
+        [insertField]: containerId,
       };
 
       const { data, error } = await supabase
