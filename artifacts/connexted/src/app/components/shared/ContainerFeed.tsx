@@ -214,24 +214,16 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     if (!newPost.trim() || !profile) return;
 
     try {
-      // Build the container IDs object with all container type columns
+      // Only include the relevant container field — the DB check constraint
+      // "posts_belongs_to_one_feed" requires exactly one feed column to be set.
+      // Explicitly sending the others as [] counts as "set" and violates the constraint.
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        circle_ids: [],
-        table_ids: [],
-        elevator_ids: [],
-        meeting_ids: [],
-        build_ids: [],
-        pitch_ids: [],
-        meetup_ids: [],
-        program_ids: [],
+        [containerField]: [containerId],
       };
-
-      // Set the appropriate container field
-      postData[containerField] = [containerId];
 
       const { data, error } = await supabase
         .from('posts')
