@@ -353,29 +353,28 @@ export function TicketWalletDashboard() {
         setAccessTickets(map);
       }
 
-      // Fetch templates sequentially to avoid concurrent supabase.auth.getSession()
-      // calls fighting over the browser Web Lock (which causes auth crashes).
+      // Show tickets immediately — don't block on template fetches
+      setLoading(false);
+
+      // Fetch templates in the background sequentially to avoid concurrent
+      // supabase.auth.getSession() calls fighting over the browser Web Lock.
       const uniqueTemplateIds = [...new Set(items.map(i => i.templateId).filter(Boolean))];
-      if (uniqueTemplateIds.length > 0) {
-        const tmplMap: Record<string, TicketTemplate> = {};
-        for (const id of uniqueTemplateIds) {
-          try {
-            const { template } = await templateApi.get(id);
-            if (template) tmplMap[id] = template;
-          } catch {
-            // skip — best effort
+      for (const id of uniqueTemplateIds) {
+        try {
+          const { template } = await templateApi.get(id);
+          if (template) {
+            setTemplates(prev => ({ ...prev, [id]: template }));
           }
+        } catch {
+          // skip — best effort
         }
-        setTemplates(tmplMap);
       }
     } catch (err: any) {
       console.error('TicketWalletDashboard load error:', err);
-      // Don't show error toast if it's just an authentication issue
+      setLoading(false);
       if (!err.message?.includes('Authentication required')) {
         toast.error('Failed to load your tickets');
       }
-    } finally {
-      setLoading(false);
     }
   }, [profile?.id]);
 
