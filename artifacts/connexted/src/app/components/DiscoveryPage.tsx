@@ -52,13 +52,9 @@ interface FollowingActivity {
 }
 
 export default function DiscoveryPage() {
-  console.log('[DiscoveryPage] render start');
   const { profile } = useAuth();
-  console.log('[DiscoveryPage] after useAuth');
   const navigate = useNavigate();
-  console.log('[DiscoveryPage] after useNavigate');
   const [activeTab, setActiveTab] = useState('favorites');
-  console.log('[DiscoveryPage] after useState(activeTab)');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<TagData[]>([]);
@@ -70,7 +66,6 @@ export default function DiscoveryPage() {
   const [followers, setFollowers] = useState<any[]>([]);
   const [followersActivity, setFollowersActivity] = useState<FollowingActivity[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
-  console.log('[DiscoveryPage] all useState done, about to useEffect');
 
   useEffect(() => {
     if (profile) {
@@ -1088,7 +1083,13 @@ export default function DiscoveryPage() {
     item.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
+  // BISECT: early minimal return — if this renders, error is in the full JSX below
+  // eslint-disable-next-line no-unreachable
+  return <div className="p-8 text-lg">DiscoveryPage bisect — hooks all passed, testing JSX phase</div>;
+
+  // Original full return follows (unreachable during bisect):
+  // @ts-ignore
+  return ( // eslint-disable-line
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={[{ label: 'Discovery' }]}

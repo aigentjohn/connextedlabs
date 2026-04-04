@@ -250,7 +250,7 @@ export default function CreateEventDialog({ isOpen, onClose, circleId, event }: 
         
         // External Registration
         external_rsvp_url: formData.rsvpType === 'external' ? formData.externalRsvpUrl : null,
-        external_rsvp_label: formData.rsvpType === 'external' ? formData.externalRsvpLabel : null,
+        // external_rsvp_label column does not exist in the events table schema — omitted
         is_paid_event: formData.isPaidEvent,
         price_info: formData.priceInfo || null,
         

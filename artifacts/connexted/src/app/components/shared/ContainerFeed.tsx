@@ -80,20 +80,6 @@ const getContainerField = (type: ContainerType): string => {
   }
 };
 
-// For INSERT: the singular FK column checked by the "posts_belongs_to_one_feed" constraint
-const getContainerInsertField = (type: ContainerType): string => {
-  switch (type) {
-    case 'circle': return 'circle_id';
-    case 'table': return 'table_id';
-    case 'elevator': return 'elevator_id';
-    case 'meeting': return 'meeting_id';
-    case 'build': return 'build_id';
-    case 'pitch': return 'pitch_id';
-    case 'meetup': return 'meetup_id';
-    case 'program': return 'program_id';
-    default: return 'circle_id';
-  }
-};
 
 // Helper function to safely format dates
 const safeFormatDate = (dateString: string | undefined): string => {
@@ -229,19 +215,23 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     if (!newPost.trim() || !profile) return;
 
     try {
-      // The "posts_belongs_to_one_feed" DB check constraint requires exactly ONE
-      // singular FK column (circle_id, table_id, etc.) to be non-null.
-      // We also set the plural array column so the feed query (.contains) can find
-      // the post immediately after insert without waiting for a trigger.
-      const insertField = getContainerInsertField(containerType);  // e.g. 'circle_id'
-      const queryField  = getContainerField(containerType);        // e.g. 'circle_ids'
+      // The posts table has a check constraint "posts_belongs_to_one_feed" that
+      // requires EXACTLY ONE of these feed array columns to be non-null.
+      // Column defaults are empty arrays ({}), which are non-null, so we must
+      // explicitly null-out every other feed column in the insert.
+      const queryField = getContainerField(containerType);  // e.g. 'circle_ids'
+      const ALL_FEED_FIELDS = [
+        'circle_ids', 'table_ids', 'elevator_ids', 'meeting_ids',
+        'build_ids', 'pitch_ids', 'meetup_ids', 'program_ids',
+      ];
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        [insertField]: containerId,       // singular FK — satisfies constraint
-        [queryField]: [containerId],      // plural array — required by feed filter query
+        // Null out every feed column, then set the target one
+        ...Object.fromEntries(ALL_FEED_FIELDS.map(f => [f, null])),
+        [queryField]: [containerId],
       };
 
       const { data, error } = await supabase

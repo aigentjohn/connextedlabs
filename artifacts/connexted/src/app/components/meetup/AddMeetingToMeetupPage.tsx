@@ -209,7 +209,7 @@ export default function AddMeetingToMeetupPage() {
           max_attendees: null,
           rsvp_deadline: null,
           external_rsvp_url: null,
-          external_rsvp_label: null,
+          // external_rsvp_label column does not exist in the events table schema — omitted
           is_paid_event: false,
           price_info: null,
           host_id: profile.id,
