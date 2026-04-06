@@ -5,7 +5,6 @@ import { ArrowLeft, Video, X } from 'lucide-react';
 import { useProgramContext } from '@/hooks/useProgramContext';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import { ProgramContextBanner } from '@/app/components/shared/ProgramContextBanner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Button } from '@/app/components/ui/button';
@@ -28,7 +27,7 @@ export default function CreateMeetingPage() {
   const [coverImage, setCoverImage] = useState('');
   const [sponsorId, setSponsorId] = useState<string>('none');
   const [sponsors, setSponsors] = useState<any[]>([]);
-  
+
   // Event-specific fields
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
@@ -39,8 +38,21 @@ export default function CreateMeetingPage() {
   const [externalLink, setExternalLink] = useState('');
   const [externalPlatform, setExternalPlatform] = useState<'zoom' | 'teams' | 'meet' | 'other' | ''>('');
   const [maxAttendees, setMaxAttendees] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
+
+  // ✅ useEffect MUST come before any early returns (Rules of Hooks)
+  useEffect(() => {
+    const fetchSponsors = async () => {
+      const { data, error } = await supabase.from('sponsors').select('*');
+      if (error) {
+        console.error('Error fetching sponsors:', error);
+      } else {
+        setSponsors(data || []);
+      }
+    };
+    fetchSponsors();
+  }, []);
 
   if (!profile) {
     return (
@@ -66,16 +78,11 @@ export default function CreateMeetingPage() {
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!profile) {
-      toast.error('Unable to create meeting');
-      return;
-    }
 
     if (!name.trim()) {
       toast.error('Meeting name is required');
@@ -90,122 +97,111 @@ export default function CreateMeetingPage() {
     setLoading(true);
 
     try {
-      const slug = generateSlug(name);
+      const slug = generateSlug(name) + '-' + Date.now();
 
       // Get the current community ID from profile
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('community_id')
         .eq('id', profile.id)
         .single();
 
-      if (!userData?.community_id) {
-        throw new Error('No community associated with user');
+      if (userError || !userData?.community_id) {
+        throw new Error('No community associated with your account');
       }
 
-      // Prepare event data
-      const startDateTime = eventTime 
-        ? new Date(`${eventDate}T${eventTime}:00Z`)
-        : new Date(`${eventDate}T00:00:00Z`);
-      
-      const endDateTime = durationMinutes && eventTime
-        ? new Date(startDateTime.getTime() + parseInt(durationMinutes) * 60000)
-        : null;
+      // Build start / end datetime
+      const startDateTime = eventTime
+        ? new Date(`${eventDate}T${eventTime}:00`)
+        : new Date(`${eventDate}T00:00:00`);
 
-      const eventData = {
-        community_id: userData.community_id,
-        title: name.trim(),
-        description: description.trim(),
-        event_type: 'meeting' as const,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime?.toISOString() || null,
-        location: location.trim() || null,
-        is_virtual: isVirtual,
-        external_link: externalLink.trim() || null,
-        external_platform: externalPlatform || null,
-        host_id: profile.id,
-        attendee_ids: [profile.id],
-        max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
-        tags,
-      };
+      const endDateTime =
+        durationMinutes && eventTime
+          ? new Date(startDateTime.getTime() + parseInt(durationMinutes) * 60000)
+          : null;
 
-      const meetingData = {
-        name: name.trim(),
-        description: description.trim(),
-        slug,
-        visibility,
-        cover_image: coverImage.trim() || null,
-        tags,
-        created_by: profile.id,
-        admin_ids: [profile.id],
-        member_ids: [profile.id],
-        guest_ids: [],
-        community_id: userData.community_id,
-        sponsor_id: sponsorId === 'none' ? null : sponsorId,
-      };
+      // 1. Create the event
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          community_id: userData.community_id,
+          title: name.trim(),
+          description: description.trim() || null,
+          event_type: 'meeting',
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime?.toISOString() || null,
+          location: location.trim() || null,
+          is_virtual: isVirtual,
+          external_link: externalLink.trim() || null,
+          external_platform: externalPlatform || null,
+          host_id: profile.id,
+          attendee_ids: [profile.id],
+          max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
+          tags,
+        })
+        .select('id')
+        .single();
 
-      // Get user session to send auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Call server endpoint to create meeting
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/meetings/create`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || publicAnonKey}`,
-          },
-          body: JSON.stringify({ eventData, meetingData }),
-        }
-      );
+      if (eventError) throw eventError;
 
-      const result = await response.json();
+      // 2. Create the meeting
+      const { data: meetingData, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          name: name.trim(),
+          description: description.trim() || null,
+          slug,
+          visibility,
+          cover_image: coverImage.trim() || null,
+          tags,
+          created_by: profile.id,
+          admin_ids: [profile.id],
+          member_ids: [profile.id],
+          guest_ids: [],
+          community_id: userData.community_id,
+          event_id: eventData.id,
+          sponsor_id: sponsorId === 'none' ? null : sponsorId,
+        })
+        .select('id, slug')
+        .single();
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create meeting');
-      }
+      if (meetingError) throw meetingError;
 
-      toast.success('Meeting created successfully!');
-      navigate(`/meetings/${slug}`);
+      // 3. Add creator as a member
+      const { error: memberError } = await supabase
+        .from('meeting_members')
+        .insert({
+          meeting_id: meetingData.id,
+          user_id: profile.id,
+          rsvp_status: 'attending',
+          intro: null,
+        });
+
+      if (memberError) console.warn('Could not add creator as member:', memberError);
+
+      toast.success('Meeting created!');
+      navigate(`/meetings/${meetingData.slug}`);
     } catch (error: any) {
       console.error('Error creating meeting:', error);
       if (error.code === '23505') {
-        toast.error('A meeting with this name already exists');
+        toast.error('A meeting with this name already exists — try a different name');
       } else {
-        toast.error('Failed to create meeting');
+        toast.error(error.message || 'Failed to create meeting');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const fetchSponsors = async () => {
-      const { data, error } = await supabase
-        .from('sponsors')
-        .select('*');
-
-      if (error) {
-        console.error('Error fetching sponsors:', error);
-        toast.error('Failed to fetch sponsors');
-      } else {
-        setSponsors(data || []);
-      }
-    };
-
-    fetchSponsors();
-  }, []);
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Breadcrumbs items={[
         { label: 'Meetings', path: '/meetings' },
-        { label: 'Create Meeting' }
+        { label: 'Create Meeting' },
       ]} />
-      
+
       <ProgramContextBanner context={programContext} onClear={clearContext} />
-      
+
       {/* Header */}
       <div>
         <Button asChild variant="ghost" className="mb-4">
@@ -246,13 +242,12 @@ export default function CreateMeetingPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Q1 Planning Session, Weekly Team Standup, Product Demo"
                 autoComplete="off"
-                required
               />
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 name="meeting-description"
@@ -261,7 +256,6 @@ export default function CreateMeetingPage() {
                 placeholder="Describe what this meeting is about, the agenda, and what members can expect..."
                 autoComplete="off"
                 rows={4}
-                required
               />
               <p className="text-sm text-gray-500">
                 Help potential attendees understand if this meeting is relevant to them
@@ -271,7 +265,7 @@ export default function CreateMeetingPage() {
             {/* Event Date & Time Section */}
             <div className="border-t pt-6">
               <h3 className="text-lg font-semibold mb-4">Event Details</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Event Date */}
                 <div className="space-y-2">
@@ -281,7 +275,6 @@ export default function CreateMeetingPage() {
                     type="date"
                     value={eventDate}
                     onChange={(e) => setEventDate(e.target.value)}
-                    required
                   />
                 </div>
 
@@ -343,9 +336,19 @@ export default function CreateMeetingPage() {
                   placeholder="e.g., Conference Room A, 123 Main St, Building 2"
                   autoComplete="off"
                 />
-                <p className="text-sm text-gray-500">
-                  Physical location (if applicable)
-                </p>
+                <p className="text-sm text-gray-500">Physical location (if applicable)</p>
+              </div>
+
+              {/* Virtual toggle */}
+              <div className="flex items-center gap-2 mt-4">
+                <input
+                  type="checkbox"
+                  id="isVirtual"
+                  checked={isVirtual}
+                  onChange={(e) => setIsVirtual(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="isVirtual">This is a virtual event</Label>
               </div>
 
               {/* Meeting Link */}
@@ -353,7 +356,6 @@ export default function CreateMeetingPage() {
                 <Label htmlFor="meetingLink">Video Conference Link</Label>
                 <Input
                   id="meetingLink"
-                  type="url"
                   value={externalLink}
                   onChange={(e) => setExternalLink(e.target.value)}
                   placeholder="https://zoom.us/j/... or https://meet.google.com/..."
@@ -362,6 +364,37 @@ export default function CreateMeetingPage() {
                 <p className="text-sm text-gray-500">
                   Zoom, Google Meet, Teams, or other video conference link
                 </p>
+              </div>
+
+              {/* External Platform */}
+              {externalLink && (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="externalPlatform">Platform</Label>
+                  <Select value={externalPlatform} onValueChange={(v: any) => setExternalPlatform(v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="zoom">Zoom</SelectItem>
+                      <SelectItem value="meet">Google Meet</SelectItem>
+                      <SelectItem value="teams">Microsoft Teams</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Max Attendees */}
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="maxAttendees">Max Attendees (optional)</Label>
+                <Input
+                  id="maxAttendees"
+                  type="number"
+                  min="1"
+                  value={maxAttendees}
+                  onChange={(e) => setMaxAttendees(e.target.value)}
+                  placeholder="Leave blank for unlimited"
+                />
               </div>
             </div>
 
@@ -372,15 +405,12 @@ export default function CreateMeetingPage() {
               <Input
                 id="coverImage"
                 name="meeting-cover-image"
-                type="url"
                 value={coverImage}
                 onChange={(e) => setCoverImage(e.target.value)}
                 placeholder="https://example.com/image.jpg"
                 autoComplete="off"
               />
-              <p className="text-sm text-gray-500">
-                Optional: Provide a URL to an image for your meeting
-              </p>
+              <p className="text-sm text-gray-500">Optional: URL of an image for your meeting</p>
             </div>
 
             {/* Visibility */}
@@ -407,13 +437,13 @@ export default function CreateMeetingPage() {
                   id="tags"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddTag();
                     }
                   }}
-                  placeholder="Add tags to help people find this meeting (press Enter)"
+                  placeholder="Add tags (press Enter)"
                 />
                 <Button type="button" onClick={handleAddTag}>
                   Add
@@ -440,7 +470,10 @@ export default function CreateMeetingPage() {
             {/* Sponsor */}
             <div className="space-y-2">
               <Label htmlFor="sponsorId">Sponsor</Label>
-              <Select value={sponsorId || 'none'} onValueChange={(value: any) => setSponsorId(value === 'none' ? '' : value)}>
+              <Select
+                value={sponsorId || 'none'}
+                onValueChange={(value) => setSponsorId(value === 'none' ? '' : value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a sponsor (optional)" />
                 </SelectTrigger>
