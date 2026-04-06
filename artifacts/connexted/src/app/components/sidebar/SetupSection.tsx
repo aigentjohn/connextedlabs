@@ -19,6 +19,7 @@ import {
   Store,
   Building2,
   Ticket,
+  Award,
 } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { cn } from '@/app/components/ui/utils';
@@ -187,6 +188,20 @@ export function SetupSection({
             >
               <Compass className="w-4 h-4 text-indigo-600" />
               <span className="flex-1">Pathways Admin</span>
+            </Link>
+          )}
+
+          {/* Badge Admin */}
+          {hasRole('admin') && (
+            <Link
+              to="/platform-admin/badge-admin"
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+                location.pathname.startsWith('/platform-admin/badge-admin') && 'bg-yellow-50 text-yellow-700'
+              )}
+            >
+              <Award className="w-4 h-4 text-yellow-600" />
+              <span className="flex-1">Badge Admin</span>
             </Link>
           )}
 

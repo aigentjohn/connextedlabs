@@ -352,6 +352,7 @@ const BadgeDetailPage = lazy(() => import('@/app/pages/admin/BadgeDetailPage'));
 
 // Badges
 const BadgeManagementPage = lazy(() => import('@/app/components/badges/BadgeManagementPage'));
+const BadgeAdminHub = lazy(() => import('@/app/components/admin/BadgeAdminHub'));
 
 // Admin
 const TemplatesManager = lazy(() => import('@/app/components/admin/TemplatesManager'));
@@ -812,6 +813,7 @@ const router = createBrowserRouter([
           { path: '/platform-admin/seed-topics-tags', element: <TopicsTagsSeeder /> },
           { path: '/platform-admin/documentation', element: <DocumentationManager /> },
           { path: '/platform-admin/content-engagement', element: <ContentEngagementDashboard /> },
+          { path: '/platform-admin/badge-admin', element: <BadgeAdminHub /> },
           { path: '/platform-admin/badges', element: <BadgeManagementPage /> },
           { path: '/platform-admin/badge-types', element: <BadgeTypesManagementPage /> },
           { path: '/platform-admin/badges/:badgeTypeId', element: <BadgeDetailPage /> },
