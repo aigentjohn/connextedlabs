@@ -72,6 +72,10 @@ export default function CreatePlaylistPage() {
     try {
       const slug = generateSlug(name);
 
+      // Use auth UID directly so it matches the RLS policy (auth.uid() = created_by)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const userId = authUser?.id || profile.id;
+
       const playlistData = {
         name: name.trim(),
         description: description.trim(),
@@ -79,8 +83,8 @@ export default function CreatePlaylistPage() {
         visibility,
         tags,
         cover_image: coverImage || null,
-        created_by: profile.id,
-        member_ids: [profile.id], // Creator is automatically a member
+        created_by: userId,
+        member_ids: [userId], // Creator is automatically a member
         ...(programContext && {
           program_id: programContext.program_id,
           program_journey_id: programContext.program_journey_id,
