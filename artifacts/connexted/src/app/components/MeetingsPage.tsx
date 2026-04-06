@@ -134,9 +134,9 @@ export default function MeetingsPage() {
   const filteredMeetings = filterByVisibility(meetings, profile, 'meetings').filter((meeting) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = (
-      meeting.name.toLowerCase().includes(query) ||
-      meeting.description.toLowerCase().includes(query) ||
-      meeting.tags.some((tag) => tag.toLowerCase().includes(query))
+      (meeting.name || '').toLowerCase().includes(query) ||
+      (meeting.description || '').toLowerCase().includes(query) ||
+      (meeting.tags || []).some((tag: string) => tag.toLowerCase().includes(query))
     );
     const matchesMine = !showMineOnly || (
       meeting.created_by === profile.id ||

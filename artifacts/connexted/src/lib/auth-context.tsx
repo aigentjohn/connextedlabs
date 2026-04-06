@@ -5,7 +5,7 @@ import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import type { Role, MembershipTier } from './constants/roles';
 import { handleSupabaseError, logError } from './error-handler';
 import { publicAnonKey, projectId } from '@/utils/supabase/info';
-import { getNavItemsForUser } from '@/lib/nav-config';
+import { getNavItemsForUser, NAV_ITEMS_CONFIG } from '@/lib/nav-config';
 
 // User profile type from our database
 interface UserProfile {
@@ -219,10 +219,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Step 3: merge — preserve the sort_order from user_class_permissions.
+      // If container_types DB doesn't have a row for a given permission, fall back to
+      // NAV_ITEMS_CONFIG so items like 'meetings' aren't silently dropped when the
+      // container_types table is partially seeded.
       const typeMap = Object.fromEntries((typesData || []).map((t: any) => [t.type_code, t]));
+      const navConfigMap = Object.fromEntries(
+        NAV_ITEMS_CONFIG.map(item => [item.type_code, {
+          type_code:    item.type_code,
+          display_name: item.display_name,
+          icon_name:    item.icon_name,
+          route_path:   item.route_path,
+          sort_order:   item.sort_order,
+        }])
+      );
       const containers = permsData
         .map((p: any) => {
-          const meta = typeMap[p.container_type];
+          const meta = typeMap[p.container_type] ?? navConfigMap[p.container_type];
           if (!meta) return null;
           return { ...meta, sort_order: p.sort_order };
         })
