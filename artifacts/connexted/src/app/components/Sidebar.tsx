@@ -59,7 +59,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   });
 
   const {
-    circles, tables, elevators, meetings, pitches, builds, prompts,
+    circles, tables, elevators, meetings, pitches, builds,
     standups, meetups, sprints, magazines, playlists, episodes,
     checklists, moments, allUsers, sponsors, community, events,
     programs, loading, documentCounts, eventCounts, reviewCounts,
@@ -124,7 +124,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   // Container items map for ActivitiesSection.
   // All container types — including playlists (→ episodes) and magazines (→ blogs).
   const containerItems: Record<string, any[]> = {
-    elevators, tables, builds, prompts, pitches, standups,
+    elevators, tables, builds, pitches, standups,
     sprints, magazines, playlists, checklists, meetings, meetups,
   };
 

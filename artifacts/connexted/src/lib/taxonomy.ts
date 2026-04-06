@@ -12,8 +12,7 @@
  *   - Builds      → project workspace
  *   - Pitches     → pitch workspace
  *   - Checklists  → contain checklist items / tasks
- *   - Prompts     → discussion prompt space
- *   - Elevators, Tables, Meetings, Meetups, Sprints, Standups, Libraries
+ *   - Elevators, Tables, Meetings, Meetups, Sprints, Standups
  *
  * NOT containers here: Circles (own sidebar section), Programs/Courses (MY GROWTH).
  *
@@ -45,13 +44,11 @@ import {
   Handshake,
   CalendarClock,
   MessageSquare,
-  Library,
   ListVideo,
   BookCopy,
   Hammer,
   Presentation,
   CheckSquare,
-  Sparkles,
   // Content
   PenTool,
   Video,
@@ -81,7 +78,6 @@ export const CONTAINER_TAXONOMY: TaxonomyEntry[] = [
   { key: 'elevators',  label: 'Elevator',  labelPlural: 'Elevators',  icon: TrendingUp,    path: '/elevators'  },
   { key: 'tables',     label: 'Table',     labelPlural: 'Tables',     icon: Table,         path: '/tables'     },
   { key: 'builds',     label: 'Build',     labelPlural: 'Builds',     icon: Hammer,        path: '/builds'     },
-  { key: 'prompts',    label: 'Prompt',    labelPlural: 'Prompts',    icon: Sparkles,      path: '/prompts'    },
   { key: 'pitches',    label: 'Pitch',     labelPlural: 'Pitches',    icon: Presentation,  path: '/pitches'    },
   { key: 'standups',   label: 'Standup',   labelPlural: 'Standups',   icon: MessageSquare, path: '/standups'   },
   { key: 'sprints',    label: 'Sprint',    labelPlural: 'Sprints',    icon: CalendarClock, path: '/sprints'    },
@@ -90,7 +86,6 @@ export const CONTAINER_TAXONOMY: TaxonomyEntry[] = [
   { key: 'checklists', label: 'Checklist', labelPlural: 'Checklists', icon: CheckSquare,   path: '/checklists' },
   { key: 'meetings',   label: 'Meeting',   labelPlural: 'Meetings',   icon: Calendar,      path: '/meetings'   },
   { key: 'meetups',    label: 'Meetup',    labelPlural: 'Meetups',    icon: Handshake,     path: '/meetups'    },
-  { key: 'libraries',  label: 'Library',   labelPlural: 'Libraries',  icon: Library,       path: '/libraries'  },
 ];
 
 /** Plural keys of all container types */
