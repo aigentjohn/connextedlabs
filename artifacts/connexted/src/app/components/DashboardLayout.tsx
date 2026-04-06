@@ -346,9 +346,9 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
               
               {navigation.find(item => item.type === 'calendar') && (
                 <Link
-                  to="/calendar"
+                  to="/events"
                   className={`inline-flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/calendar')
+                    isActive('/events')
                       ? 'bg-indigo-50 text-indigo-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
