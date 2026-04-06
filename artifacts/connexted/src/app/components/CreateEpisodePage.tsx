@@ -94,7 +94,6 @@ export default function CreateEpisodePage() {
         is_published: isPublished,
         tags: tagsArray.length > 0 ? tagsArray : null,
         slug,
-        member_ids: [userId], // satisfies any member_ids RLS conditions
         ...ownerFields('episodes'),   // { author_id: userId }
       };
 
