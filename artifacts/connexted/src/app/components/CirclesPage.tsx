@@ -21,7 +21,16 @@ interface Circle {
   member_ids: string[];
   admin_ids: string[];
   tags?: string[];
-  is_favorited?: boolean; // Changed from favorites array
+  is_favorited?: boolean;
+  guest_access?: {
+    feed?: boolean;
+    members?: boolean;
+    documents?: boolean;
+    forum?: boolean;
+    checklists?: boolean;
+    reviews?: boolean;
+    calendar?: boolean;
+  } | null;
   // Lifecycle data
   lifecycle_state?: 'idea' | 'created' | 'released' | 'active' | 'engaged' | 'stale';
   member_count?: number;
@@ -54,7 +63,7 @@ export default function CirclesPage() {
       // Fetch circles data
       const { data, error } = await supabase
         .from('circles')
-        .select('id, name, description, image, access_type, member_ids, admin_ids')
+        .select('id, name, description, image, access_type, member_ids, admin_ids, guest_access')
         .order('name');
 
       if (error) throw error;
@@ -467,6 +476,11 @@ export default function CirclesPage() {
                 onWithdrawApplication={() => handleWithdrawApplication(circle.id)}
                 onAcceptInvite={() => handleAcceptInvite(circle.id)}
                 onDeclineInvite={() => handleDeclineInvite(circle.id)}
+                customBadge={
+                  circle.guest_access && Object.values(circle.guest_access).some(Boolean)
+                    ? { label: 'Public', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' }
+                    : undefined
+                }
               />
             );
           })}

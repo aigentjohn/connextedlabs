@@ -27,6 +27,16 @@ interface User {
   email: string;
 }
 
+interface GuestAccess {
+  feed: boolean;
+  members: boolean;
+  documents: boolean;
+  forum: boolean;
+  checklists: boolean;
+  reviews: boolean;
+  calendar: boolean;
+}
+
 interface Circle {
   id: string;
   name: string;
@@ -37,7 +47,28 @@ interface Circle {
   admin_ids: string[];
   member_ids: string[];
   moderation_password: string | null;
+  guest_access: GuestAccess | null;
 }
+
+const DEFAULT_GUEST_ACCESS: GuestAccess = {
+  feed: false,
+  members: false,
+  documents: false,
+  forum: false,
+  checklists: false,
+  reviews: false,
+  calendar: false,
+};
+
+const GUEST_ACCESS_SECTIONS: { key: keyof GuestAccess; label: string }[] = [
+  { key: 'feed', label: 'Feed' },
+  { key: 'members', label: 'Members' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'forum', label: 'Forum' },
+  { key: 'checklists', label: 'Checklists' },
+  { key: 'reviews', label: 'Reviews' },
+  { key: 'calendar', label: 'Calendar' },
+];
 
 export default function CircleEditor() {
   const navigate = useNavigate();
@@ -60,6 +91,7 @@ export default function CircleEditor() {
   
   const [adminEmails, setAdminEmails] = useState<string[]>([]);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [guestAccess, setGuestAccess] = useState<GuestAccess>({ ...DEFAULT_GUEST_ACCESS });
 
   // Fetch existing circle and users
   useEffect(() => {
@@ -101,6 +133,7 @@ export default function CircleEditor() {
           // Convert admin IDs to emails
           const adminUsers = usersData?.filter(u => circleData.admin_ids.includes(u.id)) || [];
           setAdminEmails(adminUsers.map(u => u.email));
+          setGuestAccess({ ...DEFAULT_GUEST_ACCESS, ...(circleData.guest_access || {}) });
         } else {
           // For new circles, add current user as admin
           const currentUserData = usersData?.find(u => u.id === profile.id);
@@ -191,6 +224,7 @@ export default function CircleEditor() {
             access_type: formData.accessType,
             admin_ids: adminIds,
             moderation_password: formData.moderationPassword || null,
+            guest_access: guestAccess,
           })
           .eq('id', existingCircle.id);
 
@@ -210,6 +244,7 @@ export default function CircleEditor() {
             admin_ids: adminIds,
             member_ids: adminIds, // Admins are automatically members
             moderation_password: formData.moderationPassword || null,
+            guest_access: guestAccess,
           })
           .select()
           .single();
@@ -347,6 +382,47 @@ export default function CircleEditor() {
                 <p className="text-sm text-gray-600 mt-1">
                   Optional: Set a password to allow any member to gain temporary moderation access to this circle's forum. Leave empty to disable password-based moderation.
                 </p>
+              </div>
+            </div>
+
+            {/* Guest Access */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div>
+                <Label className="text-base font-semibold">Guest Access</Label>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Choose which sections non-members can view. Enabling any section will mark the circle as Public.
+                </p>
+              </div>
+              <div className="flex gap-3 pb-2 border-b">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setGuestAccess({ feed: true, members: true, documents: true, forum: true, checklists: true, reviews: true, calendar: true })}
+                >
+                  Enable All
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setGuestAccess({ ...DEFAULT_GUEST_ACCESS })}
+                >
+                  Disable All
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {GUEST_ACCESS_SECTIONS.map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer select-none py-1">
+                    <input
+                      type="checkbox"
+                      checked={guestAccess[key]}
+                      onChange={() => setGuestAccess(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className="w-4 h-4 rounded border-gray-300 accent-indigo-600"
+                    />
+                    <span className="text-sm">{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
 

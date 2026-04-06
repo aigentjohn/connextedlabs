@@ -45,6 +45,15 @@ interface Circle {
   admin_ids: string[];
   created_at: string;
   image: string | null;
+  guest_access?: {
+    feed?: boolean;
+    members?: boolean;
+    documents?: boolean;
+    forum?: boolean;
+    checklists?: boolean;
+    reviews?: boolean;
+    calendar?: boolean;
+  } | null;
 }
 
 interface UserClass {
@@ -565,9 +574,14 @@ export default function CircleAdminPage() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-xl font-semibold text-gray-900">{circle.name}</h3>
                         {getAccessTypeBadge(circle.access_type)}
+                        {circle.guest_access && Object.values(circle.guest_access).some(Boolean) && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                            Public
+                          </Badge>
+                        )}
                         {isAdmin && (
                           <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200">
                             Admin
