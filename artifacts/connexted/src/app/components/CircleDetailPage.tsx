@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { Button } from '@/app/components/ui/button';
-import { Users, Check, Settings, UserPlus, QrCode } from 'lucide-react';
+import { Users, Check, Settings, UserPlus, QrCode, Edit } from 'lucide-react';
 import { ContainerStateManager } from '@/app/components/admin/ContainerStateManager';
 import { MembershipStatusManager } from '@/app/components/membership/MembershipStatusManager';
 import { isValidUUID } from '@/lib/uuid-utils';
@@ -311,6 +311,14 @@ export default function CircleDetailPage() {
                         <Button variant="default" size="sm" className="w-full">
                           <Settings className="w-4 h-4 mr-2" />
                           Settings
+                        </Button>
+                      </Link>
+                    )}
+                    {profile?.role === 'super' && (
+                      <Link to={`/platform-admin/circles/${circle.id}/edit`}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Circle
                         </Button>
                       </Link>
                     )}

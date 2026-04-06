@@ -1,6 +1,5 @@
-import { Link } from 'react-router';
 import { Button } from '@/app/components/ui/button';
-import { MessageSquare, MessageCircle, Calendar, Users, Settings, Sparkles } from 'lucide-react';
+import { MessageSquare, MessageCircle, Calendar, Users, Sparkles } from 'lucide-react';
 
 interface CircleSecondLevelNavProps {
   activeSection: 'feed' | 'forum' | 'events' | 'members' | 'prompts';
@@ -69,15 +68,6 @@ export function CircleSecondLevelNav({
             })}
           </div>
 
-          {/* Admin Settings Link */}
-          {isAdmin && (
-            <Link to={`/circles/${circleId}/settings`}>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Settings</span>
-              </Button>
-            </Link>
-          )}
         </nav>
       </div>
     </div>
