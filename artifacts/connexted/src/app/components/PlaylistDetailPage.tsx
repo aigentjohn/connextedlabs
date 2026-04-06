@@ -11,6 +11,7 @@ import { LikeButton } from '@/app/components/engagement/LikeButton';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
 import { RatingWidget } from '@/app/components/engagement/RatingWidget';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import {
   Settings,
   UserPlus,
@@ -335,6 +336,16 @@ export default function PlaylistDetailPage() {
                   setPlaylist({ ...playlist, rating: newRating, ratings_count: newRatingsCount });
                 }}
               />
+              {!isOwner && playlist.created_by && (
+                <PrivateCommentDialog
+                  containerType="playlist"
+                  containerId={playlist.id}
+                  containerTitle={playlist.name}
+                  recipientId={playlist.created_by}
+                  recipientName={creator?.name || 'the creator'}
+                  containerPath={`/playlists/${playlist.slug || playlist.id}`}
+                />
+              )}
             </div>
           </div>
 

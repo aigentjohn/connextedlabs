@@ -31,6 +31,7 @@ import { useEngagementExtension } from '@/hooks/useEngagementExtension';
 import { ForkButton } from '@/app/components/fork/ForkButton';
 import { ForkLineage } from '@/app/components/fork/ForkLineage';
 import ContainerReviews from '@/app/components/shared/ContainerReviews';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 
 interface Build {
@@ -379,7 +380,16 @@ export default function BuildDetailPage() {
           onFavoriteChange={(newIsFavorited) => handleFavoriteChange(newIsFavorited)}
         />
 
-        {/* Write a Review - removed: ContainerReviews component handles review creation */}
+        {/* Private Comment */}
+        {!isOwner && build.created_by && (
+          <PrivateCommentDialog
+            containerType="build"
+            containerId={build.id}
+            containerTitle={build.name}
+            recipientId={build.created_by}
+            recipientName={creator?.name || 'the creator'}
+          />
+        )}
 
         {/* Separator */}
         {canFork && (

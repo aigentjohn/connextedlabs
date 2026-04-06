@@ -34,6 +34,7 @@ import ContainerFeed from '@/app/components/shared/ContainerFeed';
 import { getParticipantLabel, getLeaderLabel, getOwnerLabel, getActionLabel, formatParticipantCount } from '@/utils/terminology';
 import { ShareInviteInline } from '@/app/components/shared/ShareInviteButton';
 import ContainerReviews from '@/app/components/shared/ContainerReviews';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 
 export default function TableDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -312,6 +313,15 @@ export default function TableDetailPage() {
                     Settings
                   </Link>
                 </Button>
+              )}
+              {table.created_by && table.created_by !== profile.id && (
+                <PrivateCommentDialog
+                  containerType="table"
+                  containerId={table.id}
+                  containerTitle={table.name}
+                  recipientId={table.created_by}
+                  recipientName={creator?.name || 'the creator'}
+                />
               )}
               {isMember && (
                 <Badge variant="default" className="self-start">

@@ -13,6 +13,7 @@ import { LikeButton } from '@/app/components/engagement/LikeButton';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
 import { RatingWidget } from '@/app/components/engagement/RatingWidget';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import { 
   ArrowLeft, 
   Heart, 
@@ -419,6 +420,15 @@ export default function MagazineDetailPage() {
               // Rating changed
             }}
           />
+          {!isOwner && magazine.curator_id && (
+            <PrivateCommentDialog
+              containerType="magazine"
+              containerId={magazine.id}
+              containerTitle={magazine.name}
+              recipientId={magazine.curator_id}
+              recipientName={magazine.curator_name || 'the curator'}
+            />
+          )}
         </div>
 
         {/* Stats and Meta */}

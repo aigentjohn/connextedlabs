@@ -11,6 +11,7 @@ import { useParams, useNavigate, Link } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import {
   CheckSquare,
   Plus,
@@ -380,6 +381,15 @@ export default function ChecklistDetailPage() {
                   entityId={checklist.id}
                   entityName={checklist.name}
                 />
+                {checklist.created_by && checklist.created_by !== profile?.id && (
+                  <PrivateCommentDialog
+                    containerType="checklist"
+                    containerId={checklist.id}
+                    containerTitle={checklist.name}
+                    recipientId={checklist.created_by}
+                    recipientName={checklist.creator?.name || 'the creator'}
+                  />
+                )}
                 <Button variant="outline" size="sm" onClick={() => setEditingChecklist(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit

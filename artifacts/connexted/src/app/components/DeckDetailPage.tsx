@@ -30,6 +30,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
 import { LikeButton } from '@/app/components/engagement/LikeButton';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 
 // Helper function to validate UUID
 function isValidUUID(uuid: string) {
@@ -540,11 +541,22 @@ export default function DeckDetailPage() {
           </div>
         )}
         {!canDelete && (
-          <ShareInviteButton
-            entityType="deck"
-            entityId={deck.id}
-            entityName={deck.title}
-          />
+          <div className="flex gap-2">
+            <ShareInviteButton
+              entityType="deck"
+              entityId={deck.id}
+              entityName={deck.title}
+            />
+            {!isOwner && deck.created_by && (
+              <PrivateCommentDialog
+                containerType="deck"
+                containerId={deck.id}
+                containerTitle={deck.title}
+                recipientId={deck.created_by}
+                recipientName={creator?.name || 'the creator'}
+              />
+            )}
+          </div>
         )}
       </div>
 

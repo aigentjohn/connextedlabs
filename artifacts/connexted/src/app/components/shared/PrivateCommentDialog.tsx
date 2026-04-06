@@ -18,11 +18,13 @@ import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PrivateCommentDialogProps {
-  containerType: 'document' | 'review' | 'pitch' | 'build' | 'circle' | 'table' | 'library' | 'event' | 'meetup' | 'elevator' | 'standup' | 'program';
+  containerType: 'document' | 'review' | 'pitch' | 'build' | 'circle' | 'table' | 'library' | 'event' | 'meetup' | 'elevator' | 'standup' | 'program' | 'playlist' | 'magazine' | 'episode' | 'checklist' | 'book' | 'deck';
   containerId: string;
   containerTitle: string;
   recipientId: string;
   recipientName: string;
+  /** Optional explicit URL for the notification link — use when the route uses a slug rather than a UUID. */
+  containerPath?: string;
   trigger?: React.ReactNode;
   onCommentSent?: () => void;
 }
@@ -33,6 +35,7 @@ export default function PrivateCommentDialog({
   containerTitle,
   recipientId,
   recipientName,
+  containerPath,
   trigger,
   onCommentSent,
 }: PrivateCommentDialogProps) {
@@ -97,7 +100,7 @@ export default function PrivateCommentDialog({
         type: 'comment',
         title: `New private comment from ${profile.name}`,
         message: `${profile.name} sent you a private comment on "${containerTitle}"`,
-        link_url: getContainerUrl(containerType, containerId),
+        link_url: containerPath ?? getContainerUrl(containerType, containerId),
         link_type: containerType,
         link_id: containerId,
         actor_id: profile.id,
@@ -129,6 +132,12 @@ export default function PrivateCommentDialog({
       elevator: `/elevators/${id}`,
       standup: `/standups/${id}`,
       program: `/programs/${id}`,
+      playlist: `/playlists/${id}`,
+      magazine: `/magazines/${id}`,
+      episode: `/episodes/${id}`,
+      checklist: `/checklists/${id}`,
+      book: `/books/${id}`,
+      deck: `/decks/${id}`,
     };
     return urlMap[type] || '/';
   };

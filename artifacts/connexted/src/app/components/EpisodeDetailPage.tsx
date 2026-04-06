@@ -10,6 +10,7 @@ import { LikeButton } from '@/app/components/engagement/LikeButton';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 import { RatingWidget } from '@/app/components/engagement/RatingWidget';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import { VideoPlayer } from '@/app/components/coaching/VideoPlayer';
 import {
   Video,
@@ -336,6 +337,15 @@ export default function EpisodeDetailPage() {
             entityId={episode.id}
             entityName={episode.title}
           />
+          {!isAuthor && episode.author_id && (
+            <PrivateCommentDialog
+              containerType="episode"
+              containerId={episode.id}
+              containerTitle={episode.title}
+              recipientId={episode.author_id}
+              recipientName={author?.name || 'the author'}
+            />
+          )}
         </div>
       </div>
 

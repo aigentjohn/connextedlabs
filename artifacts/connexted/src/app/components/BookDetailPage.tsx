@@ -25,6 +25,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { copyToClipboard } from '@/lib/clipboard-utils';
 import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 
 interface Book {
   id: string;
@@ -441,6 +442,15 @@ export default function BookDetailPage() {
             entityId={book.id}
             entityName={book.title}
           />
+          {!isOwner && book.author_id && (
+            <PrivateCommentDialog
+              containerType="book"
+              containerId={book.id}
+              containerTitle={book.title}
+              recipientId={book.author_id}
+              recipientName={book.author?.name || 'the author'}
+            />
+          )}
           {/* Export JSON Buttons */}
           {chapters.length > 0 && (
             <>
