@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 // Split candidate: ~480 lines — consider extracting ContentModerationRow, ModerationFilterBar, and BulkModerationActions into sub-components.
 import { Trash2, AlertTriangle, FileText, Star as StarIcon, Search, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';

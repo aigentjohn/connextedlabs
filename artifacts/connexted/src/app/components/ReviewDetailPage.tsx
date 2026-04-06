@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 import { Textarea } from '@/app/components/ui/textarea';
 import { ExternalLink, Star, ThumbsUp, Calendar, Trash2, Flag, MessageSquare, Edit2, X } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';

@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 // Split candidate: ~551 lines — consider extracting FlaggedItemRow, ModerationDecisionPanel, and FlaggedContentFilters into sub-components.
 import { AlertTriangle, Flag, Eye, CheckCircle2, XCircle, Search, ExternalLink, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';

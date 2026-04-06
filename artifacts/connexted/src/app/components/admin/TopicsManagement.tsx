@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 // Split candidate: ~495 lines — consider extracting TopicCard, TopicEditDialog, and TopicHierarchyTree into sub-components.
 import { toast } from 'sonner';
 

@@ -1,3 +1,4 @@
+import { useState,useEffect } from 'react';
 // Split candidate: ~499 lines — consider extracting TableMembersPanel, TableContentFeed, and TableAdminActions into sub-components.
 import { useParams, Link, Navigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
