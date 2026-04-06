@@ -215,33 +215,39 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     if (!newPost.trim() || !profile) return;
 
     try {
-      // The posts table has a check constraint "posts_belongs_to_one_feed" that
-      // requires EXACTLY ONE of these feed array columns to be non-null.
-      // Column defaults are empty arrays ({}), which are non-null, so we must
-      // explicitly null-out every other feed column in the insert.
+      // The posts table has a BEFORE INSERT trigger that auto-populates array
+      // feed columns when they are NULL (setting them to the user's circles,
+      // programs, etc.). This causes the "posts_belongs_to_one_feed" CHECK
+      // constraint to fail when multiple feed arrays end up non-empty.
+      //
+      // Fix: send [] (empty array, NOT null) for all unused array feed columns.
+      // The trigger's condition is `IS NULL`, so an explicit empty array
+      // prevents auto-population. Scalar UUID columns stay as null.
       const queryField = getContainerField(containerType);  // e.g. 'circle_ids'
-      // posts_belongs_to_one_feed covers ALL feed-related columns — both the
-      // array _ids columns AND the singular UUID columns.  Every one that is
-      // not the target container must be explicitly NULL; omitting them lets
-      // Postgres apply its column DEFAULT which may be non-null.
-      const ALL_FEED_FIELDS = [
+
+      // Array feed columns → send [] for unused ones
+      const ARRAY_FEED_FIELDS = [
         'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
         'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
-        'blog_ids', 'magazine_ids',
-        // singular UUID feed columns (also part of the constraint)
+        'blog_ids', 'magazine_ids', 'unique_viewers',
+      ];
+      // Scalar UUID feed columns → send null (no trigger auto-populate for scalars)
+      const SCALAR_FEED_FIELDS = [
         'moments_id', 'company_news_id', 'program_id', 'program_journey_id',
       ];
+
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        // Null out every feed column, then set the target one
-        ...Object.fromEntries(ALL_FEED_FIELDS.map(f => [f, null])),
+        // Set all array feed columns to empty array to block trigger auto-population
+        ...Object.fromEntries(ARRAY_FEED_FIELDS.map(f => [f, []])),
+        // Set all scalar feed columns to null
+        ...Object.fromEntries(SCALAR_FEED_FIELDS.map(f => [f, null])),
+        // Override the target feed column with the actual container
         [queryField]: [containerId],
       };
-
-      console.log('[ContainerFeed] full postData:', JSON.stringify(postData));
 
       const { data, error } = await supabase
         .from('posts')

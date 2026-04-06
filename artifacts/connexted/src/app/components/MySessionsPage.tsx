@@ -16,7 +16,8 @@ interface Session {
   description: string;
   session_type: string;
   start_date: string;
-  duration_minutes: number;
+  end_date?: string;
+  duration_minutes?: number;
   location: string;
   virtual_link: string;
   status: string;
@@ -296,10 +297,16 @@ export default function MySessionsPage() {
                 <Calendar className="w-4 h-4" />
                 {sessionDate.toLocaleDateString()} at {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {session.duration_minutes} min
-              </span>
+              {(session.duration_minutes != null || session.end_date) && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {session.duration_minutes != null
+                    ? `${session.duration_minutes} min`
+                    : session.end_date
+                      ? `${Math.round((new Date(session.end_date).getTime() - new Date(session.start_date).getTime()) / 60000)} min`
+                      : null}
+                </span>
+              )}
             </div>
             
             {session.description && (

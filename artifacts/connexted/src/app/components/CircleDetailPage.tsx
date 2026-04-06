@@ -164,8 +164,11 @@ export default function CircleDetailPage() {
           { onConflict: 'user_id,container_type,container_id', ignoreDuplicates: true }
         );
 
-      // 3. Create participants record for funnel tracking
-      await supabase
+      setCircle({ ...circle, member_ids: updatedMemberIds });
+      toast.success(`You've joined ${circle.name}!`);
+
+      // 3. Create participants record for funnel tracking (best-effort — table may not exist yet)
+      supabase
         .from('participants')
         .upsert(
           {
@@ -193,10 +196,10 @@ export default function CircleDetailPage() {
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'circle_id,user_id', ignoreDuplicates: true }
-        );
-
-      setCircle({ ...circle, member_ids: updatedMemberIds });
-      toast.success(`You've joined ${circle.name}!`);
+        )
+        .then(({ error }) => {
+          if (error) console.warn('participants upsert skipped (table pending migration):', error.code);
+        });
     } catch (error) {
       console.error('Error joining circle:', error);
       toast.error('Failed to join group');

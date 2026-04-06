@@ -260,14 +260,14 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
 
     const targetCircleIds = isCircleFeed ? [circleId!] : selectedCircleIds.length > 0 ? selectedCircleIds : userCircleIds;
 
-    // posts_belongs_to_one_feed constraint requires EXACTLY ONE feed array column
-    // to be non-null. All others must be explicitly set to null because the DB
-    // defaults them to {} (empty array), which counts as non-null.
-    const ALL_FEED_FIELDS = [
-      'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
+    // posts_belongs_to_one_feed: a BEFORE INSERT trigger auto-populates array
+    // feed columns when they are NULL. Send [] (empty array) for unused array
+    // columns to prevent the trigger from filling them in. Scalar UUID columns
+    // stay as null (the trigger does not auto-populate scalars).
+    const ARRAY_FEED_FIELDS = [
+      'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
       'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
-      'blog_ids', 'magazine_ids',
-      'moments_id', 'company_news_id', 'program_id', 'program_journey_id',
+      'blog_ids', 'magazine_ids', 'unique_viewers',
     ];
 
     const { error } = await supabase.from('posts').insert({
@@ -277,8 +277,9 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
       pinned: false,
       image_url: newPostImageUrl || null,
       link_url: newPostLinkUrl || null,
-      // Null every feed column, then set circle_ids
-      ...Object.fromEntries(ALL_FEED_FIELDS.map(f => [f, null])),
+      // Empty arrays block trigger auto-population; scalar cols stay null
+      ...Object.fromEntries(ARRAY_FEED_FIELDS.map(f => [f, []])),
+      moments_id: null, company_news_id: null, program_id: null, program_journey_id: null,
       circle_ids: targetCircleIds,
     });
 
