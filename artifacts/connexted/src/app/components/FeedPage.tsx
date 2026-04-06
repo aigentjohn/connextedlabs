@@ -252,7 +252,7 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
       .filter((container): container is { id: string; name: string; type: string } => !!container);
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
       toast.error('Please enter some content for your post');
       return;
@@ -260,17 +260,32 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
 
     const targetCircleIds = isCircleFeed ? [circleId!] : selectedCircleIds.length > 0 ? selectedCircleIds : userCircleIds;
 
-    supabase.from('posts').insert({
-      id: `post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // posts_belongs_to_one_feed constraint requires EXACTLY ONE feed array column
+    // to be non-null. All others must be explicitly set to null because the DB
+    // defaults them to {} (empty array), which counts as non-null.
+    const ALL_FEED_FIELDS = [
+      'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
+      'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
+      'blog_ids', 'magazine_ids',
+    ];
+
+    const { error } = await supabase.from('posts').insert({
       author_id: profile.id,
       content: newPostContent,
-      circle_ids: targetCircleIds,
       access_level: 'public',
       pinned: false,
-      image_url: newPostImageUrl,
-      link_url: newPostLinkUrl,
-      created_at: new Date().toISOString(),
+      image_url: newPostImageUrl || null,
+      link_url: newPostLinkUrl || null,
+      // Null every feed column, then set circle_ids
+      ...Object.fromEntries(ALL_FEED_FIELDS.map(f => [f, null])),
+      circle_ids: targetCircleIds,
     });
+
+    if (error) {
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post');
+      return;
+    }
 
     setNewPostContent('');
     setNewPostImageUrl('');
