@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import { createLibraryShareAnnouncement } from '@/lib/announcement-helper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -43,6 +44,7 @@ export default function AddReviewForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { profile } = useAuth();
+  const { userId, ownerFields } = useContentAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
@@ -310,7 +312,7 @@ export default function AddReviewForm() {
 
       // Create review in Supabase
       const reviewData: any = {
-        author_id: profile.id,
+        ...ownerFields('endorsements'),
         title: title.trim(),
         description: description.trim(),
         link_url: linkUrl.trim(),

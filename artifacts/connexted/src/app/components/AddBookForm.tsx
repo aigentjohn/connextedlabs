@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
@@ -14,6 +15,7 @@ import { BookOpen } from 'lucide-react';
 
 export default function AddBookForm() {
   const { user } = useAuth();
+  const { userId, ownerFields } = useContentAuth();
   const navigate = useNavigate();
   
   const [title, setTitle] = useState('');
@@ -48,8 +50,8 @@ export default function AddBookForm() {
           amazon_url: amazonUrl || null,
           cover_image_url: coverImageUrl || null,
           tags,
-          recommended_by: user.id,
-          created_by: user.id,
+          recommended_by: userId,
+          ...ownerFields('books'),
         })
         .select()
         .single();

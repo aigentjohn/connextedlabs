@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import { createLibraryShareAnnouncement } from '@/lib/announcement-helper';
 import { Button } from '@/app/components/ui/button';
@@ -40,6 +41,7 @@ export default function AddDocumentForm() {
   const { id: documentId } = useParams();
   const isEditMode = !!documentId;
   const { profile } = useAuth();
+  const { ownerFields } = useContentAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
@@ -217,7 +219,7 @@ export default function AddDocumentForm() {
             tags: tags,
             circle_ids: selectedCircles,
             table_ids: selectedTables,
-            author_id: profile!.id,
+            ...ownerFields('documents'),
             access_level: accessLevel,
           })
           .select()

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router';
 import { CheckSquare, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Button } from '@/app/components/ui/button';
@@ -15,6 +16,7 @@ import { Badge } from '@/app/components/ui/badge';
 
 export default function CreateChecklistPage() {
   const { profile } = useAuth();
+  const { ownerFields } = useContentAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -35,7 +37,7 @@ export default function CreateChecklistPage() {
           description: description.trim() || null,
           category: category.trim() || null,
           is_template: isTemplate,
-          created_by: profile.id,
+          ...ownerFields('checklists'),
         })
         .select()
         .single();

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -36,6 +37,7 @@ interface User {
 
 export default function CreateSprintPage() {
   const { profile } = useAuth();
+  const { userId, ownerFields } = useContentAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -119,17 +121,17 @@ export default function CreateSprintPage() {
     setSelectedTemplateIds(newSet);
   };
 
-  const toggleMember = (userId: string) => {
+  const toggleMember = (memberId: string) => {
     const newSet = new Set(selectedMemberIds);
-    if (newSet.has(userId)) {
+    if (newSet.has(memberId)) {
       // Prevent removing self if you're the only admin
-      if (userId === profile?.id && selectedMemberIds.size === 1) {
+      if (memberId === profile?.id && selectedMemberIds.size === 1) {
         toast.error('You must have at least one admin');
         return;
       }
-      newSet.delete(userId);
+      newSet.delete(memberId);
     } else {
-      newSet.add(userId);
+      newSet.add(memberId);
     }
     setSelectedMemberIds(newSet);
   };
@@ -161,9 +163,9 @@ export default function CreateSprintPage() {
           slug: slug,
           start_date: startDate,
           end_date: endDate,
-          admin_ids: [profile.id], // Creator is admin
+          admin_ids: [userId], // Creator is admin
           member_ids: Array.from(selectedMemberIds),
-          created_by: profile.id,
+          ...ownerFields('sprints'),
         })
         .select()
         .single();
@@ -183,7 +185,7 @@ export default function CreateSprintPage() {
               description: template.description,
               category: template.category,
               is_template: false,
-              created_by: profile.id,
+              ...ownerFields('checklists'),
             })
             .select()
             .single();

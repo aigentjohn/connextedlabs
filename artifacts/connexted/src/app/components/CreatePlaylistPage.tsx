@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, PlayCircle, X } from 'lucide-react';
 import { useProgramContext } from '@/hooks/useProgramContext';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import { ProgramContextBanner } from '@/app/components/shared/ProgramContextBanner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -18,6 +19,7 @@ import { Badge } from '@/app/components/ui/badge';
 export default function CreatePlaylistPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { userId, ownerFields } = useContentAuth();
   const { context: programContext, clearContext } = useProgramContext();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -72,10 +74,6 @@ export default function CreatePlaylistPage() {
     try {
       const slug = generateSlug(name);
 
-      // Use auth UID directly so it matches the RLS policy (auth.uid() = created_by)
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      const userId = authUser?.id || profile.id;
-
       const playlistData = {
         name: name.trim(),
         description: description.trim(),
@@ -83,7 +81,7 @@ export default function CreatePlaylistPage() {
         visibility,
         tags,
         cover_image: coverImage || null,
-        created_by: userId,
+        ...ownerFields('playlists'),
         member_ids: [userId], // Creator is automatically a member
         ...(programContext && {
           program_id: programContext.program_id,

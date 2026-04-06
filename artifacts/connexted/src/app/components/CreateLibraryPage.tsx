@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
+import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
 import { BookOpen, RefreshCw, FolderOpen, Plus, X, Tag, Globe, Lock, FileText } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -21,6 +22,7 @@ interface FilterRule {
 
 export default function CreateLibraryPage() {
   const { profile } = useAuth();
+  const { userId, ownerFields } = useContentAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -96,13 +98,12 @@ export default function CreateLibraryPage() {
           description: description.trim() || null,
           type,
           owner_type: 'user',
-          owner_id: profile.id,
           filter_rules: filterRules,
           is_public: isPublic,
           icon,
-          created_by: profile.id,
-          admin_ids: [profile.id],
-          member_ids: [profile.id],
+          ...ownerFields('libraries'),
+          admin_ids: [userId],
+          member_ids: [userId],
         })
         .select()
         .single();
