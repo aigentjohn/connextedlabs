@@ -41,6 +41,76 @@ interface PlatformSettings {
   footer_website_link?: string;
 }
 
+interface HomeDoc {
+  headline: string;
+  tagline: string;
+  paragraphs: string[];
+}
+
+interface AboutDoc {
+  quote: string;
+  body: string;
+}
+
+/**
+ * Parse a home_hero Markdown doc into structured fields.
+ * Format:
+ *   # Main headline
+ *   ## Gradient tagline
+ *
+ *   First intro paragraph…
+ *   Second intro paragraph…
+ */
+function parseHeroDoc(content: string): HomeDoc | null {
+  if (!content.trim()) return null;
+  const lines = content.split('\n');
+  let headline = '';
+  let tagline = '';
+  const paragraphs: string[] = [];
+  let inBlank = false;
+  let currentPara = '';
+
+  for (const line of lines) {
+    if (!headline && line.startsWith('# ')) {
+      headline = line.slice(2).trim();
+    } else if (!tagline && line.startsWith('## ')) {
+      tagline = line.slice(3).trim();
+    } else if (!line.startsWith('#')) {
+      if (line.trim() === '') {
+        if (currentPara.trim()) {
+          paragraphs.push(currentPara.trim());
+          currentPara = '';
+        }
+        inBlank = true;
+      } else {
+        currentPara += (currentPara ? ' ' : '') + line.trim();
+        inBlank = false;
+      }
+    }
+  }
+  if (currentPara.trim()) paragraphs.push(currentPara.trim());
+
+  if (!headline && !tagline && paragraphs.length === 0) return null;
+  return { headline, tagline, paragraphs };
+}
+
+/**
+ * Parse a home_about Markdown doc into a quote + body paragraph.
+ * First non-empty paragraph → quote, second → body.
+ */
+function parseAboutDoc(content: string): AboutDoc | null {
+  if (!content.trim()) return null;
+  const blocks = content
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  if (blocks.length === 0) return null;
+  return {
+    quote: blocks[0].replace(/^[""]|[""]$/g, '').trim(),
+    body: blocks[1] || '',
+  };
+}
+
 const DIFFERENTIATORS = [
   {
     icon: Target,
@@ -223,9 +293,12 @@ const ALTERNATIVES = [
 export default function MarketingLandingPage() {
   const navigate = useNavigate();
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({});
+  const [heroDoc, setHeroDoc] = useState<HomeDoc | null>(null);
+  const [aboutDoc, setAboutDoc] = useState<AboutDoc | null>(null);
 
   useEffect(() => {
     fetchPlatformSettings();
+    fetchHomeDocs();
   }, []);
 
   const fetchPlatformSettings = async () => {
@@ -256,6 +329,29 @@ export default function MarketingLandingPage() {
     }
   };
 
+  const fetchHomeDocs = async () => {
+    try {
+      const { data } = await supabase
+        .from('platform_docs')
+        .select('doc_key, content')
+        .in('doc_key', ['home_hero', 'home_about'])
+        .eq('is_active', true);
+
+      for (const row of data || []) {
+        if (row.doc_key === 'home_hero') {
+          const parsed = parseHeroDoc(row.content);
+          if (parsed) setHeroDoc(parsed);
+        }
+        if (row.doc_key === 'home_about') {
+          const parsed = parseAboutDoc(row.content);
+          if (parsed) setAboutDoc(parsed);
+        }
+      }
+    } catch {
+      // Silently use hardcoded fallbacks
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
       <PublicHeader />
@@ -272,17 +368,19 @@ export default function MarketingLandingPage() {
             </div>
 
             <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              More capable than ever.
+              {heroDoc?.headline || 'More capable than ever.'}
               <span className="block bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent mt-2">
-                Less visible than you deserve.
+                {heroDoc?.tagline || 'Less visible than you deserve.'}
               </span>
             </h1>
 
             <p className="text-xl text-gray-600 mb-4 leading-relaxed">
-              You have expertise that took years to build. Maybe you teach, write, or consult. Maybe you have frameworks that clients rely on and tools that make your work meaningfully better. Whatever form it takes, the work is real — and the profile that is supposed to introduce you to the world still shows who you were before you built any of it.
+              {heroDoc?.paragraphs?.[0] ||
+                'You have expertise that took years to build. Maybe you teach, write, or consult. Maybe you have frameworks that clients rely on and tools that make your work meaningfully better. Whatever form it takes, the work is real — and the profile that is supposed to introduce you to the world still shows who you were before you built any of it.'}
             </p>
             <p className="text-lg text-gray-500 mb-10 leading-relaxed">
-              Connexted is the professional home that brings all of it into one structured, discoverable place — without asking you to migrate a single file, abandon a single platform, or rebuild anything you have already created.
+              {heroDoc?.paragraphs?.[1] ||
+                'Connexted is the professional home that brings all of it into one structured, discoverable place — without asking you to migrate a single file, abandon a single platform, or rebuild anything you have already created.'}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
@@ -328,12 +426,12 @@ export default function MarketingLandingPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-2xl sm:text-3xl font-light leading-relaxed tracking-wide mb-6 text-gray-100">
-            "The URL is the content.
-            <br className="hidden sm:block" /> The container is the intention.
-            <br className="hidden sm:block" /> The community is the context."
+            "{aboutDoc?.quote ||
+              'The URL is the content. The container is the intention. The community is the context.'}"
           </p>
           <p className="text-gray-400 text-lg leading-relaxed max-w-2xl mx-auto">
-            Connexted does not care what format your content is in. It cares what you are doing with it. A Pitch invites review and feedback. A Sprint commits to time-boxed work. A Build documents something being made. A Library curates resources worth returning to. Whether the content behind any of these is a slide deck, a YouTube video, a Claude Project URL, or a custom GPT is entirely irrelevant — because the container defines the intention, not the file type.
+            {aboutDoc?.body ||
+              'Connexted does not care what format your content is in. It cares what you are doing with it. A Pitch invites review and feedback. A Sprint commits to time-boxed work. A Build documents something being made. A Library curates resources worth returning to. Whether the content behind any of these is a slide deck, a YouTube video, a Claude Project URL, or a custom GPT is entirely irrelevant — because the container defines the intention, not the file type.'}
           </p>
         </div>
       </section>
