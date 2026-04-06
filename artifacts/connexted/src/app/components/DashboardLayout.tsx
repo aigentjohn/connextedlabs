@@ -630,12 +630,6 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                       My Content
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/my-payments" className="cursor-pointer">
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      My Payments
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />

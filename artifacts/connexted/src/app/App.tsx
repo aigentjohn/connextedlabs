@@ -334,7 +334,6 @@ const SponsorsPage = lazy(() => import('@/app/components/SponsorsPage'));
 const SponsorDetailPage = lazy(() => import('@/app/components/SponsorDetailPage'));
 
 // Misc
-const MyPaymentsPage = lazy(() => import('@/app/components/MyPaymentsPage'));
 const AIDiscussionDemo = lazy(() => import('@/app/components/AIDiscussionDemo'));
 const EngagementDemo = lazy(() => import('@/app/components/engagement/EngagementDemo'));
 
@@ -666,7 +665,6 @@ const router = createBrowserRouter([
           { path: '/my-content', element: <MyContentPage /> },
           { path: '/my-content-admin', element: <MyContentAdminPage /> },
           { path: '/my-contents', element: <MyContentsPage /> },
-          { path: '/my-payments', element: <MyPaymentsPage /> },
           { path: '/members', element: <MembersPage /> },
           { path: '/members/friends', element: <FriendsPage /> },
           { path: '/members/socials', element: <SocialsPage /> },
