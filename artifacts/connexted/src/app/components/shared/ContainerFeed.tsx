@@ -215,37 +215,13 @@ export default function ContainerFeed({ containerType, containerId, containerNam
     if (!newPost.trim() || !profile) return;
 
     try {
-      // The posts table has a BEFORE INSERT trigger that auto-populates array
-      // feed columns when they are NULL (setting them to the user's circles,
-      // programs, etc.). This causes the "posts_belongs_to_one_feed" CHECK
-      // constraint to fail when multiple feed arrays end up non-empty.
-      //
-      // Fix: send [] (empty array, NOT null) for all unused array feed columns.
-      // The trigger's condition is `IS NULL`, so an explicit empty array
-      // prevents auto-population. Scalar UUID columns stay as null.
-      const queryField = getContainerField(containerType);  // e.g. 'circle_ids'
-
-      // Array feed columns → send [] for unused ones
-      const ARRAY_FEED_FIELDS = [
-        'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
-        'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
-        'blog_ids', 'magazine_ids', 'unique_viewers',
-      ];
-      // Scalar UUID feed columns → send null (no trigger auto-populate for scalars)
-      const SCALAR_FEED_FIELDS = [
-        'moments_id', 'company_news_id', 'program_id', 'program_journey_id',
-      ];
+      const queryField = getContainerField(containerType);
 
       const postData: any = {
         author_id: profile.id,
         content: newPost,
         image_url: newPostImage || null,
         pinned: false,
-        // Set all array feed columns to empty array to block trigger auto-population
-        ...Object.fromEntries(ARRAY_FEED_FIELDS.map(f => [f, []])),
-        // Set all scalar feed columns to null
-        ...Object.fromEntries(SCALAR_FEED_FIELDS.map(f => [f, null])),
-        // Override the target feed column with the actual container
         [queryField]: [containerId],
       };
 

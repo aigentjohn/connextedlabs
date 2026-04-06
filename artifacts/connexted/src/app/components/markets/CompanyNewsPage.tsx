@@ -178,15 +178,6 @@ export default function CompanyNewsPage() {
 
     setIsPosting(true);
     try {
-      // posts_belongs_to_one_feed: a BEFORE INSERT trigger auto-populates array
-      // feed columns when they are NULL. Send [] for unused array feed columns
-      // to prevent auto-population. Scalar UUID columns stay null.
-      const feedArrayNulls = {
-        circle_ids: [], table_ids: [], elevator_ids: [], standup_ids: [],
-        meeting_ids: [], build_ids: [], pitch_ids: [], meetup_ids: [],
-        playlist_ids: [], program_ids: [], blog_ids: [], magazine_ids: [],
-        unique_viewers: [],
-      };
       const { data, error } = await supabase
         .from('posts')
         .insert({
@@ -194,8 +185,6 @@ export default function CompanyNewsPage() {
           author_id: currentUser.id,
           company_news_id: companyNews.id,
           access_level: 'public',
-          ...feedArrayNulls,
-          moments_id: null, program_id: null, program_journey_id: null,
         })
         .select()
         .single();
