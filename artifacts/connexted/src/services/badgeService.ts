@@ -239,34 +239,41 @@ export async function issueBadge(params: IssueBadgeParams) {
     isPublic = true,
   } = params;
 
-  // Use the database function for issuing badges
-  const { data, error } = await supabase.rpc('issue_badge', {
-    p_badge_type_slug: badgeTypeSlug,
-    p_recipient_type: recipientType,
-    p_recipient_id: recipientId,
-    p_issued_by_user_id: issuedByUserId || null,
-    p_issued_by_system: issuedBySystem,
-    p_issuer_message: issuerMessage || null,
-    p_evidence_url: evidenceUrl || null,
-    p_program_id: programId || null,
-    p_course_id: courseId || null,
-  });
+  // Resolve badge type ID from slug
+  const { data: badgeType, error: btError } = await supabase
+    .from('badge_types')
+    .select('id')
+    .eq('slug', badgeTypeSlug)
+    .single();
+
+  if (btError || !badgeType) throw new Error(`Badge type not found: ${badgeTypeSlug}`);
+
+  // Insert directly into user_badges or company_badges
+  const table = recipientType === 'user' ? 'user_badges' : 'company_badges';
+  const recipientField = recipientType === 'user' ? 'recipient_user_id' : 'endorsed_company_id';
+
+  const { data, error } = await supabase
+    .from(table)
+    .insert([{
+      badge_type_id: badgeType.id,
+      badge_recipient_type: recipientType,
+      [recipientField]: recipientId,
+      issued_by_user_id: issuedByUserId || null,
+      issued_by_system: issuedBySystem,
+      issuer_message: issuerMessage || null,
+      evidence_url: evidenceUrl || null,
+      issued_for_program_id: programId || null,
+      issued_for_course_id: courseId || null,
+      badge_level: badgeLevel || null,
+      is_public: isPublic,
+      display_on_profile: true,
+    }])
+    .select('id')
+    .single();
 
   if (error) throw error;
 
-  // If badge level is provided, update it
-  if (badgeLevel && data) {
-    const table = recipientType === 'user' ? 'user_badges' : 'company_badges';
-    await supabase
-      .from(table)
-      .update({ 
-        badge_level: badgeLevel,
-        is_public: isPublic,
-      })
-      .eq('id', data);
-  }
-
-  return data as string; // Returns badge ID
+  return data?.id as string;
 }
 
 /**
