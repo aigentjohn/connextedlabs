@@ -1,4 +1,3 @@
-import { useState,useEffect } from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { supabase } from '@/lib/supabase';

@@ -1,4 +1,4 @@
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Textarea } from '@/app/components/ui/textarea';
 import { ExternalLink, Star, ThumbsUp, Calendar, Trash2, Flag, MessageSquare, Edit2, X } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
-import { useState, useEffect } from 'react';
+
 import { useParams, useNavigate, Link } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';

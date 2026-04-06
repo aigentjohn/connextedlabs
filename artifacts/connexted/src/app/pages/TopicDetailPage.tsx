@@ -1,4 +1,3 @@
-import { useState,useEffect } from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { Card, CardContent } from '@/app/components/ui/card';

@@ -1,4 +1,4 @@
-import { useState,useEffect,useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 /**
  * Badge Detail Page
  *
@@ -9,7 +9,7 @@ import { useState,useEffect,useCallback } from 'react';
  * Route: /platform-admin/badges/:badgeTypeId
  */
 
-import { useState, useEffect, useCallback } from 'react';
+
 import { useParams, useNavigate, Link } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';

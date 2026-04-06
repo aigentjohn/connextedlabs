@@ -1,4 +1,4 @@
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
@@ -6,7 +6,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Label } from '@/app/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
-import { useState, useEffect } from 'react';
+
 import { useParams, useNavigate, Link } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';

@@ -1,4 +1,3 @@
-import { useState,useEffect } from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, ExternalLink, Copy, Eye, TrendingUp, Calendar, Tag, Sparkles } from 'lucide-react';
