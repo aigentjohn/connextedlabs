@@ -6,3 +6,9 @@ id = "-UhdD0ZpnndLmQXJv67Lh"
 uri = "file://docs/membership-tier-and-ticketing-roadmap.md"
 type = "text"
 title = "Membership Tier & Ticketing Roadmap"
+
+[[outputs]]
+id = "90rCwYCr9sMqhr4ABiPy9"
+uri = "file://docs/friend-communication-options.md"
+type = "text"
+title = "Friend Communication — Future Development Options"
