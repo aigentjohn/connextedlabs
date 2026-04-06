@@ -179,53 +179,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userClass = (userProfile as any).user_class || 1; // Default to class 1 if not set
 
-      const { data, error } = await supabase
+      // Step 1: get the container_type codes this class can see.
+      // Two separate queries avoids relying on a PostgREST FK join between
+      // user_class_permissions.container_type and container_types.type_code.
+      const { data: permsData, error: permsError } = await supabase
         .from('user_class_permissions')
-        .select(`
-          container_type,
-          sort_order,
-          container_types (
-            type_code,
-            display_name,
-            icon_name,
-            route_path,
-            sort_order
-          )
-        `)
+        .select('container_type, sort_order')
         .eq('class_number', userClass)
         .eq('visible', true)
         .order('sort_order', { ascending: true });
 
-      if (error) {
-        console.warn('User class permissions table not found - using default navigation. Run migrations to enable configurable permissions.');
-        
-        // Fallback to hardcoded default permissions if table doesn't exist yet
-        // This allows the app to work before migrations are applied
+      if (permsError) {
+        console.warn('Could not read user_class_permissions - using default navigation.', permsError.message);
         const defaultContainers = getDefaultContainers(userClass, userProfile.role);
-        
-        setUserPermissions({
-          class_number: userClass,
-          visible_containers: defaultContainers
-        });
+        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
         return;
       }
 
-      const containers = data?.map((d: any) => d.container_types).filter(Boolean) || [];
-      
-      setUserPermissions({
-        class_number: userClass,
-        visible_containers: containers
-      });
+      // If the table exists but has no rows for this class, fall back gracefully.
+      if (!permsData || permsData.length === 0) {
+        console.warn(`No permissions configured for class ${userClass} - using default navigation.`);
+        const defaultContainers = getDefaultContainers(userClass, userProfile.role);
+        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
+        return;
+      }
+
+      // Step 2: fetch display metadata for those container types.
+      const typeCodes = permsData.map((p: any) => p.container_type);
+      const { data: typesData, error: typesError } = await supabase
+        .from('container_types')
+        .select('type_code, display_name, icon_name, route_path, sort_order')
+        .in('type_code', typeCodes);
+
+      if (typesError) {
+        console.warn('Could not read container_types - using default navigation.', typesError.message);
+        const defaultContainers = getDefaultContainers(userClass, userProfile.role);
+        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
+        return;
+      }
+
+      // Step 3: merge — preserve the sort_order from user_class_permissions.
+      const typeMap = Object.fromEntries((typesData || []).map((t: any) => [t.type_code, t]));
+      const containers = permsData
+        .map((p: any) => {
+          const meta = typeMap[p.container_type];
+          if (!meta) return null;
+          return { ...meta, sort_order: p.sort_order };
+        })
+        .filter(Boolean);
+
+      setUserPermissions({ class_number: userClass, visible_containers: containers });
     } catch (error) {
       console.warn('Error fetching user permissions - using defaults:', error);
-      // Set default permissions on error
       const userClass = (userProfile as any).user_class || 1;
       const defaultContainers = getDefaultContainers(userClass, userProfile.role);
-      
-      setUserPermissions({
-        class_number: userClass,
-        visible_containers: defaultContainers
-      });
+      setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
     }
   };
 
