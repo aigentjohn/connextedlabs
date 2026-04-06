@@ -51,6 +51,41 @@ interface FollowingActivity {
   circle_ids?: string[];
 }
 
+// ─── Module-level helpers (no hooks, safe for Fast Refresh) ─────────────────
+function getContentIcon(type: string) {
+  switch (type) {
+    case 'post':     return <FileText className="w-4 h-4" />;
+    case 'thread':   return <MessageSquare className="w-4 h-4" />;
+    case 'event':    return <Calendar className="w-4 h-4" />;
+    case 'course':   return <BookOpen className="w-4 h-4" />;
+    case 'document': return <FileText className="w-4 h-4" />;
+    case 'review':   return <ThumbsUp className="w-4 h-4" />;
+    case 'build':    return <Hammer className="w-4 h-4" />;
+    case 'pitch':    return <Lightbulb className="w-4 h-4" />;
+    case 'book':     return <BookOpen className="w-4 h-4" />;
+    case 'deck':     return <Presentation className="w-4 h-4" />;
+    case 'episode':  return <Headphones className="w-4 h-4" />;
+    default:         return <FileText className="w-4 h-4" />;
+  }
+}
+
+function getContentLink(item: FavoriteContent | FollowingActivity) {
+  switch (item.type) {
+    case 'post':     return `/posts/${item.id}`;
+    case 'thread':   return `/forums/thread/${item.id}`;
+    case 'event':    return `/events/${item.id}`;
+    case 'course':   return `/courses/${item.id}`;
+    case 'document': return `/documents/${item.id}`;
+    case 'review':   return `/reviews/${item.id}`;
+    case 'build':    return `/builds/${item.id}`;
+    case 'pitch':    return `/pitches/${item.id}`;
+    case 'book':     return `/books/${item.id}`;
+    case 'deck':     return `/decks/${item.id}`;
+    case 'episode':  return `/episodes/${item.id}`;
+    default:         return '#';
+  }
+}
+
 export default function DiscoveryPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -1035,40 +1070,6 @@ export default function DiscoveryPage() {
     }
   };
 
-  const getContentIcon = (type: string) => {
-    switch (type) {
-      case 'post': return <FileText className="w-4 h-4" />;
-      case 'thread': return <MessageSquare className="w-4 h-4" />;
-      case 'event': return <Calendar className="w-4 h-4" />;
-      case 'course': return <BookOpen className="w-4 h-4" />;
-      case 'document': return <FileText className="w-4 h-4" />;
-      case 'review': return <ThumbsUp className="w-4 h-4" />;
-      case 'build': return <Hammer className="w-4 h-4" />;
-      case 'pitch': return <Lightbulb className="w-4 h-4" />;
-      case 'book': return <BookOpen className="w-4 h-4" />;
-      case 'deck': return <Presentation className="w-4 h-4" />;
-      case 'episode': return <Headphones className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const getContentLink = (item: FavoriteContent) => {
-    switch (item.type) {
-      case 'post': return `/posts/${item.id}`;
-      case 'thread': return `/forums/thread/${item.id}`;
-      case 'event': return `/events/${item.id}`;
-      case 'course': return `/courses/${item.id}`;
-      case 'document': return `/documents/${item.id}`;
-      case 'review': return `/reviews/${item.id}`;
-      case 'build': return `/builds/${item.id}`;
-      case 'pitch': return `/pitches/${item.id}`;
-      case 'book': return `/books/${item.id}`;
-      case 'deck': return `/decks/${item.id}`;
-      case 'episode': return `/episodes/${item.id}`;
-      default: return '#';
-    }
-  };
-
   const filteredTags = tags.filter(tag =>
     tag.tag.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1083,13 +1084,7 @@ export default function DiscoveryPage() {
     item.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // BISECT: early minimal return — if this renders, error is in the full JSX below
-  // eslint-disable-next-line no-unreachable
-  return <div className="p-8 text-lg">DiscoveryPage bisect — hooks all passed, testing JSX phase</div>;
-
-  // Original full return follows (unreachable during bisect):
-  // @ts-ignore
-  return ( // eslint-disable-line
+  return (
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={[{ label: 'Discovery' }]}
