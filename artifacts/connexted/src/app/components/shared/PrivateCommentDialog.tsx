@@ -66,7 +66,6 @@ export default function PrivateCommentDialog({
         author_id: profile.id,
         recipient_id: recipientId,
         content: content.trim(),
-        is_read: false,
       };
 
       // Set the appropriate container field
