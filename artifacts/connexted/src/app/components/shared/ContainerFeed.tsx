@@ -235,6 +235,8 @@ export default function ContainerFeed({ containerType, containerId, containerNam
         [queryField]: [containerId],
       };
 
+      console.log('[ContainerFeed] posting with queryField:', queryField, 'containerId:', containerId, 'postData keys:', JSON.stringify(Object.fromEntries(Object.entries(postData).filter(([k]) => ALL_FEED_FIELDS.includes(k)))));
+
       const { data, error } = await supabase
         .from('posts')
         .insert(postData)

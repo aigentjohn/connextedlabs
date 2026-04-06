@@ -178,6 +178,13 @@ export default function CompanyNewsPage() {
 
     setIsPosting(true);
     try {
+      // posts_belongs_to_one_feed: exactly one feed column must be non-null.
+      // Array columns default to {} (non-null) so they must be explicitly nulled.
+      const feedNulls = {
+        circle_ids: null, table_ids: null, elevator_ids: null, standup_ids: null,
+        meeting_ids: null, build_ids: null, pitch_ids: null, meetup_ids: null,
+        playlist_ids: null, program_ids: null, blog_ids: null, magazine_ids: null,
+      };
       const { data, error } = await supabase
         .from('posts')
         .insert({
@@ -185,6 +192,7 @@ export default function CompanyNewsPage() {
           author_id: currentUser.id,
           company_news_id: companyNews.id,
           access_level: 'public',
+          ...feedNulls,
         })
         .select()
         .single();
