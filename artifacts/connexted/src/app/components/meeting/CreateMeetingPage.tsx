@@ -120,29 +120,38 @@ export default function CreateMeetingPage() {
           ? new Date(startDateTime.getTime() + parseInt(durationMinutes) * 60000)
           : null;
 
-      // 1. Create the event
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .insert({
-          community_id: userData.community_id,
-          title: name.trim(),
-          description: description.trim() || null,
-          event_type: 'meeting',
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime?.toISOString() || null,
-          location: location.trim() || null,
-          is_virtual: isVirtual,
-          external_link: externalLink.trim() || null,
-          external_platform: externalPlatform || null,
-          host_id: profile.id,
-          attendee_ids: [profile.id],
-          max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
-          tags,
-        })
-        .select('id')
-        .single();
+      // 1. Try to create the linked event (may fail if RLS policy not yet added)
+      let resolvedEventId: string | null = null;
+      if (eventDate) {
+        const { data: eventData, error: eventError } = await supabase
+          .from('events')
+          .insert({
+            community_id: userData.community_id,
+            title: name.trim(),
+            description: description.trim() || null,
+            event_type: 'meeting',
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime?.toISOString() || null,
+            location: location.trim() || null,
+            is_virtual: isVirtual,
+            external_link: externalLink.trim() || null,
+            external_platform: externalPlatform || null,
+            host_id: profile.id,
+            attendee_ids: [profile.id],
+            max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
+            tags,
+          })
+          .select('id')
+          .single();
 
-      if (eventError) throw eventError;
+        if (eventError) {
+          // RLS not yet configured on events table — meeting still gets created,
+          // event details can be added later from Meeting Settings.
+          console.warn('Could not create linked event (RLS):', eventError.message);
+        } else {
+          resolvedEventId = eventData.id;
+        }
+      }
 
       // 2. Create the meeting
       const { data: meetingData, error: meetingError } = await supabase
@@ -159,7 +168,7 @@ export default function CreateMeetingPage() {
           member_ids: [profile.id],
           guest_ids: [],
           community_id: userData.community_id,
-          event_id: eventData.id,
+          event_id: resolvedEventId,
           sponsor_id: sponsorId === 'none' ? null : sponsorId,
         })
         .select('id, slug')
@@ -179,7 +188,13 @@ export default function CreateMeetingPage() {
 
       if (memberError) console.warn('Could not add creator as member:', memberError);
 
-      toast.success('Meeting created!');
+      if (resolvedEventId) {
+        toast.success('Meeting created with event details!');
+      } else if (eventDate) {
+        toast.success('Meeting created! Add event details from Meeting Settings.');
+      } else {
+        toast.success('Meeting created!');
+      }
       navigate(`/meetings/${meetingData.slug}`);
     } catch (error: any) {
       console.error('Error creating meeting:', error);
