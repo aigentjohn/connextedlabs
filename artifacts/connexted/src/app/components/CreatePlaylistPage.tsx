@@ -80,7 +80,6 @@ export default function CreatePlaylistPage() {
         tags,
         cover_image: coverImage || null,
         created_by: profile.id,
-        author_id: profile.id,
         member_ids: [profile.id], // Creator is automatically a member
         ...(programContext && {
           program_id: programContext.program_id,
