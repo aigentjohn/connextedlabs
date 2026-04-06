@@ -210,6 +210,7 @@ const TopicDetailPage = lazy(() => import('@/app/pages/TopicDetailPage'));
 
 // Episodes & Playlists
 const EpisodesPage = lazy(() => import('@/app/components/EpisodesPage'));
+const CreateEpisodePage = lazy(() => import('@/app/components/CreateEpisodePage'));
 const EpisodeDetailPage = lazy(() => import('@/app/components/EpisodeDetailPage'));
 const EpisodeSettingsPage = lazy(() => import('@/app/components/EpisodeSettingsPage'));
 const PlaylistsPage = lazy(() => import('@/app/components/PlaylistsPage'));
@@ -585,6 +586,7 @@ const router = createBrowserRouter([
           { path: '/engagement-demo', element: <EngagementDemo /> },
           { path: '/events', element: <EventsPage /> },
           { path: '/episodes', element: <EpisodesPage /> },
+          { path: '/episodes/new', element: <CreateEpisodePage /> },
           { path: '/playlists', element: <PlaylistsPage /> },
           { path: '/playlists/create', element: <CreatePlaylistPage /> },
           { path: '/playlists/:slug', element: <PlaylistDetailPage /> },

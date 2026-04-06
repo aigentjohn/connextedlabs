@@ -21,6 +21,7 @@ import { useAuth } from './auth-context';
 const AUTHOR_ID_TABLES = new Set([
   'documents',
   'endorsements', // "reviews" in UI terminology
+  'episodes',     // episodes table uses author_id (not created_by)
 ]);
 
 const DUAL_OWNER_TABLES: Record<string, string[]> = {
