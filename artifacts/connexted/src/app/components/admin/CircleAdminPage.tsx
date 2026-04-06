@@ -22,7 +22,9 @@ import {
   UserX,
   ChevronRight,
   Eye,
-  Loader2
+  Loader2,
+  Edit,
+  X,
 } from 'lucide-react';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
@@ -74,6 +76,7 @@ export default function CircleAdminPage() {
     recentActivity: 0,
     activeCircles: 0
   });
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -82,7 +85,10 @@ export default function CircleAdminPage() {
     longDescription: '',
     image: '',
     accessType: 'open' as 'open' | 'request' | 'invite',
+    moderationPassword: '',
   });
+  const [adminEmails, setAdminEmails] = useState<string[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -96,6 +102,19 @@ export default function CircleAdminPage() {
     try {
       setLoading(true);
       const isPlatformAdmin = profile.role === 'super';
+
+      // Fetch all community users for admin management
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .eq('community_id', profile.community_id);
+      setAllUsers(usersData || []);
+
+      // Seed the current user as the first admin when dialog is first opened
+      if (usersData && adminEmails.length === 0) {
+        const currentUser = usersData.find(u => u.id === profile.id);
+        if (currentUser) setAdminEmails([currentUser.email]);
+      }
 
       // Fetch user's class limits
       const userClassNumber = (profile as any).user_class || 1;
@@ -239,6 +258,22 @@ export default function CircleAdminPage() {
     return badges[accessType as keyof typeof badges] || null;
   };
 
+  const handleAddAdmin = () => {
+    const email = newAdminEmail.trim().toLowerCase();
+    if (!email) return;
+    const user = allUsers.find(u => u.email.toLowerCase() === email);
+    if (!user) { toast.error('User not found with that email'); return; }
+    if (adminEmails.includes(email)) { toast.error('User is already an admin'); return; }
+    setAdminEmails([...adminEmails, email]);
+    setNewAdminEmail('');
+    toast.success(`Added ${user.name} as admin`);
+  };
+
+  const handleRemoveAdmin = (email: string) => {
+    if (adminEmails.length === 1) { toast.error('Circle must have at least one admin'); return; }
+    setAdminEmails(adminEmails.filter(e => e !== email));
+  };
+
   const handleCreateCircle = async () => {
     if (!profile) return;
 
@@ -267,6 +302,12 @@ export default function CircleAdminPage() {
         calendar: false,
       };
 
+      // Resolve admin emails to user IDs
+      const resolvedAdminIds = adminEmails
+        .map(email => allUsers.find(u => u.email.toLowerCase() === email.toLowerCase())?.id)
+        .filter(Boolean) as string[];
+      if (!resolvedAdminIds.includes(profile.id)) resolvedAdminIds.unshift(profile.id);
+
       const { data: newCircle, error: circleError } = await supabase
         .from('circles')
         .insert({
@@ -278,9 +319,10 @@ export default function CircleAdminPage() {
           image: createForm.image.trim() || null,
           access_type: createForm.accessType,
           is_open_circle: createForm.accessType === 'open',
-          admin_ids: [profile.id],
-          member_ids: [profile.id],
+          admin_ids: resolvedAdminIds,
+          member_ids: resolvedAdminIds,
           moderator_ids: [],
+          moderation_password: createForm.moderationPassword.trim() || null,
           guest_access: defaultGuestAccess,
           created_by: profile.id,
         })
@@ -302,7 +344,11 @@ export default function CircleAdminPage() {
         longDescription: '',
         image: '',
         accessType: 'open',
+        moderationPassword: '',
       });
+      const currentUser = allUsers.find(u => u.id === profile.id);
+      setAdminEmails(currentUser ? [currentUser.email] : []);
+      setNewAdminEmail('');
 
       // Refresh the circles list
       await fetchCircleAdminData();
@@ -567,6 +613,12 @@ export default function CircleAdminPage() {
                           Manage Members
                         </Button>
                       </Link>
+                      <Link to={`/platform-admin/circles/${circle.id}/edit`}>
+                        <Button size="sm" variant="outline">
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Circle
+                        </Button>
+                      </Link>
                       <Link to={`/circles/${circle.id}/settings`}>
                         <Button size="sm" variant="outline">
                           <Settings className="w-4 h-4 mr-2" />
@@ -602,10 +654,15 @@ export default function CircleAdminPage() {
       {/* Create Circle Dialog */}
       {showCreateDialog && (
         <CreateCircleDialog
-          profile={profile}
           creating={creating}
           createForm={createForm}
           setCreateForm={setCreateForm}
+          allUsers={allUsers}
+          adminEmails={adminEmails}
+          newAdminEmail={newAdminEmail}
+          setNewAdminEmail={setNewAdminEmail}
+          onAddAdmin={handleAddAdmin}
+          onRemoveAdmin={handleRemoveAdmin}
           onClose={() => {
             setShowCreateDialog(false);
             setCreateForm({
@@ -614,7 +671,11 @@ export default function CircleAdminPage() {
               longDescription: '',
               image: '',
               accessType: 'open',
+              moderationPassword: '',
             });
+            const currentUser = allUsers.find(u => u.id === profile.id);
+            setAdminEmails(currentUser ? [currentUser.email] : []);
+            setNewAdminEmail('');
           }}
           onSubmit={handleCreateCircle}
         />
@@ -624,14 +685,18 @@ export default function CircleAdminPage() {
 }
 
 function CreateCircleDialog({
-  profile,
   creating,
   createForm,
   setCreateForm,
+  allUsers,
+  adminEmails,
+  newAdminEmail,
+  setNewAdminEmail,
+  onAddAdmin,
+  onRemoveAdmin,
   onClose,
   onSubmit,
 }: {
-  profile: any;
   creating: boolean;
   createForm: {
     name: string;
@@ -639,8 +704,15 @@ function CreateCircleDialog({
     longDescription: string;
     image: string;
     accessType: 'open' | 'request' | 'invite';
+    moderationPassword: string;
   };
   setCreateForm: (form: any) => void;
+  allUsers: { id: string; name: string; email: string }[];
+  adminEmails: string[];
+  newAdminEmail: string;
+  setNewAdminEmail: (v: string) => void;
+  onAddAdmin: () => void;
+  onRemoveAdmin: (email: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
@@ -650,7 +722,7 @@ function CreateCircleDialog({
         <CardHeader>
           <CardTitle>Create New Circle</CardTitle>
           <CardDescription>
-            Create a new circle. You'll be set as the creator and admin.
+            Set up your new circle with the same options available in the platform admin.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -668,7 +740,6 @@ function CreateCircleDialog({
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                 placeholder="e.g., Web Development"
-                required
               />
             </div>
 
@@ -678,9 +749,8 @@ function CreateCircleDialog({
                 id="create-description"
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                placeholder="Brief description for circle cards"
+                placeholder="Brief description shown on circle cards"
                 rows={2}
-                required
               />
             </div>
 
@@ -699,7 +769,6 @@ function CreateCircleDialog({
               <Label htmlFor="create-image">Cover Image URL</Label>
               <Input
                 id="create-image"
-                type="url"
                 value={createForm.image}
                 onChange={(e) => setCreateForm({ ...createForm, image: e.target.value })}
                 placeholder="https://example.com/image.jpg"
@@ -723,6 +792,54 @@ function CreateCircleDialog({
                   <SelectItem value="invite">Invite Only - Admin must invite</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="create-modPassword">Moderation Password</Label>
+              <Input
+                id="create-modPassword"
+                value={createForm.moderationPassword}
+                onChange={(e) => setCreateForm({ ...createForm, moderationPassword: e.target.value })}
+                placeholder="Optional password for moderation access"
+              />
+            </div>
+
+            {/* Admin Management */}
+            <div>
+              <Label>Circle Admins</Label>
+              <p className="text-xs text-gray-500 mb-2">Add admins by their email address. You are always included as an admin.</p>
+              <div className="space-y-2 mb-3">
+                {adminEmails.map((email) => {
+                  const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+                  return (
+                    <div key={email} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                      <div>
+                        <span className="font-medium text-sm">{user?.name || email}</span>
+                        <span className="text-xs text-gray-500 ml-2">{email}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAdmin(email)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddAdmin(); } }}
+                />
+                <Button type="button" variant="outline" onClick={onAddAdmin}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
