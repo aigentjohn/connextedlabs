@@ -135,11 +135,10 @@ export default function ProgramsManagement() {
     }
   };
 
-  const handleProgramCreated = (slug: string) => {
+  const handleProgramCreated = (programId: string, _slug: string) => {
     setShowTemplatePicker(false);
-    fetchPrograms(); // Refresh the list
-    toast.success('Program created successfully!');
-    navigate(`/programs/${slug}`);
+    fetchPrograms();
+    navigate(`/program-admin/${programId}/setup`);
   };
 
   if (loading) {
