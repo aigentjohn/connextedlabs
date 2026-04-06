@@ -94,3 +94,46 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+---
+
+## Connexted Platform (`artifacts/connexted`)
+
+React + Vite SPA connected to Supabase (`bxxcfgizpcfaopsyxgnj.supabase.co`). Uses `react-router` (not `react-router-dom`), React 19.1.0.
+
+### Key Supabase table notes
+
+| Table | Owner column | Notes |
+|---|---|---|
+| `episodes` | `author_id` | No `created_by` column |
+| `playlists` | `created_by` | No `author_id`; INSERT RLS also requires `auth.uid() = ANY(admin_ids)` — always include `admin_ids: [userId]` on create |
+| `documents` | `author_id` | |
+| `endorsements` | `author_id` | |
+| `libraries` | `created_by` + `owner_id` | Dual owner columns |
+| `users` | — | Profile table is `users` (NOT `profiles`); name col = `name`, avatar col = `avatar` |
+| `posts` | — | Only PLURAL array columns; null all feed columns then set target one |
+| `platform_docs` | — | Single source for all editable text: home page content + help/onboarding docs |
+
+### Content auth (`lib/content-auth.ts`)
+
+`useContentAuth()` is the single source of truth for INSERT ownership fields. `ownerFields('tableName')` returns the correct `{ author_id }` or `{ created_by }` or both based on the table. `AUTHOR_ID_TABLES` = `['documents', 'endorsements', 'episodes']`.
+
+### Platform docs system
+
+`platform_docs` table stores all editable platform text (doc_key is unique):
+- `welcome` — Help & Docs → Welcome Guide (`/help/welcome`)
+- `help` — Help & Docs → Full reference (`/help/help`)
+- `home_hero` — Public home page hero (headline / tagline / paragraphs)
+- `home_about` — Public home page philosophy strip
+- `home_cta` — Public home page call-to-action
+
+Admin edits via Platform Admin → Documentation Manager (`/platform-admin/documentation`). Markdown format. HelpViewer and MarketingLandingPage fall back to static `src/WELCOME.md` / `src/HELP.md` and hardcoded copy respectively when DB rows are empty.
+
+### Known DB-side issues (require Supabase dashboard fix)
+
+- `forum_threads` INSERT trigger references `NEW.content` but column is `body`
+- Pathway CRUD blocked — Edge Function `make-server-d7930c7f/pathways` is undeployed
+
+### Navigation / permissions
+
+`auth-context.tsx` fetches user class permissions via two separate queries (not embedded FK join): `user_class_permissions` (204 rows) + `container_types` (24 rows), joined in JS. Nav config falls back to `nav-config.ts` if DB returns 0 rows for user's class.
