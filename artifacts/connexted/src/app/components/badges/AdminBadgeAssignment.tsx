@@ -67,8 +67,8 @@ export function AdminBadgeAssignment({ onSuccess, onCancel }: AdminBadgeAssignme
       if (recipientType === 'user') {
         const { data, error } = await supabase
           .from('users')
-          .select('id, full_name, email, avatar_url')
-          .or(`full_name.ilike.%${recipientSearch}%,email.ilike.%${recipientSearch}%`)
+          .select('id, name, email, avatar')
+          .or(`name.ilike.%${recipientSearch}%,email.ilike.%${recipientSearch}%`)
           .limit(10);
 
         if (error) throw error;
@@ -188,9 +188,9 @@ export function AdminBadgeAssignment({ onSuccess, onCancel }: AdminBadgeAssignme
           {selectedRecipient ? (
             <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-3">
-                {recipientType === 'user' && selectedRecipient.avatar_url && (
+                {recipientType === 'user' && selectedRecipient.avatar && (
                   <img 
-                    src={selectedRecipient.avatar_url} 
+                    src={selectedRecipient.avatar} 
                     alt="" 
                     className="w-10 h-10 rounded-full"
                   />
@@ -204,7 +204,7 @@ export function AdminBadgeAssignment({ onSuccess, onCancel }: AdminBadgeAssignme
                 )}
                 <div>
                   <div className="font-medium">
-                    {recipientType === 'user' ? selectedRecipient.full_name : selectedRecipient.name}
+                    {selectedRecipient.name}
                   </div>
                   {recipientType === 'user' && (
                     <div className="text-sm text-gray-600">{selectedRecipient.email}</div>
@@ -244,9 +244,9 @@ export function AdminBadgeAssignment({ onSuccess, onCancel }: AdminBadgeAssignme
                       }}
                       className="w-full p-3 hover:bg-gray-50 text-left flex items-center gap-3"
                     >
-                      {recipientType === 'user' && result.avatar_url && (
+                      {recipientType === 'user' && result.avatar && (
                         <img 
-                          src={result.avatar_url} 
+                          src={result.avatar} 
                           alt="" 
                           className="w-8 h-8 rounded-full"
                         />
@@ -260,7 +260,7 @@ export function AdminBadgeAssignment({ onSuccess, onCancel }: AdminBadgeAssignme
                       )}
                       <div>
                         <div className="font-medium">
-                          {recipientType === 'user' ? result.full_name : result.name}
+                          {result.name}
                         </div>
                         {recipientType === 'user' && (
                           <div className="text-sm text-gray-600">{result.email}</div>

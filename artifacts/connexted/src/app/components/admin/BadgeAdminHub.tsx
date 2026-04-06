@@ -360,10 +360,10 @@ function RecipientsTab() {
 
     const [{ data: recipients }, { data: issuers }] = await Promise.all([
       recipientIds.length
-        ? supabase.from('users').select('id, full_name, email, avatar_url').in('id', recipientIds)
+        ? supabase.from('users').select('id, name, email, avatar').in('id', recipientIds)
         : Promise.resolve({ data: [] }),
       issuerIds.length
-        ? supabase.from('users').select('id, full_name').in('id', issuerIds)
+        ? supabase.from('users').select('id, name').in('id', issuerIds)
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -385,10 +385,10 @@ function RecipientsTab() {
         badge_type_color: bt.badge_color || '#6B7280',
         badge_type_category: bt.category || '',
         recipient_user_id: r.recipient_user_id,
-        recipient_name: rec.full_name || 'Unknown',
+        recipient_name: rec.name || 'Unknown',
         recipient_email: rec.email || '',
-        recipient_avatar: rec.avatar_url || null,
-        issuer_name: iss.full_name || null,
+        recipient_avatar: rec.avatar || null,
+        issuer_name: iss.name || null,
       };
     });
 
@@ -568,7 +568,7 @@ function ProgressTab() {
     const earnedRaw = ubs || [];
     const earnedUserIds = [...new Set(earnedRaw.map((r: any) => r.recipient_user_id).filter(Boolean))];
     const { data: earnedUserData } = earnedUserIds.length
-      ? await supabase.from('users').select('id, full_name, email, avatar_url').in('id', earnedUserIds)
+      ? await supabase.from('users').select('id, name, email, avatar').in('id', earnedUserIds)
       : { data: [] };
     const earnedUserMap = Object.fromEntries((earnedUserData || []).map((u: any) => [u.id, u]));
 
@@ -577,9 +577,9 @@ function ProgressTab() {
         const u = earnedUserMap[r.recipient_user_id] || {};
         return {
           user_id: r.recipient_user_id,
-          user_name: u.full_name || 'Unknown',
+          user_name: u.name || 'Unknown',
           user_email: u.email || '',
-          user_avatar: u.avatar_url || null,
+          user_avatar: u.avatar || null,
           earned_at: r.created_at,
         };
       })
@@ -609,7 +609,7 @@ function ProgressTab() {
           user_id: e.enrollment.user_id,
           user_name: e.user?.name || 'Unknown',
           user_email: e.user?.email || '',
-          user_avatar: e.user?.avatar_url || null,
+          user_avatar: e.user?.avatar || null,
           status: (e.enrollment.progress_percentage >= 100 ? 'earned' : 'in_progress') as 'earned' | 'in_progress',
           progress_percentage: e.enrollment.progress_percentage || 0,
         }));
