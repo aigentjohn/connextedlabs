@@ -220,10 +220,16 @@ export default function ContainerFeed({ containerType, containerId, containerNam
       // Column defaults are empty arrays ({}), which are non-null, so we must
       // explicitly null-out every other feed column in the insert.
       const queryField = getContainerField(containerType);  // e.g. 'circle_ids'
+      // posts_belongs_to_one_feed covers ALL feed-related columns — both the
+      // array _ids columns AND the singular UUID columns.  Every one that is
+      // not the target container must be explicitly NULL; omitting them lets
+      // Postgres apply its column DEFAULT which may be non-null.
       const ALL_FEED_FIELDS = [
         'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
         'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
         'blog_ids', 'magazine_ids',
+        // singular UUID feed columns (also part of the constraint)
+        'moments_id', 'company_news_id', 'program_id', 'program_journey_id',
       ];
       const postData: any = {
         author_id: profile.id,
@@ -235,7 +241,7 @@ export default function ContainerFeed({ containerType, containerId, containerNam
         [queryField]: [containerId],
       };
 
-      console.log('[ContainerFeed] posting with queryField:', queryField, 'containerId:', containerId, 'postData keys:', JSON.stringify(Object.fromEntries(Object.entries(postData).filter(([k]) => ALL_FEED_FIELDS.includes(k)))));
+      console.log('[ContainerFeed] full postData:', JSON.stringify(postData));
 
       const { data, error } = await supabase
         .from('posts')

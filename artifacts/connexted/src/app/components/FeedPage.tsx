@@ -267,6 +267,7 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
       'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
       'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
       'blog_ids', 'magazine_ids',
+      'moments_id', 'company_news_id', 'program_id', 'program_journey_id',
     ];
 
     const { error } = await supabase.from('posts').insert({

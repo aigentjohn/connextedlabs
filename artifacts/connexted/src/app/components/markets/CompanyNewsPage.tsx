@@ -184,6 +184,7 @@ export default function CompanyNewsPage() {
         circle_ids: null, table_ids: null, elevator_ids: null, standup_ids: null,
         meeting_ids: null, build_ids: null, pitch_ids: null, meetup_ids: null,
         playlist_ids: null, program_ids: null, blog_ids: null, magazine_ids: null,
+        moments_id: null, program_id: null, program_journey_id: null,
       };
       const { data, error } = await supabase
         .from('posts')
