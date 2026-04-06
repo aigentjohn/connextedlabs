@@ -72,9 +72,12 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
     if (!selectedTemplate || !profile) return;
 
     setCreating(true);
+    let createdCircleId: string | null = null;
     try {
-      // Generate slug from program name
-      const slug = programName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      // Generate slug from program name + unique suffix to prevent collisions
+      const suffix = Date.now().toString(36);
+      const base = programName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const slug = `${base}-${suffix}`;
       
       // Create circle for the program (ONE circle for all journeys)
       const circleSlug = `${slug}-${selectedTemplate.circle.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
@@ -89,12 +92,13 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
           access_type: selectedTemplate.circle.access_type || 'invite',
           image: selectedTemplate.circle.image || null,
           admin_ids: [profile.id],
-          member_ids: [profile.id], // Creator is auto-member
+          member_ids: [profile.id],
         })
         .select()
         .single();
 
       if (circleError) throw circleError;
+      createdCircleId = circle.id;
 
       // Create program instance
       const { data: program, error: programError } = await supabase
@@ -109,7 +113,7 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
           member_ids: [],
           status: 'not-started',
           created_by: profile.id,
-          visibility: 'member',
+          visibility: 'members-only',
           tags: tags,
         })
         .select()
@@ -174,6 +178,9 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
       onClose();
     } catch (error) {
       console.error('Error creating program:', error);
+      if (createdCircleId) {
+        await supabase.from('circles').delete().eq('id', createdCircleId);
+      }
       toast.error('Failed to create program');
     } finally {
       setCreating(false);
@@ -189,9 +196,12 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
     if (!profile) return;
 
     setCreating(true);
+    let createdCircleId: string | null = null;
     try {
-      // Generate slug from program name
-      const slug = blankProgramData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      // Generate slug from program name + unique suffix to prevent collisions
+      const suffix = Date.now().toString(36);
+      const base = blankProgramData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const slug = `${base}-${suffix}`;
       
       // Create circle for the program (ONE circle for all journeys)
       const circleSlug = `${slug}-${blankProgramData.circleName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
@@ -206,12 +216,13 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
           access_type: 'invite',
           image: null,
           admin_ids: [profile.id],
-          member_ids: [profile.id], // Creator is auto-member
+          member_ids: [profile.id],
         })
         .select()
         .single();
 
       if (circleError) throw circleError;
+      createdCircleId = circle.id;
 
       // Create program instance
       const { data: program, error: programError } = await supabase
@@ -226,7 +237,7 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
           member_ids: [],
           status: 'not-started',
           created_by: profile.id,
-          visibility: 'member',
+          visibility: 'members-only',
           tags: tags,
         })
         .select()
@@ -281,6 +292,9 @@ export function ProgramTemplatePicker({ isOpen, onClose, onProgramCreated }: Pro
       onClose();
     } catch (error) {
       console.error('Error creating program:', error);
+      if (createdCircleId) {
+        await supabase.from('circles').delete().eq('id', createdCircleId);
+      }
       toast.error('Failed to create program');
     } finally {
       setCreating(false);
