@@ -1,7 +1,13 @@
 /**
- * MyContentSection Component
+ * DiscoverSection Component
  *
- * User's owned content: Documents, Books, Decks, Lists, Libraries, etc.
+ * Groups all content-finding tools in one place:
+ *   Explore      — browse and join containers by type
+ *   Topics       — browse the structured topic taxonomy
+ *   Following    — activity feed from people + tag/topic subscriptions
+ *   My Favorites — containers and content the user has bookmarked
+ *
+ * Search will be added here in Phase 3.
  */
 
 import { Link, useLocation } from 'react-router';
@@ -9,27 +15,25 @@ import type { ComponentType, ReactNode } from 'react';
 import {
   ChevronDown,
   ChevronRight,
-  Library,
-  FileText,
-  BookOpen,
-  Layers,
-  CheckSquare,
-  FolderKanban,
+  Compass,
+  Sparkles,
+  Tag,
+  Hash,
   Star,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
-interface MyContentSectionProps {
+interface DiscoverSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
-  myReviewCount: number;
+  favoritesCount?: number;
 }
 
-export function MyContentSection({
+export function DiscoverSection({
   isExpanded,
   onToggle,
-  myReviewCount,
-}: MyContentSectionProps) {
+  favoritesCount,
+}: DiscoverSectionProps) {
   const location = useLocation();
 
   return (
@@ -46,30 +50,32 @@ export function MyContentSection({
         ) : (
           <ChevronRight className="w-4 h-4 text-gray-500" />
         )}
-        <Library className="w-4 h-4 text-green-600" />
-        <span className="flex-1 text-left font-semibold text-gray-900">MY CONTENT</span>
+        <Compass className="w-4 h-4 text-sky-600" />
+        <span className="flex-1 text-left font-semibold text-gray-900">DISCOVER</span>
       </button>
 
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">
-          <SideLink to="/my-documents" icon={FileText} pathname={location.pathname}>My Documents</SideLink>
-          <SideLink to="/books" icon={BookOpen} pathname={location.pathname}>My Books</SideLink>
-          <SideLink to="/decks" icon={Layers} pathname={location.pathname} activeClass="bg-purple-50 text-purple-700">My Decks</SideLink>
-          <SideLink to="/checklists" icon={CheckSquare} pathname={location.pathname}>My Lists</SideLink>
-          <SideLink to="/libraries" icon={Library} pathname={location.pathname}>My Libraries</SideLink>
-          <SideLink to="/my-contents" icon={FolderKanban} pathname={location.pathname}>My Links</SideLink>
-
+          <DiscoverLink to="/explore" icon={Sparkles} pathname={location.pathname}>
+            Explore
+          </DiscoverLink>
+          <DiscoverLink to="/topics" icon={Tag} pathname={location.pathname} match="startsWith">
+            Topics
+          </DiscoverLink>
+          <DiscoverLink to="/discovery" icon={Hash} pathname={location.pathname} match="startsWith">
+            Following Feed
+          </DiscoverLink>
           <Link
-            to="/my-reviews"
+            to="/my-content"
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
-              location.pathname === '/my-reviews' && 'bg-indigo-50 text-indigo-700'
+              location.pathname === '/my-content' && 'bg-indigo-50 text-indigo-700'
             )}
           >
             <Star className="w-4 h-4" />
-            <span>My Endorsements</span>
-            {myReviewCount > 0 && (
-              <span className="text-xs text-gray-500">({myReviewCount})</span>
+            <span>My Favorites</span>
+            {favoritesCount !== undefined && favoritesCount > 0 && (
+              <span className="text-xs text-gray-500">({favoritesCount})</span>
             )}
           </Link>
         </div>
@@ -78,20 +84,18 @@ export function MyContentSection({
   );
 }
 
-function SideLink({
+function DiscoverLink({
   to,
   icon: Icon,
   pathname,
   children,
   match = 'exact',
-  activeClass = 'bg-indigo-50 text-indigo-700',
 }: {
   to: string;
   icon: ComponentType<{ className?: string }>;
   pathname: string;
   children: ReactNode;
   match?: 'exact' | 'startsWith';
-  activeClass?: string;
 }) {
   const isActive = match === 'exact' ? pathname === to : pathname.startsWith(to);
 
@@ -100,7 +104,7 @@ function SideLink({
       to={to}
       className={cn(
         'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
-        isActive && activeClass
+        isActive && 'bg-indigo-50 text-indigo-700'
       )}
     >
       <Icon className="w-4 h-4" />

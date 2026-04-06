@@ -24,6 +24,7 @@ import { accessTicketService } from '@/services/accessTicketService';
 import { UserSection } from './sidebar/UserSection';
 import { MyContentSection } from './sidebar/MyContentSection';
 import { MyGrowthSection } from './sidebar/MyGrowthSection';
+import { DiscoverSection } from './sidebar/DiscoverSection';
 import { MembersSection } from './sidebar/MembersSection';
 import { SponsorsSection, CirclesSection, ContentSection } from './sidebar/MinorSections';
 import { ActivitiesSection } from './sidebar/ActivitiesSection';
@@ -41,6 +42,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     user: false,
     myContent: false,
     myGrowth: false,
+    discover: false,
     members: false,
     sponsors: false,
     activities: false,
@@ -147,7 +149,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
 
   // Auto-expand MY GROWTH section when viewing any of its child routes
   useEffect(() => {
-    const growthPaths = ['/my-courses', '/my-programs', '/my-pathways', '/my-growth', '/browse-pathways', '/profile/badges', '/moments', '/portfolio', '/discovery', '/explore'];
+    const growthPaths = ['/my-courses', '/my-programs', '/my-pathways', '/my-growth', '/browse-pathways', '/profile/badges', '/moments', '/portfolio'];
     const isGrowthRoute = growthPaths.some((p) =>
       location.pathname === p || location.pathname.startsWith(p + '/')
     );
@@ -156,8 +158,19 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     }
   }, [location.pathname]);
 
+  // Auto-expand DISCOVER section when viewing any of its child routes
+  useEffect(() => {
+    const discoverPaths = ['/explore', '/topics', '/discovery', '/my-content'];
+    const isDiscoverRoute = discoverPaths.some((p) =>
+      location.pathname === p || location.pathname.startsWith(p + '/')
+    );
+    if (isDiscoverRoute) {
+      setExpandedSections((prev) => ({ ...prev, discover: true }));
+    }
+  }, [location.pathname]);
+
   const toggleSection = (key: string) => {
-    const mainSections = ['user', 'myContent', 'myGrowth', 'members', 'sponsors', 'activities', 'circles', 'content', 'setup'];
+    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'circles', 'content', 'setup'];
     const adminSections = ['myAdmin'];
     const containerAdminSections = ['tableAdmin', 'elevatorAdmin', 'meetingAdmin', 'pitchAdmin', 'buildAdmin', 'standupAdmin', 'meetupAdmin', 'sprintAdmin'];
 
@@ -237,13 +250,18 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             isExpanded={expandedSections['myContent']}
             onToggle={() => toggleSection('myContent')}
             myReviewCount={reviewCounts.myReviews}
-            allUserContainersCount={allUserContainers.length}
           />
           <Separator className="my-1.5" />
           <MyGrowthSection
             isExpanded={expandedSections['myGrowth']}
             onToggle={() => toggleSection('myGrowth')}
             profileId={profile?.id}
+          />
+          <Separator className="my-1.5" />
+          <DiscoverSection
+            isExpanded={expandedSections['discover']}
+            onToggle={() => toggleSection('discover')}
+            favoritesCount={allUserContainers.length}
           />
           <Separator className="my-1.5" />
           <MembersSection

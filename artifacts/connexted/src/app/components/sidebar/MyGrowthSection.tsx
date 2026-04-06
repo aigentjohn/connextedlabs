@@ -17,8 +17,6 @@ import {
   Award,
   Zap,
   Briefcase,
-  Hash,
-  Sparkles,
   Compass,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
@@ -89,14 +87,6 @@ export function MyGrowthSection({ isExpanded, onToggle, profileId }: MyGrowthSec
             matchPath="/portfolio"
           >
             My Portfolio
-          </GrowthLink>
-
-          {/* Discovery */}
-          <GrowthLink to="/discovery" icon={Hash} pathname={location.pathname} match="startsWith">
-            Discover Content
-          </GrowthLink>
-          <GrowthLink to="/explore" icon={Sparkles} pathname={location.pathname}>
-            Explore Activities
           </GrowthLink>
         </div>
       )}
