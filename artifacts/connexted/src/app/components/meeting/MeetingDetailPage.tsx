@@ -1,4 +1,4 @@
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, Navigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -6,12 +6,20 @@ import { canViewContainer } from '@/lib/visibility-access';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import {
+  ArrowLeft, Users, CheckCircle, HelpCircle, XCircle,
+  Edit2, Settings, Calendar, MessageSquare, FileText,
+  Star, MapPin, Video,
+} from 'lucide-react';
+import Breadcrumbs from '@/app/components/Breadcrumbs';
+import ShareInviteButton from '@/app/components/shared/ShareInviteButton';
+import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import ContainerFeed from '@/app/components/shared/ContainerFeed';
 import ContainerReviews from '@/app/components/shared/ContainerReviews';
 
@@ -59,8 +67,8 @@ interface MeetingMember {
 interface User {
   id: string;
   email: string;
-  full_name: string;
-  avatar_url: string | null;
+  name: string;
+  avatar: string | null;
 }
 
 interface Sponsor {
@@ -478,7 +486,7 @@ export default function MeetingDetailPage() {
                   containerId={meeting.id}
                   containerTitle={meeting.name}
                   recipientId={meeting.created_by}
-                  recipientName={getUser(meeting.created_by)?.full_name || 'the host'}
+                  recipientName={getUser(meeting.created_by)?.name || 'the host'}
                 />
               )}
               {isAdmin && (
@@ -708,22 +716,22 @@ export default function MeetingDetailPage() {
 
                                 return (
                                   <div key={member.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                                    {user?.avatar_url ? (
+                                    {user?.avatar ? (
                                       <img
-                                        src={user.avatar_url}
-                                        alt={user.full_name}
+                                        src={user.avatar}
+                                        alt={user.name}
                                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                       />
                                     ) : (
                                       <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
                                         <span className="text-white font-semibold">
-                                          {user?.full_name.charAt(0).toUpperCase()}
+                                          {user?.name?.charAt(0).toUpperCase()}
                                         </span>
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-medium">{user?.full_name || 'Unknown User'}</span>
+                                        <span className="font-medium">{user?.name || 'Unknown User'}</span>
                                         {isCreator && (
                                           <Badge variant="default" className="text-xs">Host</Badge>
                                         )}
@@ -756,21 +764,21 @@ export default function MeetingDetailPage() {
                                 const user = getUser(member.user_id);
                                 return (
                                   <div key={member.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                                    {user?.avatar_url ? (
+                                    {user?.avatar ? (
                                       <img
-                                        src={user.avatar_url}
-                                        alt={user.full_name}
+                                        src={user.avatar}
+                                        alt={user.name}
                                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                       />
                                     ) : (
                                       <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
                                         <span className="text-white font-semibold">
-                                          {user?.full_name.charAt(0).toUpperCase()}
+                                          {user?.name?.charAt(0).toUpperCase()}
                                         </span>
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <span className="font-medium">{user?.full_name || 'Unknown User'}</span>
+                                      <span className="font-medium">{user?.name || 'Unknown User'}</span>
                                       {member.intro && (
                                         <p className="text-sm text-gray-600 mt-1">{member.intro}</p>
                                       )}
@@ -796,21 +804,21 @@ export default function MeetingDetailPage() {
                                 const user = getUser(member.user_id);
                                 return (
                                   <div key={member.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg opacity-60">
-                                    {user?.avatar_url ? (
+                                    {user?.avatar ? (
                                       <img
-                                        src={user.avatar_url}
-                                        alt={user.full_name}
+                                        src={user.avatar}
+                                        alt={user.name}
                                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                       />
                                     ) : (
                                       <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
                                         <span className="text-white font-semibold">
-                                          {user?.full_name.charAt(0).toUpperCase()}
+                                          {user?.name?.charAt(0).toUpperCase()}
                                         </span>
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <span className="font-medium">{user?.full_name || 'Unknown User'}</span>
+                                      <span className="font-medium">{user?.name || 'Unknown User'}</span>
                                     </div>
                                   </div>
                                 );

@@ -18,7 +18,7 @@ import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PrivateCommentDialogProps {
-  containerType: 'document' | 'review' | 'pitch' | 'build' | 'circle' | 'table' | 'library' | 'event' | 'meetup' | 'elevator' | 'standup' | 'program' | 'playlist' | 'magazine' | 'episode' | 'checklist' | 'book' | 'deck';
+  containerType: 'document' | 'review' | 'pitch' | 'build' | 'circle' | 'table' | 'library' | 'event' | 'meeting' | 'meetup' | 'elevator' | 'standup' | 'program' | 'playlist' | 'magazine' | 'episode' | 'checklist' | 'book' | 'deck';
   containerId: string;
   containerTitle: string;
   recipientId: string;
