@@ -6,13 +6,12 @@ import { Users2, Search, X, MessageCircle, Award } from 'lucide-react';
 
 interface Friend {
   id: string;
-  full_name: string;
-  display_name: string | null;
+  name: string;
   email: string;
-  avatar_url: string | null;
-  badges: string[];
-  circles: number;
-  since: string; // When they became mutual friends
+  avatar: string | null;
+  badgeCount: number;
+  circleCount: number;
+  since: string;
 }
 
 export default function FriendsPage() {
@@ -23,9 +22,7 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (user) {
-      fetchFriends();
-    }
+    if (user) fetchFriends();
   }, [user]);
 
   useEffect(() => {
@@ -34,26 +31,25 @@ export default function FriendsPage() {
 
   const fetchFriends = async () => {
     if (!user) return;
-
     setLoading(true);
     try {
       // Fetch users I'm following
-      const { data: following } = await supabase
-        .from('connections')
+      const { data: followingData } = await supabase
+        .from('user_connections')
         .select('following_id')
         .eq('follower_id', user.id);
 
-      const followingIds = following?.map(f => f.following_id) || [];
+      const followingIds = followingData?.map(f => f.following_id) || [];
 
-      // Fetch users following me
-      const { data: followers } = await supabase
-        .from('connections')
+      // Fetch users following me (include created_at for "since" date)
+      const { data: followersData } = await supabase
+        .from('user_connections')
         .select('follower_id, created_at')
         .eq('following_id', user.id);
 
-      const followerIds = followers?.map(f => f.follower_id) || [];
+      const followerIds = followersData?.map(f => f.follower_id) || [];
 
-      // Find mutual connections (friends)
+      // Mutual = I follow them AND they follow me
       const mutualIds = followingIds.filter(id => followerIds.includes(id));
 
       if (mutualIds.length === 0) {
@@ -65,37 +61,34 @@ export default function FriendsPage() {
       // Fetch friend profiles
       const { data: profiles } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, avatar')
         .in('id', mutualIds);
 
-      // Fetch additional data for each friend
+      // Fetch badge counts and circle counts in parallel for each friend
       const friendsData = await Promise.all(
         (profiles || []).map(async (profile) => {
-          // Count circles
-          const { count: circleCount } = await supabase
-            .from('circle_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', profile.id)
-            .eq('status', 'active');
+          const [{ count: badgeCount }, { count: circleCount }] = await Promise.all([
+            supabase
+              .from('user_badges')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', profile.id),
+            supabase
+              .from('circles')
+              .select('*', { count: 'exact', head: true })
+              .contains('member_ids', [profile.id]),
+          ]);
 
-          // Count badges
-          const { data: badgeData } = await supabase
-            .from('user_badges')
-            .select('badge_id')
-            .eq('user_id', profile.id);
-
-          // Get the connection date (when they became mutual)
-          const followerRecord = followers?.find(f => f.follower_id === profile.id);
+          // "Since" = when they followed you (the later event that completed the friendship)
+          const followerRecord = followersData?.find(f => f.follower_id === profile.id);
 
           return {
             id: profile.id,
-            full_name: profile.full_name || 'Unknown',
-            display_name: profile.display_name,
+            name: profile.name || 'Unknown',
             email: profile.email,
-            avatar_url: profile.avatar_url,
-            badges: badgeData?.map(b => b.badge_id) || [],
-            circles: circleCount || 0,
-            since: followerRecord?.created_at || profile.created_at,
+            avatar: profile.avatar,
+            badgeCount: badgeCount || 0,
+            circleCount: circleCount || 0,
+            since: followerRecord?.created_at || new Date().toISOString(),
           };
         })
       );
@@ -113,16 +106,14 @@ export default function FriendsPage() {
       setFilteredFriends(friends);
       return;
     }
-
     const query = searchQuery.toLowerCase();
-    const filtered = friends.filter(
-      (friend) =>
-        friend.full_name.toLowerCase().includes(query) ||
-        friend.display_name?.toLowerCase().includes(query) ||
-        friend.email.toLowerCase().includes(query)
+    setFilteredFriends(
+      friends.filter(
+        f =>
+          f.name.toLowerCase().includes(query) ||
+          f.email.toLowerCase().includes(query)
+      )
     );
-
-    setFilteredFriends(filtered);
   };
 
   if (loading) {
@@ -143,15 +134,15 @@ export default function FriendsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Friends</h1>
               <p className="text-gray-600 mt-1">
-                {filteredFriends.length} mutual connections
+                {filteredFriends.length} mutual connection{filteredFriends.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search friends..."
@@ -162,7 +153,7 @@ export default function FriendsPage() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X className="w-5 h-5" />
             </button>
@@ -181,16 +172,15 @@ export default function FriendsPage() {
               <div className="flex flex-col items-center text-center">
                 {/* Avatar */}
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold mb-4 relative">
-                  {friend.avatar_url ? (
+                  {friend.avatar ? (
                     <img
-                      src={friend.avatar_url}
-                      alt={friend.full_name}
+                      src={friend.avatar}
+                      alt={friend.name}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    friend.full_name.charAt(0).toUpperCase()
+                    friend.name.charAt(0).toUpperCase()
                   )}
-                  {/* Mutual badge */}
                   <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
                     <Users2 className="w-4 h-4 text-white" />
                   </div>
@@ -201,27 +191,24 @@ export default function FriendsPage() {
                   to={`/users/${friend.id}`}
                   className="font-semibold text-gray-900 hover:text-green-600 mb-1"
                 >
-                  {friend.display_name || friend.full_name}
+                  {friend.name}
                 </Link>
-                {friend.display_name && (
-                  <p className="text-sm text-gray-500 mb-2">{friend.full_name}</p>
-                )}
+                <p className="text-sm text-gray-500 mb-3">{friend.email}</p>
 
                 {/* Stats */}
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                  {friend.badges.length > 0 && (
+                  {friend.badgeCount > 0 && (
                     <div className="flex items-center gap-1">
                       <Award className="w-4 h-4 text-yellow-500" />
-                      <span>{friend.badges.length}</span>
+                      <span>{friend.badgeCount}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1">
                     <Users2 className="w-4 h-4 text-blue-500" />
-                    <span>{friend.circles} circles</span>
+                    <span>{friend.circleCount} circle{friend.circleCount !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
 
-                {/* Friends Since */}
                 <p className="text-xs text-gray-500 mb-4">
                   Friends since {new Date(friend.since).toLocaleDateString()}
                 </p>
@@ -253,16 +240,16 @@ export default function FriendsPage() {
           </h3>
           <p className="text-gray-600 mb-4">
             {searchQuery
-              ? 'Try adjusting your search query'
-              : 'Connect with members to build your network'}
+              ? 'Try adjusting your search'
+              : 'Follow members who follow you back to build your friends list'}
           </p>
           {!searchQuery && (
             <Link
-              to="/members/all"
+              to="/members"
               className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Users2 className="w-4 h-4" />
-              Browse All Members
+              Browse Members
             </Link>
           )}
         </div>
