@@ -39,7 +39,7 @@ interface Reply {
   id: string;
   thread_id: string;
   author_id: string;
-  content: string;
+  body: string;
   created_at: string;
   author?: {
     id: string;
@@ -94,14 +94,14 @@ export default function CircleForum({ circleId, isAdmin }: CircleForumProps) {
       if (threadsData && threadsData.length > 0) {
         const threadIds = threadsData.map(t => t.id);
         const { data: repliesData, error: repliesError } = await supabase
-          .from('replies')
+          .from('forum_thread_replies')
           .select(`
             id,
             thread_id,
             author_id,
-            content,
+            body,
             created_at,
-            author:users!replies_author_id_fkey(id, name, avatar)
+            author:users!forum_thread_replies_author_id_fkey(id, name, avatar)
           `)
           .in('thread_id', threadIds)
           .order('created_at', { ascending: true });
@@ -171,19 +171,19 @@ export default function CircleForum({ circleId, isAdmin }: CircleForumProps) {
 
     try {
       const { data, error } = await supabase
-        .from('replies')
+        .from('forum_thread_replies')
         .insert({
           thread_id: threadId,
           author_id: profile.id,
-          content,
+          body: content,
         })
         .select(`
           id,
           thread_id,
           author_id,
-          content,
+          body,
           created_at,
-          author:users!replies_author_id_fkey(id, name, avatar)
+          author:users!forum_thread_replies_author_id_fkey(id, name, avatar)
         `)
         .single();
 
@@ -373,7 +373,7 @@ export default function CircleForum({ circleId, isAdmin }: CircleForumProps) {
                             {new Date(reply.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">{reply.content}</p>
+                        <p className="text-sm text-gray-700">{reply.body}</p>
                       </div>
                     </div>
                   ))}

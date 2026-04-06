@@ -221,8 +221,9 @@ export default function ContainerFeed({ containerType, containerId, containerNam
       // explicitly null-out every other feed column in the insert.
       const queryField = getContainerField(containerType);  // e.g. 'circle_ids'
       const ALL_FEED_FIELDS = [
-        'circle_ids', 'table_ids', 'elevator_ids', 'meeting_ids',
-        'build_ids', 'pitch_ids', 'meetup_ids', 'program_ids',
+        'circle_ids', 'table_ids', 'elevator_ids', 'standup_ids', 'meeting_ids',
+        'build_ids', 'pitch_ids', 'meetup_ids', 'playlist_ids', 'program_ids',
+        'blog_ids', 'magazine_ids',
       ];
       const postData: any = {
         author_id: profile.id,
