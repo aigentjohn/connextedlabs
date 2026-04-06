@@ -60,12 +60,15 @@ export default function CreateEpisodePage() {
       return;
     }
 
-    if (!title.trim()) {
+    const trimmedTitle = title.trim();
+    const trimmedUrl = videoUrl.trim();
+
+    if (!trimmedTitle) {
       toast.error('Title is required');
       return;
     }
 
-    if (!videoUrl.trim()) {
+    if (!trimmedUrl) {
       toast.error('Video URL is required');
       return;
     }
@@ -80,9 +83,9 @@ export default function CreateEpisodePage() {
       const slug = slugify(title);
 
       const payload = {
-        title: title.trim(),
+        title: trimmedTitle,
         description: description.trim() || null,
-        video_url: videoUrl.trim(),
+        video_url: trimmedUrl,
         video_platform: videoPlatform,
         video_id: videoId.trim() || null,
         thumbnail_url: thumbnailUrl.trim() || null,
@@ -91,7 +94,8 @@ export default function CreateEpisodePage() {
         is_published: isPublished,
         tags: tagsArray.length > 0 ? tagsArray : null,
         slug,
-        ...ownerFields('episodes'),
+        member_ids: [userId], // satisfies any member_ids RLS conditions
+        ...ownerFields('episodes'),   // { author_id: userId }
       };
 
       const { data, error } = await supabase
@@ -160,7 +164,6 @@ export default function CreateEpisodePage() {
                   placeholder="e.g. Introduction to Goal Setting"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  required
                 />
               </div>
 
@@ -233,11 +236,10 @@ export default function CreateEpisodePage() {
                 </Label>
                 <Input
                   id="videoUrl"
-                  type="url"
+                  type="text"
                   placeholder="https://www.youtube.com/watch?v=..."
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
-                  required
                 />
               </div>
 
@@ -258,7 +260,7 @@ export default function CreateEpisodePage() {
                 <Label htmlFor="thumbnail">Thumbnail URL (optional)</Label>
                 <Input
                   id="thumbnail"
-                  type="url"
+                  type="text"
                   placeholder="https://..."
                   value={thumbnailUrl}
                   onChange={(e) => setThumbnailUrl(e.target.value)}
