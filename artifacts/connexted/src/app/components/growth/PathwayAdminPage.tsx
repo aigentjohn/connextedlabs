@@ -10,7 +10,6 @@ import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -125,54 +124,6 @@ interface Topic {
   id: string;
   name: string;
   slug: string;
-}
-
-// ============================================================================
-// API
-// ============================================================================
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
-
-async function fetchAPI(path: string, options?: RequestInit) {
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${publicAnonKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  // Get user token for authenticated routes
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers['X-User-Token'] = session.access_token;
-    }
-  } catch { /* proceed without user token */ }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: options?.method || 'GET',
-    headers,
-    ...(options?.body ? { body: options.body } : {}),
-  });
-
-  if (!response.ok) {
-    let errorMsg = `API error: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorData.message || errorMsg;
-    } catch { /* ignore parse errors */ }
-    console.error(`Pathway API ${path} error:`, errorMsg);
-    throw new Error(errorMsg);
-  }
-
-  const data = await response.json();
-
-  // Our server wraps responses in { success, ... } — check for failure
-  if (data && typeof data === 'object' && 'success' in data && !data.success) {
-    const msg = data.error || data.message || 'API error';
-    console.error(`Pathway API ${path} error:`, msg, data);
-    throw new Error(msg);
-  }
-
-  return data;
 }
 
 // ============================================================================
@@ -360,8 +311,17 @@ export default function PathwayAdminPage() {
   async function loadPathways() {
     setLoadingPathways(true);
     try {
-      const data = await fetchAPI('/pathways?all=true');
-      setPathways(data.pathways || []);
+      const { data, error } = await supabase
+        .from('pathways')
+        .select('*, pathway_steps(*)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPathways(
+        (data || []).map((p: any) => ({
+          ...p,
+          steps: (p.pathway_steps || []).sort((a: any, b: any) => a.order_index - b.order_index),
+        }))
+      );
     } catch (error) {
       console.error('Error loading pathways:', error);
     } finally {
@@ -649,10 +609,67 @@ export default function PathwayAdminPage() {
 
     setSaving(true);
     try {
-      await fetchAPI('/pathways', {
-        method: 'POST',
-        body: JSON.stringify(form),
-      });
+      const pathwayPayload = {
+        name:                     form.name,
+        description:              form.description,
+        short_description:        form.short_description,
+        destination:              form.destination,
+        relevant_topics:          form.relevant_topics,
+        relevant_tags:            form.relevant_tags,
+        target_roles:             form.target_roles,
+        target_career_stages:     form.target_career_stages,
+        completion_badge_type_id: form.completion_badge_type_id,
+        estimated_hours:          form.estimated_hours,
+        icon:                     form.icon,
+        color:                    form.color,
+        status:                   form.status,
+        is_published:             form.status === 'published',
+        is_featured:              form.is_featured,
+        created_by:               profile?.id,
+      };
+
+      let pathwayId = form.id;
+
+      if (pathwayId) {
+        const { error } = await supabase
+          .from('pathways')
+          .update(pathwayPayload)
+          .eq('id', pathwayId);
+        if (error) throw error;
+      } else {
+        const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const { data, error } = await supabase
+          .from('pathways')
+          .insert({ ...pathwayPayload, slug })
+          .select('id')
+          .single();
+        if (error) throw error;
+        pathwayId = data.id;
+      }
+
+      // Replace steps: delete all then re-insert in order
+      await supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId);
+
+      if (form.steps.length > 0) {
+        const stepsPayload = form.steps.map((s, i) => ({
+          pathway_id:           pathwayId,
+          title:                s.title,
+          description:          s.description,
+          order_index:          i,
+          sort_order:           i,
+          step_type:            s.step_type,
+          step_id:              s.step_id || null,
+          activity_type:        s.activity_type || null,
+          activity_instance_id: s.step_id ? s.step_id : null,
+          is_required:          s.is_required,
+          allow_skip:           s.allow_skip,
+          verification_method:  s.verification_method || 'self_report',
+          activity_criteria:    s.activity_criteria || null,
+        }));
+        const { error: stepsError } = await supabase.from('pathway_steps').insert(stepsPayload);
+        if (stepsError) throw stepsError;
+      }
+
       toast.success(form.id ? 'Pathway updated!' : 'Pathway created!');
       setEditing(false);
       setForm(emptyForm());
@@ -667,11 +684,12 @@ export default function PathwayAdminPage() {
 
   async function archivePathway(id: string) {
     try {
-      await fetchAPI(`/pathways/${id}`, { method: 'DELETE' });
-      toast.success('Pathway archived');
+      const { error } = await supabase.from('pathways').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Pathway deleted');
       loadPathways();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to archive');
+      toast.error(error.message || 'Failed to delete pathway');
     }
   }
 

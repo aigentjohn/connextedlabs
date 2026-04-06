@@ -129,10 +129,11 @@ React + Vite SPA connected to Supabase (`bxxcfgizpcfaopsyxgnj.supabase.co`). Use
 
 Admin edits via Platform Admin → Documentation Manager (`/platform-admin/documentation`). Markdown format. HelpViewer and MarketingLandingPage fall back to static `src/WELCOME.md` / `src/HELP.md` and hardcoded copy respectively when DB rows are empty.
 
-### Known DB-side issues (require Supabase dashboard fix)
+### Known DB-side issues
 
-- `forum_threads` INSERT trigger references `NEW.content` but column is `body`
-- Pathway CRUD blocked — Edge Function `make-server-d7930c7f/pathways` is undeployed
+All previously known issues are resolved:
+- `forum_threads` trigger — fixed (`NEW.content` → `to_jsonb(NEW)->>'content'` with `body` fallback)
+- Pathway CRUD — unblocked by replacing Edge Function calls with direct Supabase queries in `PathwayAdminPage.tsx`
 
 ### Navigation / permissions
 
