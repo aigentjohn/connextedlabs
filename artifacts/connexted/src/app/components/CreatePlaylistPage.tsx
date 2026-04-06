@@ -82,6 +82,7 @@ export default function CreatePlaylistPage() {
         tags,
         cover_image: coverImage || null,
         ...ownerFields('playlists'),
+        admin_ids: [userId],  // INSERT policy requires auth.uid() = ANY(admin_ids)
         member_ids: [userId], // Creator is automatically a member
         ...(programContext && {
           program_id: programContext.program_id,
