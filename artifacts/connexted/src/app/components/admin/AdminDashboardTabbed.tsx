@@ -58,119 +58,42 @@ export default function AdminDashboardTabbed() {
         documents: documentsCount.count || 0,
       });
 
-      // Fetch all admin containers (same as original)
-      const { data: circlesData } = await supabase
-        .from('circles')
-        .select('id, name, member_ids, admin_ids');
+      const isSuper = profile.role === 'super';
+      const filterByAdmin = (data: any[] | null, field = 'admin_ids') =>
+        isSuper ? data || [] : (data || []).filter((r: any) => r[field]?.includes(profile.id));
 
-      const filteredCircles = profile.role === 'super' 
-        ? circlesData || []
-        : (circlesData || []).filter((c: any) => c.admin_ids?.includes(profile.id));
+      const [
+        circlesRes, tablesRes, elevatorsRes, meetingsRes, pitchesRes,
+        standupsRes, buildsRes, meetupsRes, checklistsRes, sprintsRes,
+      ] = await Promise.allSettled([
+        supabase.from('circles').select('id, name, member_ids, admin_ids'),
+        supabase.from('tables').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('elevators').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('meetings').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('pitches').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('standups').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('builds').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('meetups').select('id, name, slug, member_ids, admin_ids'),
+        supabase.from('checklists').select('id, name, created_by, is_template, category'),
+        supabase.from('sprints').select('id, name, slug, member_ids, admin_ids'),
+      ]);
 
-      setMyAdminCircles(filteredCircles);
+      const getData = (r: PromiseSettledResult<any>) => r.status === 'fulfilled' ? r.value.data : null;
 
-      // Fetch other containers
-      const { data: tablesData } = await supabase
-        .from('tables')
-        .select('id, name, slug, member_ids, admin_ids');
+      setMyAdminCircles(filterByAdmin(getData(circlesRes)));
+      setMyAdminTables(filterByAdmin(getData(tablesRes)));
+      setMyAdminElevators(filterByAdmin(getData(elevatorsRes)));
+      setMyAdminMeetings(filterByAdmin(getData(meetingsRes)));
+      setMyAdminPitches(filterByAdmin(getData(pitchesRes)));
+      setMyAdminStandups(filterByAdmin(getData(standupsRes)));
+      setMyAdminBuilds(filterByAdmin(getData(buildsRes)));
+      setMyAdminMeetups(filterByAdmin(getData(meetupsRes)));
+      setMyAdminSprints(filterByAdmin(getData(sprintsRes)));
 
-      const filteredTables = profile.role === 'super'
-        ? tablesData || []
-        : (tablesData || []).filter((t: any) => t.admin_ids?.includes(profile.id));
-
-      setMyAdminTables(filteredTables);
-
-      const { data: elevatorsData } = await supabase
-        .from('elevators')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredElevators = profile.role === 'super'
-        ? elevatorsData || []
-        : (elevatorsData || []).filter((e: any) => e.admin_ids?.includes(profile.id));
-
-      setMyAdminElevators(filteredElevators);
-
-      const { data: meetingsData } = await supabase
-        .from('meetings')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredMeetings = profile.role === 'super'
-        ? meetingsData || []
-        : (meetingsData || []).filter((m: any) => m.admin_ids?.includes(profile.id));
-
-      setMyAdminMeetings(filteredMeetings);
-
-      const { data: pitchesData } = await supabase
-        .from('pitches')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredPitches = profile.role === 'super'
-        ? pitchesData || []
-        : (pitchesData || []).filter((p: any) => p.admin_ids?.includes(profile.id));
-
-      setMyAdminPitches(filteredPitches);
-
-      const { data: standupsData } = await supabase
-        .from('standups')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredStandups = profile.role === 'super'
-        ? standupsData || []
-        : (standupsData || []).filter((s: any) => s.admin_ids?.includes(profile.id));
-
-      setMyAdminStandups(filteredStandups);
-
-      const { data: buildsData } = await supabase
-        .from('builds')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredBuilds = profile.role === 'super'
-        ? buildsData || []
-        : (buildsData || []).filter((b: any) => b.admin_ids?.includes(profile.id));
-
-      setMyAdminBuilds(filteredBuilds);
-
-      const { data: meetupsData } = await supabase
-        .from('meetups')
-        .select('id, name, slug, member_ids, admin_ids');
-
-      const filteredMeetups = profile.role === 'super'
-        ? meetupsData || []
-        : (meetupsData || []).filter((m: any) => m.admin_ids?.includes(profile.id));
-
-      setMyAdminMeetups(filteredMeetups);
-
-      try {
-        const { data: checklistsData } = await supabase
-          .from('checklists')
-          .select('id, name, created_by, is_template, category');
-
-        const filteredChecklists = profile.role === 'super'
-          ? checklistsData || []
-          : (checklistsData || []).filter((c: any) => c.created_by === profile.id);
-
-        setMyAdminChecklists(filteredChecklists);
-      } catch (error: any) {
-        if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') {
-          setMyAdminChecklists([]);
-        }
-      }
-
-      try {
-        const { data: sprintsData } = await supabase
-          .from('sprints')
-          .select('id, name, slug, member_ids, admin_ids');
-
-        const filteredSprints = profile.role === 'super'
-          ? sprintsData || []
-          : (sprintsData || []).filter((s: any) => s.admin_ids?.includes(profile.id));
-
-        setMyAdminSprints(filteredSprints);
-      } catch (error: any) {
-        if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') {
-          setMyAdminSprints([]);
-        }
-      }
+      const checklistsData = getData(checklistsRes);
+      setMyAdminChecklists(
+        isSuper ? checklistsData || [] : (checklistsData || []).filter((c: any) => c.created_by === profile.id)
+      );
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load platform dashboard');
