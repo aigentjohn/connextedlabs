@@ -47,6 +47,7 @@ interface CompanionItem {
   order_index: number;
   notes: string | null;
   resolved_name?: string;
+  resolved_description?: string;
   resolved_slug?: string;
 }
 
@@ -126,13 +127,14 @@ export default function EventCompanionDetailPage() {
       }
       const { data } = await supabase
         .from(typeConfig.table)
-        .select(`${typeConfig.nameField}, ${typeConfig.slugField}`)
+        .select(`${typeConfig.nameField}, ${typeConfig.slugField}, description`)
         .eq('id', item.item_id)
         .single();
 
       resolved.push({
         ...item,
         resolved_name: data?.[typeConfig.nameField] || 'Unknown',
+        resolved_description: data?.description || null,
         resolved_slug: data?.[typeConfig.slugField] || item.item_id,
       });
     }
@@ -441,7 +443,10 @@ export default function EventCompanionDetailPage() {
                         {item.resolved_name}
                         <ExternalLink className="w-3 h-3 inline ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </p>
-                      <Badge variant="secondary" className="text-xs mt-0.5">{typeLabel}</Badge>
+                      {item.resolved_description && (
+                        <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.resolved_description}</p>
+                      )}
+                      <Badge variant="secondary" className="text-xs mt-1">{typeLabel}</Badge>
                     </Link>
                     <Button
                       variant="ghost"
