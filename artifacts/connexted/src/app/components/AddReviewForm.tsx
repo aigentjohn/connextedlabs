@@ -393,8 +393,8 @@ export default function AddReviewForm() {
       <div className="max-w-3xl mx-auto space-y-6">
         <Breadcrumbs
           items={[
-            { label: 'Endorsements', path: '/reviews' },
-            { label: 'Write Endorsement', path: '/reviews/new' }
+            { label: 'Reviews', path: '/reviews' },
+            { label: 'Write Review', path: '/reviews/new' }
           ]}
         />
         <Card>
@@ -410,14 +410,14 @@ export default function AddReviewForm() {
     <div className="max-w-3xl mx-auto space-y-6">
       <Breadcrumbs
         items={[
-          { label: 'Endorsements', path: '/reviews' },
-          { label: 'Write Endorsement', path: '/reviews/new' }
+          { label: 'Reviews', path: '/reviews' },
+          { label: 'Write Review', path: '/reviews/new' }
         ]}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Write an Endorsement</CardTitle>
+          <CardTitle>Write a Review</CardTitle>
           <p className="text-sm text-gray-600">
             Share your experience with a tool, book, course, or service
           </p>
@@ -426,7 +426,7 @@ export default function AddReviewForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">What are you endorsing? *</Label>
+              <Label htmlFor="title">What are you reviewing? *</Label>
               <Input
                 id="title"
                 value={title}
@@ -567,8 +567,8 @@ export default function AddReviewForm() {
             {selectedCircles.length === 0 && selectedTables.length === 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
-                  <strong>Note:</strong> This endorsement will be created as a standalone endorsement. It will appear in your "My Endorsements" 
-                  page and the global endorsements page, but won't be associated with any specific circle or table.
+                  <strong>Note:</strong> This review will be created as a standalone review. It will appear in your "My Reviews" 
+                  page and the global reviews page, but won't be associated with any specific circle or table.
                 </p>
               </div>
             )}

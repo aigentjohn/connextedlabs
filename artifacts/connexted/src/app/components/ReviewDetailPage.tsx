@@ -409,7 +409,7 @@ export default function ReviewDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <Breadcrumbs
         items={[
-          { label: 'Endorsements', path: '/reviews' },
+          { label: 'Reviews', path: '/reviews' },
           { label: review.title, path: `/reviews/${review.id}` }
         ]}
       />
@@ -437,10 +437,10 @@ export default function ReviewDetailPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Endorsement?</AlertDialogTitle>
+                      <AlertDialogTitle>Delete Review?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete this endorsement.
-                        {profile.role === 'super' && ' As a platform admin, you have permission to delete any endorsement.'}
+                        This action cannot be undone. This will permanently delete this review.
+                        {profile.role === 'super' && ' As a platform admin, you have permission to delete any review.'}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -449,7 +449,7 @@ export default function ReviewDetailPage() {
                         onClick={handleDeleteReview}
                         className="bg-red-600 hover:bg-red-700"
                       >
-                        Delete Endorsement
+                        Delete Review
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

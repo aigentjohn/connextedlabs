@@ -221,18 +221,18 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: 'Endorsements' }]} />
+      <Breadcrumbs items={[{ label: 'Reviews' }]} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Endorsements</h1>
-          <p className="text-gray-600">Community endorsements and recommendations</p>
+          <h1 className="text-3xl mb-2">Reviews</h1>
+          <p className="text-gray-600">Community reviews and recommendations</p>
         </div>
         <Link to="/reviews/new">
           <Button className="gap-2">
             <Plus className="w-4 h-4" />
-            Write Endorsement
+            Write Review
           </Button>
         </Link>
       </div>
@@ -242,7 +242,7 @@ export default function ReviewsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
-            placeholder="Search endorsements..."
+            placeholder="Search reviews..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
