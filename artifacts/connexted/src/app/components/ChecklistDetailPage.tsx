@@ -24,6 +24,7 @@ import {
   Circle,
   ArrowUp,
   ArrowDown,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -276,6 +277,51 @@ export default function ChecklistDetailPage() {
     }
   };
 
+  const handleUseTemplate = async () => {
+    if (!checklist || !profile) return;
+
+    try {
+      const { data: newChecklist, error: createError } = await supabase
+        .from('checklists')
+        .insert({
+          name: checklist.name,
+          description: checklist.description || null,
+          category: checklist.category || null,
+          is_template: false,
+          created_by: profile.id,
+          tags: (checklist as any).tags || null,
+          member_ids: [profile.id],
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      if (items.length > 0) {
+        const newItems = items.map((item) => ({
+          checklist_id: newChecklist.id,
+          text: item.text,
+          is_complete: false,
+          assignment: item.assignment || null,
+          notes: item.notes || null,
+          priority: item.priority,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('checklist_items')
+          .insert(newItems);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast.success('New list created from template');
+      navigate(`/checklists/${newChecklist.id}`);
+    } catch (error) {
+      console.error('Error creating from template:', error);
+      toast.error('Failed to create list from template');
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -389,6 +435,12 @@ export default function ChecklistDetailPage() {
                     recipientId={checklist.created_by}
                     recipientName={checklist.creator?.name || 'the creator'}
                   />
+                )}
+                {checklist.is_template && (
+                  <Button variant="default" size="sm" onClick={handleUseTemplate}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Use Template
+                  </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setEditingChecklist(true)}>
                   <Edit className="w-4 h-4 mr-2" />
