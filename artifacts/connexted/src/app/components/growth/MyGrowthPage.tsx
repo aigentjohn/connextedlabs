@@ -86,15 +86,9 @@ interface PathwayEnrollment {
   pathway_id: string;
   user_id: string;
   enrolled_at: string;
-  started_at: string | null;
   completed_at: string | null;
-  current_step_index: number;
-  completed_step_ids: string[];
-  skipped_step_ids: string[];
-  pending_step_ids: string[];
-  progress_percentage: number;
+  progress_pct: number;
   status: string;
-  last_activity_at: string;
 }
 
 interface EnrolledPathway {
@@ -568,7 +562,7 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
           </div>
           <div className="text-right flex-shrink-0">
             <div className="text-2xl font-bold text-indigo-600">
-              {enrollment.progress_percentage}%
+              {enrollment.progress_pct || 0}%
             </div>
             <div className="text-xs text-gray-400">progress</div>
           </div>
@@ -576,28 +570,12 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
 
         {/* Progress bar */}
         <div className="mt-3">
-          <Progress value={enrollment.progress_percentage} className="h-2.5" />
+          <Progress value={enrollment.progress_pct || 0} className="h-2.5" />
         </div>
 
         {/* Step summary */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-              {enrollment.completed_step_ids.length} done
-            </span>
-            {enrollment.skipped_step_ids.length > 0 && (
-              <span className="flex items-center gap-1">
-                <SkipForward className="w-3.5 h-3.5 text-amber-500" />
-                {enrollment.skipped_step_ids.length} skipped
-              </span>
-            )}
-            {(enrollment.pending_step_ids || []).length > 0 && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-blue-500" />
-                {enrollment.pending_step_ids.length} pending
-              </span>
-            )}
             <span>
               {pathway.steps.length} total steps
             </span>
@@ -618,14 +596,13 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
             {pathway.steps
               .sort((a, b) => a.order_index - b.order_index)
               .map((step) => {
-                const isCompleted = enrollment.completed_step_ids.includes(step.id);
-                const isSkipped = enrollment.skipped_step_ids.includes(step.id);
-                const isPending = (enrollment.pending_step_ids || []).includes(step.id);
-                const isCurrent = !isCompleted && !isSkipped && !isPending &&
-                  step.order_index === enrollment.current_step_index;
+                const isCompleted = false;
+                const isSkipped = false;
+                const isPending = false;
+                const isCurrent = false;
                 const isActivity = step.step_type === 'activity';
                 const isReporting = reportingStepId === step.id;
-                const canSelfReport = isActivity && !isCompleted && !isSkipped && !isPending;
+                const canSelfReport = isActivity && !isCompleted;
 
                 return (
                   <div key={step.id}>

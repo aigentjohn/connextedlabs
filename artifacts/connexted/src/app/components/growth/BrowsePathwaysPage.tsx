@@ -67,8 +67,7 @@ interface Pathway {
 interface EnrollmentMap {
   [pathwayId: string]: {
     status: string;
-    progress_percentage: number;
-    completed_step_ids: string[];
+    progress_pct: number;
   };
 }
 
@@ -130,8 +129,7 @@ export default function BrowsePathwaysPage() {
         for (const ep of (enrollmentsRes.value.enrollments || [])) {
           map[ep.enrollment.pathway_id] = {
             status: ep.enrollment.status,
-            progress_percentage: ep.enrollment.progress_percentage,
-            completed_step_ids: ep.enrollment.completed_step_ids || [],
+            progress_pct: ep.enrollment.progress_pct || 0,
           };
         }
         setEnrollments(map);
@@ -436,9 +434,9 @@ function PathwayCard({
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
               <span>Progress</span>
-              <span>{Math.round(enrollment.progress_percentage)}%</span>
+              <span>{Math.round(enrollment.progress_pct)}%</span>
             </div>
-            <Progress value={enrollment.progress_percentage} className="h-1.5" />
+            <Progress value={enrollment.progress_pct} className="h-1.5" />
           </div>
         )}
 
