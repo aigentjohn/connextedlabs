@@ -10,36 +10,6 @@ import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
-
-async function fetchAPI(path: string, options?: RequestInit) {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${publicAnonKey}`,
-    'Content-Type': 'application/json',
-  };
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) headers['X-User-Token'] = session.access_token;
-  } catch { /* proceed without token */ }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: options?.method || 'GET',
-    headers,
-    ...(options?.body ? { body: options.body } : {}),
-  });
-
-  if (!response.ok) {
-    let msg = `API error: ${response.status}`;
-    try { const e = await response.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
-    throw new Error(msg);
-  }
-
-  const data = await response.json();
-  if (data && 'success' in data && !data.success) throw new Error(data.error || 'API error');
-  return data;
-}
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -341,12 +311,24 @@ export default function PathwayAdminPage() {
   async function loadPathways() {
     setLoadingPathways(true);
     try {
-      const result = await fetchAPI('/pathways');
-      const list = result.pathways || result.data || result || [];
+      const { data, error } = await supabase
+        .from('pathways')
+        .select('*, pathway_steps(*)')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.warn('Pathway join query failed, trying without steps:', error.message);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('pathways')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (fallbackError) throw fallbackError;
+        setPathways((fallbackData || []).map((p: any) => ({ ...p, steps: [] })));
+        return;
+      }
       setPathways(
-        (Array.isArray(list) ? list : []).map((p: any) => ({
+        (data || []).map((p: any) => ({
           ...p,
-          steps: (p.pathway_steps || p.steps || []).sort((a: any, b: any) => (a.order_index ?? a.order ?? 0) - (b.order_index ?? b.order ?? 0)),
+          steps: (p.pathway_steps || []).sort((a: any, b: any) => a.order_index - b.order_index),
         }))
       );
     } catch (error) {
@@ -637,10 +619,8 @@ export default function PathwayAdminPage() {
 
     setSaving(true);
     try {
-      const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const payload = {
+      const pathwayPayload = {
         name:                     form.name,
-        slug,
         description:              form.description,
         short_description:        form.short_description,
         destination:              form.destination,
@@ -656,7 +636,32 @@ export default function PathwayAdminPage() {
         is_published:             form.status === 'published',
         is_featured:              form.is_featured,
         created_by:               profile?.id,
-        steps: form.steps.map((s, i) => ({
+      };
+
+      let pathwayId = form.id;
+
+      if (pathwayId) {
+        const { error } = await supabase
+          .from('pathways')
+          .update(pathwayPayload)
+          .eq('id', pathwayId);
+        if (error) throw error;
+      } else {
+        const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const { data, error } = await supabase
+          .from('pathways')
+          .insert({ ...pathwayPayload, slug })
+          .select('id')
+          .single();
+        if (error) throw error;
+        pathwayId = data.id;
+      }
+
+      await supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId);
+
+      if (form.steps.length > 0) {
+        const stepsPayload = form.steps.map((s, i) => ({
+          pathway_id:           pathwayId,
           title:                s.title,
           description:          s.description,
           order_index:          i,
@@ -669,19 +674,9 @@ export default function PathwayAdminPage() {
           allow_skip:           s.allow_skip,
           verification_method:  s.verification_method || 'self_report',
           activity_criteria:    s.activity_criteria || null,
-        })),
-      };
-
-      if (form.id) {
-        await fetchAPI(`/pathways/${form.id}`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-      } else {
-        await fetchAPI('/pathways', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        }));
+        const { error: stepsError } = await supabase.from('pathway_steps').insert(stepsPayload);
+        if (stepsError) throw stepsError;
       }
 
       toast.success(form.id ? 'Pathway updated!' : 'Pathway created!');
@@ -698,7 +693,8 @@ export default function PathwayAdminPage() {
 
   async function archivePathway(id: string) {
     try {
-      await fetchAPI(`/pathways/${id}`, { method: 'DELETE' });
+      const { error } = await supabase.from('pathways').delete().eq('id', id);
+      if (error) throw error;
       toast.success('Pathway deleted');
       loadPathways();
     } catch (error: any) {
