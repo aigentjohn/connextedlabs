@@ -14,6 +14,7 @@ import {
 
 interface TagRank {
   tag: string;
+  original: string;
   count: number;
   tables: { table: string; count: number }[];
 }
@@ -84,7 +85,8 @@ export default function RankingsPage() {
     try {
       setLoading(true);
       setFetchWarning(null);
-      const tagMap = new Map<string, { count: number; tables: { table: string; count: number }[] }>();
+      const tagMap = new Map<string, { count: number; original: string; tables: { table: string; count: number }[] }>();
+      const originalCaseMap = new Map<string, string>();
 
       const results = await Promise.allSettled(
         TAG_TABLES.map(({ table }) =>
@@ -109,14 +111,16 @@ export default function RankingsPage() {
           if (!Array.isArray(rowTags)) return;
           rowTags.forEach((tag: string) => {
             if (!tag || typeof tag !== 'string') return;
-            const normalized = tag.trim().toLowerCase();
-            if (!normalized) return;
+            const trimmed = tag.trim();
+            if (!trimmed) return;
+            const normalized = trimmed.toLowerCase();
             tableTagCounts.set(normalized, (tableTagCounts.get(normalized) || 0) + 1);
+            if (!originalCaseMap.has(normalized)) originalCaseMap.set(normalized, trimmed);
           });
         });
 
         tableTagCounts.forEach((count, tag) => {
-          const existing = tagMap.get(tag) || { count: 0, tables: [] };
+          const existing = tagMap.get(tag) || { count: 0, original: originalCaseMap.get(tag) || tag, tables: [] };
           existing.count += count;
           existing.tables.push({ table: tableName, count });
           tagMap.set(tag, existing);
@@ -124,7 +128,7 @@ export default function RankingsPage() {
       });
 
       const ranked = Array.from(tagMap.entries())
-        .map(([tag, data]) => ({ tag, count: data.count, tables: data.tables.sort((a, b) => b.count - a.count) }))
+        .map(([tag, data]) => ({ tag, original: data.original, count: data.count, tables: data.tables.sort((a, b) => b.count - a.count) }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 100);
 
@@ -268,7 +272,7 @@ export default function RankingsPage() {
                     {filteredTags.map((item, index) => (
                       <Link
                         key={item.tag}
-                        to={`/tags/${encodeURIComponent(item.tag)}`}
+                        to={`/tags/${encodeURIComponent(item.original)}`}
                         className="block"
                       >
                         <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group border border-transparent hover:border-gray-200">
