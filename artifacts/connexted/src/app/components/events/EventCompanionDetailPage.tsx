@@ -436,16 +436,12 @@ export default function EventCompanionDetailPage() {
                   >
                     <GripVertical className="w-4 h-4 text-gray-300" />
                     <Icon className="w-5 h-5 text-indigo-500" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900 truncate">{item.resolved_name}</p>
+                    <Link to={getItemRoute(item)} className="flex-1 min-w-0 group">
+                      <p className="font-medium text-sm text-gray-900 group-hover:text-indigo-600 truncate">
+                        {item.resolved_name}
+                        <ExternalLink className="w-3 h-3 inline ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </p>
                       <Badge variant="secondary" className="text-xs mt-0.5">{typeLabel}</Badge>
-                    </div>
-                    <Link
-                      to={getItemRoute(item)}
-                      className="text-gray-400 hover:text-indigo-600"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="w-4 h-4" />
                     </Link>
                     <Button
                       variant="ghost"
