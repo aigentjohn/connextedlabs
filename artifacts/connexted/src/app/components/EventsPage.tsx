@@ -483,6 +483,11 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
           // TODO: Add meetup filtering logic when meetups are migrated
           return false;
         }
+
+        // Exclude ticketed (external RSVP) events — those appear on TicketedEventsPage
+        if (event.rsvp_type === 'external') {
+          return false;
+        }
         
         // Platform admins see ALL events
         if (isPlatformAdmin) {
@@ -536,11 +541,11 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
     return (
       <div className="space-y-6">
         <PageHeader
-          breadcrumbs={[{ label: 'Events' }]}
+          breadcrumbs={[{ label: 'Open Events' }]}
           icon={Calendar}
           iconBg="bg-indigo-100"
           iconColor="text-indigo-600"
-          title="Events"
+          title="Open Events"
           description="Loading events..."
         />
         <div className="text-center py-12">
@@ -584,11 +589,11 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={[{ label: 'Events' }]}
+        breadcrumbs={[{ label: 'Open Events' }]}
         icon={Calendar}
         iconBg="bg-indigo-100"
         iconColor="text-indigo-600"
-        title="Events"
+        title="Open Events"
         description="Community events and gatherings"
         actions={
           <Button onClick={() => setShowCreateDialog(true)}>

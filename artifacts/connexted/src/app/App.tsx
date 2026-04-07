@@ -183,6 +183,7 @@ const FeedPage = lazy(() => import('@/app/components/FeedPage'));
 const ForumsPage = lazy(() => import('@/app/components/ForumsPage'));
 const ThreadDetailPage = lazy(() => import('@/app/components/ThreadDetailPage'));
 const EventsPage = lazy(() => import('@/app/components/EventsPage'));
+const TicketedEventsPage = lazy(() => import('@/app/components/TicketedEventsPage'));
 const DocumentsPage = lazy(() => import('@/app/components/DocumentsPage'));
 const AddDocumentForm = lazy(() => import('@/app/components/AddDocumentForm'));
 const DocumentDetailPage = lazy(() => import('@/app/components/DocumentDetailPage'));
@@ -586,6 +587,7 @@ const router = createBrowserRouter([
           { path: '/ai-demo', element: <AIDiscussionDemo /> },
           { path: '/engagement-demo', element: <EngagementDemo /> },
           { path: '/events', element: <EventsPage /> },
+          { path: '/ticketed-events', element: <TicketedEventsPage /> },
           { path: '/episodes', element: <EpisodesPage /> },
           { path: '/episodes/new', element: <CreateEpisodePage /> },
           { path: '/playlists', element: <PlaylistsPage /> },
