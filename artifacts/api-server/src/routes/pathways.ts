@@ -196,6 +196,9 @@ router.post('/pathways', async (req, res) => {
         description: s.description || null,
         is_required: s.is_required !== false,
         allow_skip: s.allow_skip || false,
+        activity_type: s.activity_type || 'custom',
+        verification_method: s.verification_method || 'self_report',
+        activity_instance_id: s.activity_instance_id || null,
       }));
 
       const { error: stepError } = await supabaseAdmin
@@ -239,6 +242,9 @@ router.put('/pathways/:id', async (req, res) => {
           description: s.description || null,
           is_required: s.is_required !== false,
           allow_skip: s.allow_skip || false,
+          activity_type: s.activity_type || 'custom',
+          verification_method: s.verification_method || 'self_report',
+          activity_instance_id: s.activity_instance_id || null,
         }));
 
         const { error: stepError } = await supabaseAdmin
