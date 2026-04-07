@@ -71,7 +71,7 @@ export default function TopicsPage() {
     e.preventDefault();
     e.stopPropagation();
     if (!profile?.id) {
-      toast.error('Sign in to follow topics');
+      toast.error('Sign in to watch topics');
       return;
     }
     if (togglingIds.has(topic.id)) return;
@@ -100,14 +100,14 @@ export default function TopicsPage() {
       );
 
       if (!response.ok) throw new Error('Failed to toggle follow');
-      toast.success(wasFollowing ? `Unfollowed ${topic.name}` : `Following ${topic.name}!`);
+      toast.success(wasFollowing ? `Unwatched ${topic.name}` : `Watching ${topic.name}!`);
     } catch (err) {
       setFollowedIds(prev => {
         const next = new Set(prev);
         wasFollowing ? next.add(topic.id) : next.delete(topic.id);
         return next;
       });
-      toast.error('Failed to update follow status');
+      toast.error('Failed to update watch status');
       console.error('Error toggling follow:', err);
     } finally {
       setTogglingIds(prev => {
@@ -222,7 +222,7 @@ export default function TopicsPage() {
                               ? 'text-yellow-500 hover:text-yellow-600'
                               : 'text-gray-300 hover:text-yellow-400'
                           } ${isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
-                          title={isFollowed ? 'Unfollow topic' : 'Follow topic'}
+                          title={isFollowed ? 'Unwatch topic' : 'Watch topic'}
                         >
                           <Star className={`w-5 h-5 ${isFollowed ? 'fill-current' : ''}`} />
                         </button>
@@ -365,7 +365,7 @@ export default function TopicsPage() {
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
               <Star className="w-4 h-4 text-yellow-500 fill-current" />
               <span className="text-sm font-medium text-blue-700">
-                Following {followedIds.size} topic{followedIds.size !== 1 ? 's' : ''}
+                Watching {followedIds.size} topic{followedIds.size !== 1 ? 's' : ''}
               </span>
             </div>
           )}

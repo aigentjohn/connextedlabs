@@ -418,7 +418,7 @@ export default function TopicDetailPage() {
 
       if (response.ok) {
         setIsFollowing(!isFollowing);
-        toast.success(isFollowing ? 'Unfollowed topic' : 'Following topic!');
+        toast.success(isFollowing ? 'Unwatched topic' : 'Watching topic!');
         
         // Update follower count
         if (topic) {
@@ -430,7 +430,7 @@ export default function TopicDetailPage() {
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
-      toast.error('Failed to update follow status');
+      toast.error('Failed to update watch status');
     }
   };
 
@@ -588,7 +588,7 @@ export default function TopicDetailPage() {
                 <div className="flex items-center gap-6 text-sm text-gray-500">
                   <span className="flex items-center gap-2">
                     <UserPlus className="w-4 h-4" />
-                    {topic.follower_count} followers
+                    {topic.follower_count} watchers
                   </span>
                   <span className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
@@ -612,12 +612,12 @@ export default function TopicDetailPage() {
                   {isFollowing ? (
                     <>
                       <Star className="w-4 h-4 mr-2 fill-current" />
-                      Following
+                      Watching
                     </>
                   ) : (
                     <>
                       <Star className="w-4 h-4 mr-2" />
-                      Follow
+                      Watch
                     </>
                   )}
                 </Button>

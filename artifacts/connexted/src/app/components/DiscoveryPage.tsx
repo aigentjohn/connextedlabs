@@ -1491,7 +1491,7 @@ export default function DiscoveryPage() {
                 <div className="text-center py-12 text-gray-500">
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                   <p className="mb-2">No recent activity</p>
-                  <p className="text-sm">Follow members, topics, or tags to see their content here.</p>
+                  <p className="text-sm">Follow members, or watch topics and tags to see their content here.</p>
                 </div>
               ) : (
                 <div className="space-y-3">

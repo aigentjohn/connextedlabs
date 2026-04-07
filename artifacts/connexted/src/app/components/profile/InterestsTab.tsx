@@ -120,15 +120,15 @@ export function InterestsTab({ profile }: InterestsTabProps) {
 
       if (response.ok) {
         setFollowedTopics(followedTopics.filter(t => t.id !== topicId));
-        toast.success('Unfollowed topic');
+        toast.success('Unwatched topic');
         // Refresh recommended topics
         loadFollowedTopics();
       } else {
-        toast.error('Failed to unfollow topic');
+        toast.error('Failed to unwatch topic');
       }
     } catch (error) {
       console.error('Error unfollowing topic:', error);
-      toast.error('Failed to unfollow topic');
+      toast.error('Failed to unwatch topic');
     }
   };
 
@@ -147,14 +147,14 @@ export function InterestsTab({ profile }: InterestsTabProps) {
       );
 
       if (response.ok) {
-        toast.success('Following topic!');
+        toast.success('Watching topic!');
         loadFollowedTopics();
       } else {
-        toast.error('Failed to follow topic');
+        toast.error('Failed to watch topic');
       }
     } catch (error) {
       console.error('Error following topic:', error);
-      toast.error('Failed to follow topic');
+      toast.error('Failed to watch topic');
     }
   };
 
@@ -478,7 +478,7 @@ export function InterestsTab({ profile }: InterestsTabProps) {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Hash className="w-5 h-5" />
-              Followed Topics
+              Watched Topics
             </div>
             <Link to="/topics">
               <Button variant="outline" size="sm">
@@ -488,7 +488,7 @@ export function InterestsTab({ profile }: InterestsTabProps) {
             </Link>
           </CardTitle>
           <p className="text-sm text-gray-600 mt-1">
-            Topics you're following for content discovery and updates
+            Topics you're watching for content discovery and updates
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -535,7 +535,7 @@ export function InterestsTab({ profile }: InterestsTabProps) {
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <UsersIcon className="w-3.5 h-3.5" />
-                            {topic.follower_count} {topic.follower_count === 1 ? 'follower' : 'followers'}
+                            {topic.follower_count} {topic.follower_count === 1 ? 'watcher' : 'watchers'}
                           </span>
                           <span className="flex items-center gap-1">
                             <FileText className="w-3.5 h-3.5" />
@@ -567,7 +567,7 @@ export function InterestsTab({ profile }: InterestsTabProps) {
                 <div className="py-8 text-center">
                   <Hash className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                   <p className="text-sm text-gray-600 mb-4">
-                    You're not following any topics yet
+                    You're not watching any topics yet
                   </p>
                   <Link to="/topics">
                     <Button variant="outline" size="sm">
@@ -598,7 +598,7 @@ export function InterestsTab({ profile }: InterestsTabProps) {
                             {topic.name}
                           </div>
                           <div className="text-xs text-gray-500 flex items-center gap-2">
-                            <span>{topic.follower_count} followers</span>
+                            <span>{topic.follower_count} watchers</span>
                             <span>•</span>
                             <span>{topic.content_count} items</span>
                           </div>

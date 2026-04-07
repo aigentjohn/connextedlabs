@@ -355,7 +355,7 @@ export default function RankingsPage() {
                             )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                               <span>{topic.content_count} {topic.content_count === 1 ? 'item' : 'items'} linked</span>
-                              <span>{topic.follower_count} {topic.follower_count === 1 ? 'follower' : 'followers'}</span>
+                              <span>{topic.follower_count} {topic.follower_count === 1 ? 'watcher' : 'watchers'}</span>
                             </div>
                           </div>
 

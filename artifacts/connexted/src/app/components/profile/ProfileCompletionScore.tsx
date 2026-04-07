@@ -104,7 +104,7 @@ export function ProfileCompletionScore({ profile, onSectionClick }: ProfileCompl
       },
       {
         id: 'topics',
-        label: 'Follow topics',
+        label: 'Watch topics',
         isComplete: false, // Would need to check topic_followers table
         weight: 5,
         action: 'interests',
