@@ -10,6 +10,36 @@ import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
+
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
+
+async function fetchAPI(path: string, options?: RequestInit) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${publicAnonKey}`,
+    'Content-Type': 'application/json',
+  };
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) headers['X-User-Token'] = session.access_token;
+  } catch { /* proceed without token */ }
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: options?.method || 'GET',
+    headers,
+    ...(options?.body ? { body: options.body } : {}),
+  });
+
+  if (!response.ok) {
+    let msg = `API error: ${response.status}`;
+    try { const e = await response.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+
+  const data = await response.json();
+  if (data && 'success' in data && !data.success) throw new Error(data.error || 'API error');
+  return data;
+}
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -311,29 +341,17 @@ export default function PathwayAdminPage() {
   async function loadPathways() {
     setLoadingPathways(true);
     try {
-      const { data, error } = await supabase
-        .from('pathways')
-        .select('*, pathway_steps(*)')
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.warn('Pathway join query failed, trying without steps:', error.message);
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('pathways')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (fallbackError) throw fallbackError;
-        setPathways((fallbackData || []).map((p: any) => ({ ...p, steps: [] })));
-        return;
-      }
+      const result = await fetchAPI('/pathways');
+      const list = result.pathways || result.data || result || [];
       setPathways(
-        (data || []).map((p: any) => ({
+        (Array.isArray(list) ? list : []).map((p: any) => ({
           ...p,
-          steps: (p.pathway_steps || []).sort((a: any, b: any) => a.order_index - b.order_index),
+          steps: (p.pathway_steps || p.steps || []).sort((a: any, b: any) => (a.order_index ?? a.order ?? 0) - (b.order_index ?? b.order ?? 0)),
         }))
       );
     } catch (error) {
       console.error('Error loading pathways:', error);
-      toast.error('Failed to load pathways — check console for details');
+      toast.error('Failed to load pathways');
     } finally {
       setLoadingPathways(false);
     }
