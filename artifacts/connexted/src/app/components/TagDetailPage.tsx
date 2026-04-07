@@ -8,7 +8,7 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { Label } from '@/app/components/ui/label';
 import {
   FileText, MessageSquare, Calendar, BookOpen, ThumbsUp, Hash, Filter,
-  ArrowLeft, Star, Users, Hammer, Table, TrendingUp, Presentation,
+  ArrowLeft, Users, Hammer, Table, TrendingUp, Presentation,
   CalendarClock, Handshake, Image as ImageIcon, BookCopy, Library,
   CheckSquare, Sparkles, ListVideo, Video, Rocket
 } from 'lucide-react';
@@ -121,8 +121,6 @@ export default function TagDetailPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<TaggedContent[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
   const defaultFilters = Object.fromEntries(ALL_TYPES.map(t => [t, true])) as ContentTypeFilter;
   const [contentTypeFilters, setContentTypeFilters] = useState<ContentTypeFilter>(defaultFilters);
@@ -132,56 +130,8 @@ export default function TagDetailPage() {
   useEffect(() => {
     if (profile && decodedTag) {
       fetchTaggedContent();
-      checkFollowStatus();
     }
   }, [profile, decodedTag]);
-
-  const checkFollowStatus = async () => {
-    if (!profile || !decodedTag) return;
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/tags/${encodeURIComponent(decodedTag)}/following?userId=${profile.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setIsFollowing(data.isFollowing);
-      }
-    } catch (error) {
-      console.error('Error checking follow status:', error);
-    }
-  };
-
-  const handleFollowToggle = async () => {
-    if (!profile || !decodedTag) return;
-    setFollowLoading(true);
-    try {
-      const endpoint = isFollowing ? 'unfollow' : 'follow';
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/tags/${encodeURIComponent(decodedTag)}/${endpoint}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: profile.id }),
-        }
-      );
-
-      if (response.ok) {
-        setIsFollowing(!isFollowing);
-      }
-    } catch (error) {
-      console.error('Error toggling follow:', error);
-    } finally {
-      setFollowLoading(false);
-    }
-  };
 
   const fetchTaggedContent = async () => {
     try {
@@ -280,25 +230,6 @@ export default function TagDetailPage() {
             </p>
           </div>
         </div>
-        {profile && (
-          <Button
-            variant={isFollowing ? 'outline' : 'default'}
-            onClick={handleFollowToggle}
-            disabled={followLoading}
-          >
-            {isFollowing ? (
-              <>
-                <Star className="w-4 h-4 mr-2 fill-current" />
-                Following
-              </>
-            ) : (
-              <>
-                <Star className="w-4 h-4 mr-2" />
-                Follow
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
