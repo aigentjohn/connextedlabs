@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -39,16 +39,18 @@ interface FavoriteContent {
 
 interface FollowingActivity {
   id: string;
-  type: 'post' | 'thread' | 'event' | 'document' | 'review' | 'build' | 'pitch';
+  type: 'post' | 'thread' | 'event' | 'document' | 'review' | 'build' | 'pitch' | 'book' | 'deck' | 'episode' | 'course' | 'program';
   title: string;
   description?: string;
   created_at: string;
-  author: {
+  author?: {
     id: string;
     name: string;
     avatar?: string;
   };
   circle_ids?: string[];
+  source?: 'person' | 'topic' | 'tag';
+  sourceName?: string;
 }
 
 // ─── Module-level helpers (no hooks, safe for Fast Refresh) ─────────────────
@@ -65,6 +67,7 @@ function getContentIcon(type: string) {
     case 'book':     return <BookOpen className="w-4 h-4" />;
     case 'deck':     return <Presentation className="w-4 h-4" />;
     case 'episode':  return <Headphones className="w-4 h-4" />;
+    case 'program':  return <BookOpen className="w-4 h-4" />;
     default:         return <FileText className="w-4 h-4" />;
   }
 }
@@ -82,14 +85,19 @@ function getContentLink(item: FavoriteContent | FollowingActivity) {
     case 'book':     return `/books/${item.id}`;
     case 'deck':     return `/decks/${item.id}`;
     case 'episode':  return `/episodes/${item.id}`;
+    case 'program':  return `/programs/${item.id}`;
     default:         return '#';
   }
 }
 
+const VALID_TABS = ['favorites', 'liked', 'following', 'followers', 'tags'] as const;
+
 export default function DiscoveryPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('favorites');
+  const [searchParams] = useSearchParams();
+  const initialTab = VALID_TABS.includes(searchParams.get('tab') as any) ? searchParams.get('tab')! : 'favorites';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<TagData[]>([]);
@@ -101,6 +109,13 @@ export default function DiscoveryPage() {
   const [followers, setFollowers] = useState<any[]>([]);
   const [followersActivity, setFollowersActivity] = useState<FollowingActivity[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && VALID_TABS.includes(tabParam as any) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (profile) {
@@ -660,15 +675,13 @@ export default function DiscoveryPage() {
 
       const followingIds = connectionsData?.map(conn => conn.following_id) || [];
       setFollowingCount(followingIds.length);
-      
-      if (followingIds.length === 0) {
-        setFollowingActivity([]);
-        setLoading(false);
-        return;
-      }
 
-      // Fetch recent activity from followed users
       const allActivity: FollowingActivity[] = [];
+      let authorsMap = new Map<string, { id: string; name: string; avatar?: string }>();
+
+      if (followingIds.length === 0) {
+        // Skip people-activity queries but continue to topic/tag queries below
+      } else {
 
       // Fetch posts
       const { data: postsData } = await supabase
@@ -732,7 +745,7 @@ export default function DiscoveryPage() {
         .select('id, name, avatar')
         .in('id', followingIds);
 
-      const authorsMap = new Map(authorsData?.map(author => [author.id, author]) || []);
+      authorsMap = new Map(authorsData?.map(author => [author.id, author]) || []);
 
       // Process posts
       postsData?.forEach(post => {
@@ -846,10 +859,173 @@ export default function DiscoveryPage() {
         }
       });
 
+      } // end of people-activity else block
+
+      // ── Topic subscription content ──────────────────────────────────────
+      try {
+        const { data: topicFollows } = await supabase
+          .from('topic_followers')
+          .select('topic_id, topics:topic_id(id, name)')
+          .eq('user_id', profile.id);
+
+        if (topicFollows && topicFollows.length > 0) {
+          const topicIds = topicFollows.map((tf: any) => tf.topic_id);
+          const topicNameMap = new Map(topicFollows.map((tf: any) => [tf.topic_id, (tf.topics as any)?.name || 'Topic']));
+
+          const { data: topicLinks } = await supabase
+            .from('topic_links')
+            .select('content_id, content_type, topic_id')
+            .in('topic_id', topicIds)
+            .limit(100);
+
+          if (topicLinks && topicLinks.length > 0) {
+            const grouped: Record<string, { ids: string[]; topicName: string }[]> = {};
+            topicLinks.forEach((link: any) => {
+              if (!grouped[link.content_type]) grouped[link.content_type] = [];
+              grouped[link.content_type].push({ ids: [link.content_id], topicName: topicNameMap.get(link.topic_id) || 'Topic' });
+            });
+
+            const topicContentMap: Record<string, { table: string; titleField: string; descField: string; authorField: string }> = {
+              book:     { table: 'books',         titleField: 'title', descField: 'description', authorField: 'created_by' },
+              deck:     { table: 'decks',         titleField: 'title', descField: 'description', authorField: 'created_by' },
+              document: { table: 'documents',     titleField: 'title', descField: 'description', authorField: 'author_id' },
+              course:   { table: 'courses',       titleField: 'title', descField: 'description', authorField: 'created_by' },
+              program:  { table: 'programs',      titleField: 'name',  descField: 'description', authorField: 'created_by' },
+              episode:  { table: 'episodes',      titleField: 'title', descField: 'description', authorField: 'created_by' },
+              post:     { table: 'posts',         titleField: 'title', descField: 'content',     authorField: 'author_id' },
+              thread:   { table: 'forum_threads', titleField: 'title', descField: 'body',        authorField: 'author_id' },
+              event:    { table: 'events',        titleField: 'title', descField: 'description', authorField: 'host_id' },
+              build:    { table: 'builds',        titleField: 'name',  descField: 'description', authorField: 'created_by' },
+              pitch:    { table: 'pitches',       titleField: 'title', descField: 'description', authorField: 'created_by' },
+              review:   { table: 'endorsements',  titleField: 'title', descField: 'body',        authorField: 'author_id' },
+            };
+
+            const seenKeys = new Set(allActivity.map(a => `${a.type}:${a.id}`));
+
+            for (const [contentType, entries] of Object.entries(grouped)) {
+              const config = topicContentMap[contentType];
+              if (!config) continue;
+
+              const allIds = [...new Set(entries.flatMap(e => e.ids))];
+              const { data: rows } = await supabase
+                .from(config.table)
+                .select(`id, ${config.titleField}, ${config.descField}, created_at, ${config.authorField}`)
+                .in('id', allIds)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+              if (rows) {
+                const authorIds = [...new Set(rows.map((r: any) => r[config.authorField]).filter(Boolean))] as string[];
+                let authorMap = new Map<string, any>();
+                if (authorIds.length > 0) {
+                  const { data: authors } = await supabase.from('users').select('id, name, avatar').in('id', authorIds);
+                  authorMap = new Map(authors?.map(a => [a.id, a]) || []);
+                }
+
+                rows.forEach((row: any) => {
+                  const key = `${contentType}:${row.id}`;
+                  if (seenKeys.has(key)) return;
+                  seenKeys.add(key);
+
+                  const topicName = entries.find(e => e.ids.includes(row.id))?.topicName || 'Topic';
+                  allActivity.push({
+                    id: row.id,
+                    type: contentType as FollowingActivity['type'],
+                    title: row[config.titleField] || 'Untitled',
+                    description: row[config.descField],
+                    created_at: row.created_at,
+                    author: authorMap.get(row[config.authorField]),
+                    source: 'topic',
+                    sourceName: topicName,
+                  });
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching topic subscription content:', err);
+      }
+
+      // ── Tag subscription content ──────────────────────────────────────
+      try {
+        const { data: tagFollows } = await supabase
+          .from('tag_followers')
+          .select('tag_name')
+          .eq('user_id', profile.id);
+
+        if (tagFollows && tagFollows.length > 0) {
+          const tagNames = tagFollows.map((tf: any) => tf.tag_name);
+          const seenKeys2 = new Set(allActivity.map(a => `${a.type}:${a.id}`));
+
+          const tagTables = [
+            { table: 'posts',         type: 'post' as const,     titleField: 'title', descField: 'body',        authorField: 'author_id' },
+            { table: 'documents',     type: 'document' as const, titleField: 'title', descField: 'description', authorField: 'author_id' },
+            { table: 'episodes',      type: 'episode' as const,  titleField: 'title', descField: 'description', authorField: 'created_by' },
+            { table: 'courses',       type: 'course' as const,   titleField: 'title', descField: 'description', authorField: 'created_by' },
+            { table: 'books',         type: 'book' as const,     titleField: 'title', descField: 'description', authorField: 'created_by' },
+          ];
+
+          const tagResults = await Promise.allSettled(
+            tagTables.map(t =>
+              supabase.from(t.table)
+                .select(`id, ${t.titleField}, ${t.descField}, created_at, ${t.authorField}, tags`)
+                .overlaps('tags', tagNames)
+                .order('created_at', { ascending: false })
+                .limit(10)
+            )
+          );
+
+          const allAuthorIds = new Set<string>();
+          const tagRows: { config: typeof tagTables[0]; rows: any[] }[] = [];
+
+          tagResults.forEach((result, idx) => {
+            if (result.status !== 'fulfilled') return;
+            const { data, error } = result.value;
+            if (error || !data) return;
+            tagRows.push({ config: tagTables[idx], rows: data });
+            data.forEach((row: any) => {
+              const aid = row[tagTables[idx].authorField];
+              if (aid) allAuthorIds.add(aid);
+            });
+          });
+
+          let tagAuthorMap = new Map<string, any>();
+          const authorIdsArr = [...allAuthorIds].filter(id => !authorsMap.has(id));
+          if (authorIdsArr.length > 0) {
+            const { data: authors } = await supabase.from('users').select('id, name, avatar').in('id', authorIdsArr);
+            tagAuthorMap = new Map(authors?.map(a => [a.id, a]) || []);
+          }
+          const mergedAuthors = new Map([...authorsMap, ...tagAuthorMap]);
+
+          tagRows.forEach(({ config, rows }) => {
+            rows.forEach((row: any) => {
+              const key2 = `${config.type}:${row.id}`;
+              if (seenKeys2.has(key2)) return;
+              seenKeys2.add(key2);
+
+              const matchingTags = (row.tags || []).filter((t: string) => tagNames.includes(t));
+              allActivity.push({
+                id: row.id,
+                type: config.type,
+                title: row[config.titleField] || 'Untitled',
+                description: row[config.descField],
+                created_at: row.created_at,
+                author: mergedAuthors.get(row[config.authorField]),
+                source: 'tag',
+                sourceName: matchingTags[0] ? `#${matchingTags[0]}` : '#tag',
+              });
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Error fetching tag subscription content:', err);
+      }
+
       // Sort by most recent
       allActivity.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      setFollowingActivity(allActivity.slice(0, 50)); // Limit to 50 most recent items
+      setFollowingActivity(allActivity.slice(0, 50));
     } catch (error) {
       console.error('Error fetching following activity:', error);
     } finally {
@@ -1305,25 +1481,17 @@ export default function DiscoveryPage() {
         <TabsContent value="following" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Activity from People You Follow ({followingCount})</CardTitle>
+              <CardTitle>Following Feed</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">Content from people, topics, and tags you follow</p>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="text-center py-12 text-gray-500">Loading activity...</div>
-              ) : followingCount === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                  <p className="mb-2 font-semibold">You're not following anyone yet</p>
-                  <p className="text-sm mb-4">Start following members to see their activity here!</p>
-                  <Link to="/members">
-                    <Button>Browse Members</Button>
-                  </Link>
-                </div>
               ) : followingActivity.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                   <p className="mb-2">No recent activity</p>
-                  <p className="text-sm">The people you follow haven't posted anything yet.</p>
+                  <p className="text-sm">Follow members, topics, or tags to see their content here.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1335,48 +1503,60 @@ export default function DiscoveryPage() {
                       >
                         <CardContent className="pt-6">
                           <div className="flex items-start gap-3">
-                            {/* Author Avatar */}
-                            <Link 
-                              to={`/users/${item.author.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-shrink-0"
-                            >
-                              <Avatar className="w-10 h-10">
-                                <AvatarImage src={item.author.avatar || undefined} />
-                                <AvatarFallback>{item.author.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                            </Link>
+                            {item.author ? (
+                              <Link 
+                                to={`/users/${item.author.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-shrink-0"
+                              >
+                                <Avatar className="w-10 h-10">
+                                  <AvatarImage src={item.author.avatar || undefined} />
+                                  <AvatarFallback>{item.author.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                              </Link>
+                            ) : (
+                              <div className="flex-shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                  {getContentIcon(item.type)}
+                                </div>
+                              </div>
+                            )}
                             
                             <div className="flex-1 min-w-0">
-                              {/* Author Name & Content Type */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <Link 
-                                  to={`/users/${item.author.id}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="font-semibold text-sm hover:text-indigo-600"
-                                >
-                                  {item.author.name}
-                                </Link>
-                                <span className="text-gray-400 text-sm">•</span>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                {item.author && (
+                                  <>
+                                    <Link 
+                                      to={`/users/${item.author.id}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="font-semibold text-sm hover:text-indigo-600"
+                                    >
+                                      {item.author.name}
+                                    </Link>
+                                    <span className="text-gray-400 text-sm">•</span>
+                                  </>
+                                )}
                                 <Badge variant="secondary" className="gap-1 text-xs">
                                   {getContentIcon(item.type)}
                                   {item.type}
                                 </Badge>
+                                {item.source && item.source !== 'person' && item.sourceName && (
+                                  <Badge variant="outline" className="text-xs text-indigo-600 border-indigo-200">
+                                    {item.source === 'topic' ? '📌' : '🏷️'} {item.sourceName}
+                                  </Badge>
+                                )}
                               </div>
                               
-                              {/* Content Title */}
                               <h3 className="font-semibold text-gray-900 mb-1 truncate">
                                 {item.title}
                               </h3>
                               
-                              {/* Content Description */}
                               {item.description && (
                                 <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                                   {item.description}
                                 </p>
                               )}
                               
-                              {/* Timestamp */}
                               <p className="text-xs text-gray-500">
                                 {format(new Date(item.created_at), 'PPp')}
                               </p>

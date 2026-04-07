@@ -62,7 +62,7 @@ export function DiscoverSection({
           <DiscoverLink to="/topics" icon={Tag} pathname={location.pathname} match="startsWith">
             Topics
           </DiscoverLink>
-          <DiscoverLink to="/discovery" icon={Hash} pathname={location.pathname} match="startsWith">
+          <DiscoverLink to="/discovery?tab=following" icon={Hash} pathname={location.pathname} match="startsWith" matchPath="/discovery">
             Following Feed
           </DiscoverLink>
           <Link
@@ -90,14 +90,17 @@ function DiscoverLink({
   pathname,
   children,
   match = 'exact',
+  matchPath,
 }: {
   to: string;
   icon: ComponentType<{ className?: string }>;
   pathname: string;
   children: ReactNode;
   match?: 'exact' | 'startsWith';
+  matchPath?: string;
 }) {
-  const isActive = match === 'exact' ? pathname === to : pathname.startsWith(to);
+  const matchTarget = matchPath || to.split('?')[0];
+  const isActive = match === 'exact' ? pathname === matchTarget : pathname.startsWith(matchTarget);
 
   return (
     <Link
