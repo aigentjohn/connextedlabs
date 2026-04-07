@@ -1,0 +1,467 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, Link } from 'react-router';
+import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
+import Breadcrumbs from '@/app/components/Breadcrumbs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import { toast } from 'sonner';
+import {
+  CalendarDays,
+  Plus,
+  Trash2,
+  GripVertical,
+  ArrowLeft,
+  Edit2,
+  Save,
+  X,
+  ExternalLink,
+  LayoutGrid,
+  Mic,
+  Presentation,
+  FileText,
+  Headphones,
+  CheckSquare,
+  BookOpen,
+  Search,
+} from 'lucide-react';
+
+const ITEM_TYPES = [
+  { value: 'table', label: 'Table', icon: LayoutGrid, table: 'tables', nameField: 'name', slugField: 'slug', route: '/tables' },
+  { value: 'elevator', label: 'Elevator', icon: Mic, table: 'elevators', nameField: 'name', slugField: 'slug', route: '/elevators' },
+  { value: 'pitch', label: 'Pitch', icon: Presentation, table: 'pitches', nameField: 'name', slugField: 'slug', route: '/pitches' },
+  { value: 'document', label: 'Document', icon: FileText, table: 'documents', nameField: 'title', slugField: 'id', route: '/documents' },
+  { value: 'episode', label: 'Episode', icon: Headphones, table: 'episodes', nameField: 'title', slugField: 'id', route: '/episodes' },
+  { value: 'checklist', label: 'Checklist', icon: CheckSquare, table: 'checklists', nameField: 'name', slugField: 'slug', route: '/checklists' },
+  { value: 'book', label: 'Book', icon: BookOpen, table: 'books', nameField: 'title', slugField: 'slug', route: '/books' },
+] as const;
+
+interface CompanionItem {
+  id: string;
+  companion_id: string;
+  item_type: string;
+  item_id: string;
+  order_index: number;
+  notes: string | null;
+  resolved_name?: string;
+  resolved_slug?: string;
+}
+
+interface EventCompanion {
+  id: string;
+  name: string;
+  event_id: string;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  event?: { id: string; title: string; start_time: string } | null;
+}
+
+export default function EventCompanionDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+
+  const [companion, setCompanion] = useState<EventCompanion | null>(null);
+  const [items, setItems] = useState<CompanionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  const [addingType, setAddingType] = useState<string | null>(null);
+  const [availableItems, setAvailableItems] = useState<any[]>([]);
+  const [itemSearch, setItemSearch] = useState('');
+  const [loadingItems, setLoadingItems] = useState(false);
+
+  const fetchCompanion = useCallback(async () => {
+    if (!id) return;
+    try {
+      const { data, error } = await supabase
+        .from('event_companions')
+        .select(`
+          *,
+          event:events!event_companions_event_id_fkey(id, title, start_time)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setCompanion(data);
+      setEditName(data.name);
+      setEditNotes(data.notes || '');
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('event_companion_items')
+        .select('*')
+        .eq('companion_id', id)
+        .order('order_index');
+
+      if (itemsError) throw itemsError;
+
+      const resolved = await resolveItemNames(itemsData || []);
+      setItems(resolved);
+    } catch (err: any) {
+      console.error('Error:', err);
+      toast.error('Failed to load companion');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchCompanion();
+  }, [fetchCompanion]);
+
+  async function resolveItemNames(rawItems: CompanionItem[]): Promise<CompanionItem[]> {
+    const resolved: CompanionItem[] = [];
+    for (const item of rawItems) {
+      const typeConfig = ITEM_TYPES.find((t) => t.value === item.item_type);
+      if (!typeConfig) {
+        resolved.push({ ...item, resolved_name: `Unknown (${item.item_type})` });
+        continue;
+      }
+      const { data } = await supabase
+        .from(typeConfig.table)
+        .select(`${typeConfig.nameField}, ${typeConfig.slugField}`)
+        .eq('id', item.item_id)
+        .single();
+
+      resolved.push({
+        ...item,
+        resolved_name: data?.[typeConfig.nameField] || 'Unknown',
+        resolved_slug: data?.[typeConfig.slugField] || item.item_id,
+      });
+    }
+    return resolved;
+  }
+
+  async function handleSaveEdit() {
+    if (!id || !editName.trim()) return;
+    try {
+      const { error } = await supabase
+        .from('event_companions')
+        .update({ name: editName.trim(), notes: editNotes.trim() || null, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      setCompanion((prev) => prev ? { ...prev, name: editName.trim(), notes: editNotes.trim() || null } : prev);
+      setEditing(false);
+      toast.success('Updated');
+    } catch (err: any) {
+      toast.error('Failed to update');
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm('Delete this event companion and all its items?')) return;
+    try {
+      const { error } = await supabase.from('event_companions').delete().eq('id', id!);
+      if (error) throw error;
+      toast.success('Deleted');
+      navigate('/event-companions');
+    } catch (err: any) {
+      toast.error('Failed to delete');
+    }
+  }
+
+  async function loadAvailableItems(type: string) {
+    const config = ITEM_TYPES.find((t) => t.value === type);
+    if (!config) return;
+    setLoadingItems(true);
+    try {
+      const { data, error } = await supabase
+        .from(config.table)
+        .select(`id, ${config.nameField}, ${config.slugField}`)
+        .order(config.nameField);
+      if (error) throw error;
+      setAvailableItems(data || []);
+    } catch (err: any) {
+      toast.error('Failed to load items');
+    } finally {
+      setLoadingItems(false);
+    }
+  }
+
+  function startAddItem(type: string) {
+    setAddingType(type);
+    setItemSearch('');
+    loadAvailableItems(type);
+  }
+
+  async function addItem(itemId: string) {
+    if (!id || !addingType) return;
+    const maxOrder = items.length > 0 ? Math.max(...items.map((i) => i.order_index)) + 1 : 0;
+    try {
+      const { data, error } = await supabase
+        .from('event_companion_items')
+        .insert({
+          companion_id: id,
+          item_type: addingType,
+          item_id: itemId,
+          order_index: maxOrder,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setAddingType(null);
+      setAvailableItems([]);
+      const resolved = await resolveItemNames([data]);
+      setItems((prev) => [...prev, ...resolved]);
+      toast.success('Item added');
+    } catch (err: any) {
+      toast.error('Failed to add item');
+    }
+  }
+
+  async function removeItem(itemId: string) {
+    try {
+      const { error } = await supabase.from('event_companion_items').delete().eq('id', itemId);
+      if (error) throw error;
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
+      toast.success('Item removed');
+    } catch (err: any) {
+      toast.error('Failed to remove');
+    }
+  }
+
+  function getItemRoute(item: CompanionItem) {
+    const config = ITEM_TYPES.find((t) => t.value === item.item_type);
+    if (!config) return '#';
+    return `${config.route}/${item.resolved_slug || item.item_id}`;
+  }
+
+  function getItemIcon(type: string) {
+    const config = ITEM_TYPES.find((t) => t.value === type);
+    return config?.icon || FileText;
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40" />
+        <Skeleton className="h-60" />
+      </div>
+    );
+  }
+
+  if (!companion) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Companion not found</p>
+        <Button asChild className="mt-4" size="sm">
+          <Link to="/event-companions">Back to list</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const typeConfig = addingType ? ITEM_TYPES.find((t) => t.value === addingType) : null;
+  const filteredAvailable = availableItems.filter((item) => {
+    if (!itemSearch) return true;
+    const nameField = typeConfig?.nameField || 'name';
+    return item[nameField]?.toLowerCase().includes(itemSearch.toLowerCase());
+  });
+
+  const alreadyAddedIds = items.map((i) => i.item_id);
+
+  return (
+    <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: 'Event Companions', href: '/event-companions' },
+          { label: companion.name },
+        ]}
+      />
+
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/event-companions">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+        </Button>
+
+        {editing ? (
+          <div className="flex-1 space-y-2">
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="text-xl font-bold"
+            />
+            <Input
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Notes (optional)"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveEdit}>
+                <Save className="w-4 h-4 mr-1" /> Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                <X className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">{companion.name}</h1>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="text-red-500" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            {companion.notes && (
+              <p className="text-gray-500 mt-1">{companion.notes}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {companion.event && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <CalendarDays className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="font-medium">{companion.event.title}</p>
+                {companion.event.start_time && (
+                  <p className="text-sm text-gray-500">
+                    {new Date(companion.event.start_time).toLocaleDateString(undefined, {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Companion Items ({items.length})</CardTitle>
+            {!addingType && (
+              <div className="flex flex-wrap gap-2">
+                {ITEM_TYPES.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <Button
+                      key={type.value}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startAddItem(type.value)}
+                    >
+                      <Icon className="w-4 h-4 mr-1" />
+                      {type.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {addingType && typeConfig && (
+            <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium">Add {typeConfig.label}</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setAddingType(null); setAvailableItems([]); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder={`Search ${typeConfig.label.toLowerCase()}s...`}
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {loadingItems ? (
+                <Skeleton className="h-20" />
+              ) : filteredAvailable.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No {typeConfig.label.toLowerCase()}s found</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {filteredAvailable.map((item) => {
+                    const alreadyAdded = alreadyAddedIds.includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        disabled={alreadyAdded}
+                        onClick={() => addItem(item.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                          alreadyAdded
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'hover:bg-indigo-50 hover:text-indigo-700'
+                        }`}
+                      >
+                        {item[typeConfig.nameField]}
+                        {alreadyAdded && <span className="ml-2 text-xs">(already added)</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {items.length === 0 ? (
+            <div className="text-center py-8">
+              <Plus className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500">No items yet</p>
+              <p className="text-sm text-gray-400 mt-1">Use the buttons above to add tables, elevators, pitches, and more</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {items.map((item) => {
+                const Icon = getItemIcon(item.item_type);
+                const typeLabel = ITEM_TYPES.find((t) => t.value === item.item_type)?.label || item.item_type;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 px-3 py-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <GripVertical className="w-4 h-4 text-gray-300" />
+                    <Icon className="w-5 h-5 text-indigo-500" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{item.resolved_name}</p>
+                      <Badge variant="secondary" className="text-xs mt-0.5">{typeLabel}</Badge>
+                    </div>
+                    <Link
+                      to={getItemRoute(item)}
+                      className="text-gray-400 hover:text-indigo-600"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-red-500"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

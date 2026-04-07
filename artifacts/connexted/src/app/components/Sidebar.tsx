@@ -162,7 +162,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
 
   // Auto-expand CALENDAR & EVENTS section when viewing any of its child routes
   useEffect(() => {
-    const calendarPaths = ['/calendar', '/events', '/ticketed-events', '/meetings', '/meetups', '/my-sessions', '/profile/venues'];
+    const calendarPaths = ['/calendar', '/events', '/ticketed-events', '/meetings', '/meetups', '/my-sessions', '/event-companions', '/profile/venues'];
     const isCalendarRoute = calendarPaths.some((p) =>
       location.pathname === p || location.pathname.startsWith(p + '/')
     );

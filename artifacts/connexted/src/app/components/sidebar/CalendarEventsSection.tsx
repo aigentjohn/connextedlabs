@@ -10,6 +10,7 @@ import {
   MapPin,
   Video,
   Calendar,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -59,6 +60,7 @@ export function CalendarEventsSection({
           <SideLink to="/meetings" icon={Video} pathname={location.pathname} count={meetingCount} match="startsWith">Meetings</SideLink>
           <SideLink to="/meetups" icon={Users} pathname={location.pathname} count={meetupCount} match="startsWith">Meetups</SideLink>
           <SideLink to="/my-sessions" icon={CalendarDays} pathname={location.pathname} match="startsWith">Sessions</SideLink>
+          <SideLink to="/event-companions" icon={Layers} pathname={location.pathname} match="startsWith">Event Companions</SideLink>
           <SideLink to="/profile/venues" icon={MapPin} pathname={location.pathname}>Venues</SideLink>
         </div>
       )}
