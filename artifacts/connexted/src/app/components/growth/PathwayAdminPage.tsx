@@ -83,6 +83,7 @@ interface PathwayStep {
   // Activity-specific
   activity_type?: string;
   verification_method?: 'self_report' | 'admin_verify' | 'auto_detect';
+  activity_instance_id?: string | null;
   activity_criteria?: Record<string, any>;
 }
 
@@ -435,12 +436,13 @@ export default function PathwayAdminPage() {
       order_index: form.steps.length,
       step_type: 'activity',
       step_id: targetId || '',
-      title: activityDef.label,
+      title: targetTitle || activityDef.label,
       description: null,
       is_required: true,
       allow_skip: false,
       activity_type: activityType,
       verification_method: 'self_report',
+      activity_instance_id: targetId || null,
       activity_criteria: targetId
         ? { target_id: targetId, target_title: targetTitle }
         : undefined,
