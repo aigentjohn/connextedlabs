@@ -5,7 +5,7 @@
  * Replaces the old MyBadgesPage as the "progression" view.
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Link, useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
