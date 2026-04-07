@@ -621,6 +621,7 @@ export default function PathwayAdminPage() {
     try {
       const pathwayPayload = {
         name:                     form.name,
+        title:                    form.name,
         description:              form.description,
         short_description:        form.short_description,
         destination:              form.destination,
