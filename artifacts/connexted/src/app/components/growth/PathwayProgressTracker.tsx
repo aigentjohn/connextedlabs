@@ -64,6 +64,8 @@ interface PathwayStep {
   allow_skip: boolean;
   activity_type?: string;
   verification_method?: string;
+  activity_instance_id?: string | null;
+  activity_criteria?: { target_id?: string; target_title?: string } | null;
 }
 
 interface EnrollmentEntry {
@@ -476,10 +478,17 @@ export default function PathwayProgressTracker() {
                                 <Activity className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                               )}
 
-                              {/* Title */}
-                              <span className={`flex-1 ${isCompleted ? 'text-green-700' : isPending ? 'text-amber-700' : 'text-gray-600'}`}>
-                                {step.title}
-                              </span>
+                              {/* Title + assigned item */}
+                              <div className="flex-1 min-w-0">
+                                <span className={`text-sm ${isCompleted ? 'text-green-700' : isPending ? 'text-amber-700' : 'text-gray-600'}`}>
+                                  {step.title}
+                                </span>
+                                {step.activity_criteria?.target_title && (
+                                  <span className="block text-[11px] text-indigo-500 truncate">
+                                    {step.activity_criteria.target_title}
+                                  </span>
+                                )}
+                              </div>
 
                               {/* Badges */}
                               <div className="flex items-center gap-1.5">

@@ -40,6 +40,7 @@ import {
   Send,
   AlertCircle,
   XCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 // ============================================================================
@@ -57,6 +58,8 @@ interface PathwayStep {
   allow_skip: boolean;
   activity_type?: string;
   verification_method?: string;
+  activity_instance_id?: string | null;
+  activity_criteria?: { target_id?: string; target_title?: string } | null;
 }
 
 interface Pathway {
@@ -113,6 +116,47 @@ interface CompletedCourse {
     slug: string;
     cover_image_url: string | null;
   };
+}
+
+// ============================================================================
+// ACTIVITY ROUTE MAP
+// ============================================================================
+
+const ACTIVITY_ROUTE_MAP: Record<string, string> = {
+  join_circle: '/circles',
+  attend_meeting: '/meetings',
+  post_in_forum: '/forums',
+  create_document: '/documents',
+  complete_checklist: '/lists',
+  read_book: '/books',
+  explore_deck: '/decks',
+  watch_episode: '/episodes',
+  attend_event: '/events',
+  create_build: '/builds',
+  give_pitch: '/pitches',
+  join_meetup: '/meetups',
+  participate_standup: '/standups',
+  join_sprint: '/sprints',
+  use_table: '/tables',
+  use_playlist: '/playlists',
+  use_library: '/libraries',
+  use_elevator: '/elevators',
+};
+
+function getStepLink(step: PathwayStep): string | null {
+  if (step.step_type === 'course' && step.step_id) return `/courses/${step.step_id}`;
+  if (step.step_type === 'program' && step.step_id) return `/programs/${step.step_id}`;
+  if (step.step_type === 'activity' && step.activity_type) {
+    const basePath = ACTIVITY_ROUTE_MAP[step.activity_type];
+    if (basePath && step.activity_instance_id) return `${basePath}/${step.activity_instance_id}`;
+    if (basePath) return basePath;
+  }
+  return null;
+}
+
+function getStepItemLabel(step: PathwayStep): string | null {
+  if (step.activity_criteria?.target_title) return step.activity_criteria.target_title;
+  return null;
 }
 
 // ============================================================================
@@ -661,6 +705,22 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
                             </Badge>
                           )}
                         </div>
+                        {(() => {
+                          const itemLabel = getStepItemLabel(step);
+                          const stepLink = getStepLink(step);
+                          if (itemLabel && stepLink) {
+                            return (
+                              <Link to={stepLink} className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 mt-0.5">
+                                <ExternalLink className="w-3 h-3" />
+                                {itemLabel}
+                              </Link>
+                            );
+                          }
+                          if (itemLabel) {
+                            return <p className="text-xs text-gray-500 mt-0.5">{itemLabel}</p>;
+                          }
+                          return null;
+                        })()}
                         {step.description && (
                           <p className="text-xs text-gray-400 mt-0.5 truncate">
                             {step.description}
@@ -670,9 +730,9 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
 
                       {/* Actions */}
                       <div className="flex-shrink-0 flex items-center gap-2">
-                        {/* Go button for course/program steps */}
-                        {isCurrent && !isActivity && (
-                          <Link to={`/${step.step_type === 'course' ? 'courses' : 'programs'}/${step.step_id}`}>
+                        {/* Go link for any step with a target */}
+                        {!isCompleted && getStepLink(step) && (
+                          <Link to={getStepLink(step)!}>
                             <Button size="sm" variant="default" className="text-xs">
                               <ArrowRight className="w-3 h-3 mr-1" />
                               Go
