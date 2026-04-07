@@ -135,6 +135,14 @@ All previously known issues are resolved:
 - `forum_threads` trigger — fixed (`NEW.content` → `to_jsonb(NEW)->>'content'` with `body` fallback)
 - Pathway CRUD — unblocked by replacing Edge Function calls with direct Supabase queries in `PathwayAdminPage.tsx`
 
+### Discovery & Tagging System
+
+**Tags** are free-form text arrays (`text[]`) stored directly on 21 content/container tables. The `TagDetailPage` searches ALL tables via `Promise.allSettled` with `.contains('tags', [tag])`. Filter sidebar groups results into Content vs Container sections, only showing types that have matching results.
+
+**Topics** are structured records in `topics` table (3 types: audience/purpose/theme). Linked to content via `topic_links` junction table. `TopicDetailPage` fetches linked content IDs from Edge Function, then loads from 8 tables: books, decks, documents, courses, programs, episodes, playlists, magazines. Tabs are only shown when content exists for that type.
+
+**Topic following**: Stars on `TopicsPage` cards allow batch follow/unfollow. Follow data stored in `topic_followers` table. Batch-loaded on mount via single Supabase query. Toggle calls Edge Function `/topics/:id/follow` or `/topics/:id/unfollow`.
+
 ### Navigation / permissions
 
 `auth-context.tsx` fetches user class permissions via two separate queries (not embedded FK join): `user_class_permissions` (204 rows) + `container_types` (24 rows), joined in JS. Nav config falls back to `nav-config.ts` if DB returns 0 rows for user's class.

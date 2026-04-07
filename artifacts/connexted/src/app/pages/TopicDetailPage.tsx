@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -7,7 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/ta
 import { 
   Users, Target, Sparkles, UserPlus, FileText, 
   BookOpen, Layers, File, CheckSquare, Calendar,
-  MessageCircle, Eye, Heart, Star, GraduationCap, Rocket
+  MessageCircle, Eye, Heart, Star, GraduationCap, Rocket,
+  Video, ListVideo, BookCopy
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
@@ -51,23 +52,37 @@ export default function TopicDetailPage() {
   const [documents, setDocuments] = useState<ContentItem[]>([]);
   const [courses, setCourses] = useState<ContentItem[]>([]);
   const [programs, setPrograms] = useState<ContentItem[]>([]);
+  const [episodes, setEpisodes] = useState<ContentItem[]>([]);
+  const [playlists, setPlaylists] = useState<ContentItem[]>([]);
+  const [magazines, setMagazines] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'books' | 'decks' | 'documents' | 'courses' | 'programs'>('all');
+  const [activeTab, setActiveTab] = useState<string>('all');
   const { profile } = useAuth();
 
   useEffect(() => {
     if (slug) {
       fetchTopicAndContent();
-      if (profile) {
-        checkFollowStatus();
-      }
     }
-  }, [slug, profile]);
+  }, [slug]);
+
+  useEffect(() => {
+    if (profile && topic?.id) {
+      checkFollowStatus();
+    }
+  }, [profile?.id, topic?.id]);
 
   const fetchTopicAndContent = async () => {
     try {
       setLoading(true);
+      setBooks([]);
+      setDecks([]);
+      setDocuments([]);
+      setCourses([]);
+      setPrograms([]);
+      setEpisodes([]);
+      setPlaylists([]);
+      setMagazines([]);
 
       // Fetch topic details
       const topicResponse = await fetch(
@@ -100,13 +115,15 @@ export default function TopicDetailPage() {
         const contentIdsData = await contentIdsResponse.json();
         const contentIds = contentIdsData.contentIds || {};
 
-        // Fetch actual content from Supabase
         await Promise.all([
           fetchBooks(contentIds.book || []),
           fetchDecks(contentIds.deck || []),
           fetchDocuments(contentIds.document || []),
           fetchCourses(contentIds.course || []),
           fetchPrograms(contentIds.program || []),
+          fetchEpisodes(contentIds.episode || []),
+          fetchPlaylists(contentIds.playlist || []),
+          fetchMagazines(contentIds.magazine || []),
         ]);
       }
     } catch (error) {
@@ -306,6 +323,60 @@ export default function TopicDetailPage() {
     }
   };
 
+  const fetchEpisodes = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('episodes')
+      .select('id, title, description, created_at, created_by')
+      .in('id', ids);
+    if (error) { console.error('Error fetching episodes:', error); return; }
+
+    const creatorIds = [...new Set(data?.map(e => e.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setEpisodes(data?.map(e => ({ id: e.id, title: e.title, description: e.description, created_at: e.created_at, author: map.get(e.created_by) })) || []);
+    } else {
+      setEpisodes(data?.map(e => ({ id: e.id, title: e.title, description: e.description, created_at: e.created_at })) || []);
+    }
+  };
+
+  const fetchPlaylists = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('playlists')
+      .select('id, name, description, created_at, created_by')
+      .in('id', ids);
+    if (error) { console.error('Error fetching playlists:', error); return; }
+
+    const creatorIds = [...new Set(data?.map(p => p.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setPlaylists(data?.map(p => ({ id: p.id, title: p.name, description: p.description, created_at: p.created_at, author: map.get(p.created_by) })) || []);
+    } else {
+      setPlaylists(data?.map(p => ({ id: p.id, title: p.name, description: p.description, created_at: p.created_at })) || []);
+    }
+  };
+
+  const fetchMagazines = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('magazines')
+      .select('id, name, description, created_at, created_by')
+      .in('id', ids);
+    if (error) { console.error('Error fetching magazines:', error); return; }
+
+    const creatorIds = [...new Set(data?.map(m => m.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setMagazines(data?.map(m => ({ id: m.id, title: m.name, description: m.description, created_at: m.created_at, author: map.get(m.created_by) })) || []);
+    } else {
+      setMagazines(data?.map(m => ({ id: m.id, title: m.name, description: m.description, created_at: m.created_at })) || []);
+    }
+  };
+
   const checkFollowStatus = async () => {
     if (!profile || !topic) return;
 
@@ -383,16 +454,22 @@ export default function TopicDetailPage() {
     }
   };
 
-  const renderContentItem = (item: ContentItem, type: 'book' | 'deck' | 'document' | 'course' | 'program') => {
+  const renderContentItem = (item: ContentItem, type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine') => {
     const Icon = type === 'book' ? BookOpen : 
                  type === 'deck' ? Layers : 
                  type === 'course' ? GraduationCap : 
-                 type === 'program' ? Rocket : File;
+                 type === 'program' ? Rocket :
+                 type === 'episode' ? Video :
+                 type === 'playlist' ? ListVideo :
+                 type === 'magazine' ? BookCopy : File;
     
     const basePath = type === 'book' ? '/books' : 
                      type === 'deck' ? '/decks' : 
                      type === 'course' ? '/courses' : 
-                     type === 'program' ? '/programs' : '/documents';
+                     type === 'program' ? '/programs' :
+                     type === 'episode' ? '/episodes' :
+                     type === 'playlist' ? '/playlists' :
+                     type === 'magazine' ? '/magazines' : '/documents';
 
     return (
       <Link key={item.id} to={`${basePath}/${item.id}`}>
@@ -462,8 +539,8 @@ export default function TopicDetailPage() {
     );
   }
 
-  const totalContent = books.length + decks.length + documents.length + courses.length + programs.length;
-  const allContent = [...books, ...decks, ...documents, ...courses, ...programs].sort((a, b) => 
+  const totalContent = books.length + decks.length + documents.length + courses.length + programs.length + episodes.length + playlists.length + magazines.length;
+  const allContent = [...books, ...decks, ...documents, ...courses, ...programs, ...episodes, ...playlists, ...magazines].sort((a, b) => 
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -551,39 +628,73 @@ export default function TopicDetailPage() {
       </Card>
 
       {/* Content Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="all">
-            All ({totalContent})
-          </TabsTrigger>
-          <TabsTrigger value="books">
-            <BookOpen className="w-4 h-4 mr-2" />
-            Books ({books.length})
-          </TabsTrigger>
-          <TabsTrigger value="decks">
-            <Layers className="w-4 h-4 mr-2" />
-            Decks ({decks.length})
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            <File className="w-4 h-4 mr-2" />
-            Documents ({documents.length})
-          </TabsTrigger>
-          <TabsTrigger value="courses">
-            <GraduationCap className="w-4 h-4 mr-2" />
-            Courses ({courses.length})
-          </TabsTrigger>
-          <TabsTrigger value="programs">
-            <Rocket className="w-4 h-4 mr-2" />
-            Programs ({programs.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-auto min-w-full">
+            <TabsTrigger value="all">
+              All ({totalContent})
+            </TabsTrigger>
+            {books.length > 0 && (
+              <TabsTrigger value="books">
+                <BookOpen className="w-4 h-4 mr-1" />
+                Books ({books.length})
+              </TabsTrigger>
+            )}
+            {decks.length > 0 && (
+              <TabsTrigger value="decks">
+                <Layers className="w-4 h-4 mr-1" />
+                Decks ({decks.length})
+              </TabsTrigger>
+            )}
+            {documents.length > 0 && (
+              <TabsTrigger value="documents">
+                <File className="w-4 h-4 mr-1" />
+                Docs ({documents.length})
+              </TabsTrigger>
+            )}
+            {courses.length > 0 && (
+              <TabsTrigger value="courses">
+                <GraduationCap className="w-4 h-4 mr-1" />
+                Courses ({courses.length})
+              </TabsTrigger>
+            )}
+            {programs.length > 0 && (
+              <TabsTrigger value="programs">
+                <Rocket className="w-4 h-4 mr-1" />
+                Programs ({programs.length})
+              </TabsTrigger>
+            )}
+            {episodes.length > 0 && (
+              <TabsTrigger value="episodes">
+                <Video className="w-4 h-4 mr-1" />
+                Episodes ({episodes.length})
+              </TabsTrigger>
+            )}
+            {playlists.length > 0 && (
+              <TabsTrigger value="playlists">
+                <ListVideo className="w-4 h-4 mr-1" />
+                Playlists ({playlists.length})
+              </TabsTrigger>
+            )}
+            {magazines.length > 0 && (
+              <TabsTrigger value="magazines">
+                <BookCopy className="w-4 h-4 mr-1" />
+                Magazines ({magazines.length})
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
         <TabsContent value="all" className="mt-6 space-y-3">
           {allContent.map((item) => {
-            const type = books.some(b => b.id === item.id) ? 'book' :
-                        decks.some(d => d.id === item.id) ? 'deck' : 
-                        courses.some(c => c.id === item.id) ? 'course' :
-                        programs.some(p => p.id === item.id) ? 'program' : 'document';
+            const type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine' =
+              books.some(b => b.id === item.id) ? 'book' :
+              decks.some(d => d.id === item.id) ? 'deck' : 
+              courses.some(c => c.id === item.id) ? 'course' :
+              programs.some(p => p.id === item.id) ? 'program' :
+              episodes.some(e => e.id === item.id) ? 'episode' :
+              playlists.some(p => p.id === item.id) ? 'playlist' :
+              magazines.some(m => m.id === item.id) ? 'magazine' : 'document';
             return renderContentItem(item, type);
           })}
           {allContent.length === 0 && (
@@ -645,6 +756,39 @@ export default function TopicDetailPage() {
             <Card>
               <CardContent className="py-12 text-center text-gray-500">
                 No programs for this topic yet
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="episodes" className="mt-6 space-y-3">
+          {episodes.map(ep => renderContentItem(ep, 'episode'))}
+          {episodes.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                No episodes for this topic yet
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="playlists" className="mt-6 space-y-3">
+          {playlists.map(pl => renderContentItem(pl, 'playlist'))}
+          {playlists.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                No playlists for this topic yet
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="magazines" className="mt-6 space-y-3">
+          {magazines.map(mag => renderContentItem(mag, 'magazine'))}
+          {magazines.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                No magazines for this topic yet
               </CardContent>
             </Card>
           )}

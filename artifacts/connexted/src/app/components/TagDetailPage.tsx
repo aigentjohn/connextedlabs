@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
@@ -6,14 +6,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Badge } from '@/app/components/ui/badge';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Label } from '@/app/components/ui/label';
-import { FileText, MessageSquare, Calendar, BookOpen, ThumbsUp, Hash, Filter, ArrowLeft, Star } from 'lucide-react';
+import {
+  FileText, MessageSquare, Calendar, BookOpen, ThumbsUp, Hash, Filter,
+  ArrowLeft, Star, Users, Hammer, Table, TrendingUp, Presentation,
+  CalendarClock, Handshake, Image as ImageIcon, BookCopy, Library,
+  CheckSquare, Sparkles, ListVideo, Video, Rocket
+} from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { format } from 'date-fns';
 import { Button } from '@/app/components/ui/button';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
+
+type ContentType =
+  | 'post' | 'thread' | 'event' | 'course' | 'document' | 'review'
+  | 'circle' | 'build' | 'pitch' | 'standup' | 'sprint' | 'meetup'
+  | 'playlist' | 'episode' | 'book' | 'deck' | 'library'
+  | 'magazine' | 'program' | 'checklist' | 'prompt';
 
 interface TaggedContent {
   id: string;
-  type: 'post' | 'thread' | 'event' | 'course' | 'document' | 'review';
+  type: ContentType;
   title: string;
   description?: string;
   created_at: string;
@@ -26,14 +38,97 @@ interface TaggedContent {
   tags: string[];
 }
 
-interface ContentTypeFilter {
-  posts: boolean;
-  threads: boolean;
-  events: boolean;
-  courses: boolean;
-  documents: boolean;
-  reviews: boolean;
+type ContentTypeFilter = Record<ContentType, boolean>;
+
+const ALL_TYPES: ContentType[] = [
+  'post', 'thread', 'event', 'course', 'document', 'review',
+  'circle', 'build', 'pitch', 'standup', 'sprint', 'meetup',
+  'playlist', 'episode', 'book', 'deck', 'library',
+  'magazine', 'program', 'checklist', 'prompt',
+];
+
+const TYPE_META: Record<ContentType, { label: string; plural: string; icon: React.ReactNode; group: 'content' | 'container' }> = {
+  post:      { label: 'Post',         plural: 'Posts',          icon: <FileText className="w-4 h-4" />,       group: 'content' },
+  thread:    { label: 'Thread',       plural: 'Forum Threads',  icon: <MessageSquare className="w-4 h-4" />,  group: 'content' },
+  event:     { label: 'Event',        plural: 'Events',         icon: <Calendar className="w-4 h-4" />,       group: 'content' },
+  course:    { label: 'Course',       plural: 'Courses',        icon: <BookOpen className="w-4 h-4" />,       group: 'content' },
+  document:  { label: 'Document',     plural: 'Documents',      icon: <FileText className="w-4 h-4" />,       group: 'content' },
+  review:    { label: 'Review',       plural: 'Reviews',        icon: <ThumbsUp className="w-4 h-4" />,       group: 'content' },
+  episode:   { label: 'Episode',      plural: 'Episodes',       icon: <Video className="w-4 h-4" />,          group: 'content' },
+  book:      { label: 'Book',         plural: 'Books',          icon: <BookOpen className="w-4 h-4" />,       group: 'content' },
+  deck:      { label: 'Deck',         plural: 'Decks',          icon: <Presentation className="w-4 h-4" />,   group: 'content' },
+  program:   { label: 'Program',      plural: 'Programs',       icon: <Rocket className="w-4 h-4" />,         group: 'content' },
+  magazine:  { label: 'Magazine',     plural: 'Magazines',      icon: <BookCopy className="w-4 h-4" />,       group: 'container' },
+  circle:    { label: 'Circle',       plural: 'Circles',        icon: <Users className="w-4 h-4" />,          group: 'container' },
+  build:     { label: 'Build',        plural: 'Builds',         icon: <Hammer className="w-4 h-4" />,         group: 'container' },
+  pitch:     { label: 'Pitch',        plural: 'Pitches',        icon: <Presentation className="w-4 h-4" />,   group: 'container' },
+  standup:   { label: 'Standup',      plural: 'Standups',       icon: <MessageSquare className="w-4 h-4" />,  group: 'container' },
+  sprint:    { label: 'Sprint',       plural: 'Sprints',        icon: <CalendarClock className="w-4 h-4" />,  group: 'container' },
+  meetup:    { label: 'Meetup',       plural: 'Meetups',        icon: <Handshake className="w-4 h-4" />,      group: 'container' },
+  playlist:  { label: 'Playlist',     plural: 'Playlists',      icon: <ListVideo className="w-4 h-4" />,      group: 'container' },
+  library:   { label: 'Library',      plural: 'Libraries',      icon: <Library className="w-4 h-4" />,        group: 'container' },
+  checklist: { label: 'Checklist',    plural: 'Checklists',     icon: <CheckSquare className="w-4 h-4" />,    group: 'container' },
+  prompt:    { label: 'Prompt',       plural: 'Prompts',        icon: <Sparkles className="w-4 h-4" />,       group: 'container' },
+};
+
+interface TableQuery {
+  table: string;
+  type: ContentType;
+  select: string;
+  titleField: string;
+  descField: string;
 }
+
+const TABLE_QUERIES: TableQuery[] = [
+  { table: 'posts',         type: 'post',      select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
+  { table: 'forum_threads', type: 'thread',    select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
+  { table: 'events',        type: 'event',     select: 'id, title, description, created_at, host_id, circle_ids, tags',          titleField: 'title', descField: 'description' },
+  { table: 'courses',       type: 'course',    select: 'id, title, description, created_at, created_by, circle_ids, tags',       titleField: 'title', descField: 'description' },
+  { table: 'documents',     type: 'document',  select: 'id, title, description, created_at, author_id, circle_ids, tags',        titleField: 'title', descField: 'description' },
+  { table: 'endorsements',  type: 'review',    select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
+  { table: 'episodes',      type: 'episode',   select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
+  { table: 'books',         type: 'book',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
+  { table: 'decks',         type: 'deck',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
+  { table: 'programs',      type: 'program',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'circles',       type: 'circle',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'builds',        type: 'build',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'pitches',       type: 'pitch',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'standups',      type: 'standup',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'sprints',       type: 'sprint',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'meetups',       type: 'meetup',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'playlists',     type: 'playlist',  select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'libraries',     type: 'library',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'magazines',     type: 'magazine',  select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'checklists',    type: 'checklist', select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'prompts',       type: 'prompt',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+];
+
+const getContentLink = (item: TaggedContent): string => {
+  switch (item.type) {
+    case 'post':      return `/posts/${item.id}`;
+    case 'thread':    return `/forums/thread/${item.id}`;
+    case 'event':     return `/events/${item.id}`;
+    case 'course':    return `/courses/${item.id}`;
+    case 'document':  return `/documents/${item.id}`;
+    case 'review':    return `/reviews/${item.id}`;
+    case 'episode':   return `/episodes/${item.id}`;
+    case 'book':      return `/books/${item.id}`;
+    case 'deck':      return `/decks/${item.id}`;
+    case 'program':   return `/programs/${item.id}`;
+    case 'circle':    return `/circles/${item.id}`;
+    case 'build':     return `/builds/${item.id}`;
+    case 'pitch':     return `/pitches/${item.id}`;
+    case 'standup':   return `/standups/${item.id}`;
+    case 'sprint':    return `/sprints/${item.id}`;
+    case 'meetup':    return `/meetups/${item.id}`;
+    case 'playlist':  return `/playlists/${item.id}`;
+    case 'library':   return `/libraries/${item.id}`;
+    case 'magazine':  return `/magazines/${item.id}`;
+    case 'checklist': return `/checklists/${item.id}`;
+    case 'prompt':    return '#';
+    default:          return '#';
+  }
+};
 
 export default function TagDetailPage() {
   const { tagName } = useParams<{ tagName: string }>();
@@ -41,25 +136,17 @@ export default function TagDetailPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<TaggedContent[]>([]);
-  const [circles, setCircles] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  
-  const [contentTypeFilters, setContentTypeFilters] = useState<ContentTypeFilter>({
-    posts: true,
-    threads: true,
-    events: true,
-    courses: true,
-    documents: true,
-    reviews: true,
-  });
+
+  const defaultFilters = Object.fromEntries(ALL_TYPES.map(t => [t, true])) as ContentTypeFilter;
+  const [contentTypeFilters, setContentTypeFilters] = useState<ContentTypeFilter>(defaultFilters);
 
   const decodedTag = tagName ? decodeURIComponent(tagName) : '';
 
   useEffect(() => {
     if (profile && decodedTag) {
       fetchTaggedContent();
-      fetchCircles();
       checkFollowStatus();
     }
   }, [profile, decodedTag]);
@@ -111,132 +198,53 @@ export default function TagDetailPage() {
     }
   };
 
-  const fetchCircles = async () => {
-    const { data } = await supabase.from('circles').select('id, name');
-    setCircles(data || []);
-  };
-
   const fetchTaggedContent = async () => {
     try {
       setLoading(true);
       const allContent: TaggedContent[] = [];
 
-      // Fetch content with this tag
-      const [
-        { data: posts },
-        { data: threads },
-        { data: events },
-        { data: courses },
-        { data: documents },
-        { data: reviews },
-      ] = await Promise.all([
-        supabase
-          .from('posts')
-          .select('id, title, body, created_at, author_id, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-        supabase
-          .from('forum_threads')
-          .select('id, title, body, created_at, author_id, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-        supabase
-          .from('events')
-          .select('id, title, description, created_at, host_id, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-        supabase
-          .from('courses')
-          .select('id, title, description, created_at, created_by, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-        supabase
-          .from('documents')
-          .select('id, title, description, created_at, author_id, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-        supabase
-          .from('endorsements')
-          .select('id, title, body, created_at, author_id, circle_ids, tags')
-          .contains('tags', [decodedTag]),
-      ]);
+      const results = await Promise.allSettled(
+        TABLE_QUERIES.map(q =>
+          supabase.from(q.table).select(q.select).contains('tags', [decodedTag])
+        )
+      );
 
-      // Process posts
-      posts?.forEach(post => {
-        allContent.push({
-          id: post.id,
-          type: 'post',
-          title: post.title,
-          description: post.body,
-          created_at: post.created_at,
-          circle_ids: post.circle_ids,
-          tags: post.tags || [],
+      let failedTables: string[] = [];
+
+      results.forEach((result, idx) => {
+        const q = TABLE_QUERIES[idx];
+
+        if (result.status === 'rejected') {
+          failedTables.push(q.table);
+          return;
+        }
+
+        const { data, error } = result.value;
+        if (error) {
+          console.warn(`Tag search failed for ${q.table}:`, error.message);
+          failedTables.push(q.table);
+          return;
+        }
+        if (!data || data.length === 0) return;
+
+        data.forEach((row: any) => {
+          allContent.push({
+            id: row.id,
+            type: q.type,
+            title: row[q.titleField] || 'Untitled',
+            description: row[q.descField] || undefined,
+            created_at: row.created_at,
+            circle_ids: row.circle_ids,
+            tags: row.tags || [],
+          });
         });
       });
 
-      // Process threads
-      threads?.forEach(thread => {
-        allContent.push({
-          id: thread.id,
-          type: 'thread',
-          title: thread.title,
-          description: thread.body,
-          created_at: thread.created_at,
-          circle_ids: thread.circle_ids,
-          tags: thread.tags || [],
-        });
-      });
+      if (failedTables.length > 0) {
+        console.warn('Tag search failed for tables:', failedTables);
+      }
 
-      // Process events
-      events?.forEach(event => {
-        allContent.push({
-          id: event.id,
-          type: 'event',
-          title: event.title,
-          description: event.description,
-          created_at: event.created_at,
-          circle_ids: event.circle_ids,
-          tags: event.tags || [],
-        });
-      });
-
-      // Process courses
-      courses?.forEach(course => {
-        allContent.push({
-          id: course.id,
-          type: 'course',
-          title: course.title,
-          description: course.description,
-          created_at: course.created_at,
-          circle_ids: course.circle_ids,
-          tags: course.tags || [],
-        });
-      });
-
-      // Process documents
-      documents?.forEach(doc => {
-        allContent.push({
-          id: doc.id,
-          type: 'document',
-          title: doc.title,
-          description: doc.description,
-          created_at: doc.created_at,
-          circle_ids: doc.circle_ids,
-          tags: doc.tags || [],
-        });
-      });
-
-      // Process reviews
-      reviews?.forEach(review => {
-        allContent.push({
-          id: review.id,
-          type: 'review',
-          title: review.title,
-          description: review.body,
-          created_at: review.created_at,
-          circle_ids: review.circle_ids,
-          tags: review.tags || [],
-        });
-      });
-
-      // Sort by most recent
       allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
       setContent(allContent);
     } catch (error) {
       console.error('Error fetching tagged content:', error);
@@ -245,44 +253,19 @@ export default function TagDetailPage() {
     }
   };
 
-  const toggleContentType = (type: keyof ContentTypeFilter) => {
+  const toggleContentType = (type: ContentType) => {
     setContentTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
-  const getContentIcon = (type: string) => {
-    switch (type) {
-      case 'post': return <FileText className="w-4 h-4" />;
-      case 'thread': return <MessageSquare className="w-4 h-4" />;
-      case 'event': return <Calendar className="w-4 h-4" />;
-      case 'course': return <BookOpen className="w-4 h-4" />;
-      case 'document': return <FileText className="w-4 h-4" />;
-      case 'review': return <ThumbsUp className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
+  const filteredContent = content.filter(item => contentTypeFilters[item.type]);
 
-  const getContentLink = (item: TaggedContent) => {
-    switch (item.type) {
-      case 'post': return `/posts/${item.id}`;
-      case 'thread': return `/forums/thread/${item.id}`;
-      case 'event': return `/events/${item.id}`;
-      case 'course': return `/courses/${item.id}`;
-      case 'document': return `/documents/${item.id}`;
-      case 'review': return `/reviews/${item.id}`;
-      default: return '#';
-    }
-  };
+  const contentCounts = Object.fromEntries(
+    ALL_TYPES.map(t => [t, content.filter(c => c.type === t).length])
+  ) as Record<ContentType, number>;
 
-  const filteredContent = content.filter(item => contentTypeFilters[`${item.type}s` as keyof ContentTypeFilter]);
-
-  const contentCounts = {
-    posts: content.filter(c => c.type === 'post').length,
-    threads: content.filter(c => c.type === 'thread').length,
-    events: content.filter(c => c.type === 'event').length,
-    courses: content.filter(c => c.type === 'course').length,
-    documents: content.filter(c => c.type === 'document').length,
-    reviews: content.filter(c => c.type === 'review').length,
-  };
+  const typesWithContent = ALL_TYPES.filter(t => contentCounts[t] > 0);
+  const contentTypes = typesWithContent.filter(t => TYPE_META[t].group === 'content');
+  const containerTypes = typesWithContent.filter(t => TYPE_META[t].group === 'container');
 
   return (
     <div className="space-y-6">
@@ -340,102 +323,62 @@ export default function TagDetailPage() {
                 Filter by Type
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-posts"
-                  checked={contentTypeFilters.posts}
-                  onCheckedChange={() => toggleContentType('posts')}
-                />
-                <Label htmlFor="filter-posts" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Posts</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.posts}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
+            <CardContent className="space-y-4">
+              {contentTypes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Content</p>
+                  {contentTypes.map(type => (
+                    <div key={type} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`filter-${type}`}
+                        checked={contentTypeFilters[type]}
+                        onCheckedChange={() => toggleContentType(type)}
+                      />
+                      <Label htmlFor={`filter-${type}`} className="cursor-pointer flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            {TYPE_META[type].icon}
+                            {TYPE_META[type].plural}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {contentCounts[type]}
+                          </Badge>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-threads"
-                  checked={contentTypeFilters.threads}
-                  onCheckedChange={() => toggleContentType('threads')}
-                />
-                <Label htmlFor="filter-threads" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Forum Threads</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.threads}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
+              {containerTypes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Containers</p>
+                  {containerTypes.map(type => (
+                    <div key={type} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`filter-${type}`}
+                        checked={contentTypeFilters[type]}
+                        onCheckedChange={() => toggleContentType(type)}
+                      />
+                      <Label htmlFor={`filter-${type}`} className="cursor-pointer flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            {TYPE_META[type].icon}
+                            {TYPE_META[type].plural}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {contentCounts[type]}
+                          </Badge>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-events"
-                  checked={contentTypeFilters.events}
-                  onCheckedChange={() => toggleContentType('events')}
-                />
-                <Label htmlFor="filter-events" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Events</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.events}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-courses"
-                  checked={contentTypeFilters.courses}
-                  onCheckedChange={() => toggleContentType('courses')}
-                />
-                <Label htmlFor="filter-courses" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Courses</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.courses}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-documents"
-                  checked={contentTypeFilters.documents}
-                  onCheckedChange={() => toggleContentType('documents')}
-                />
-                <Label htmlFor="filter-documents" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Documents</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.documents}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-reviews"
-                  checked={contentTypeFilters.reviews}
-                  onCheckedChange={() => toggleContentType('reviews')}
-                />
-                <Label htmlFor="filter-reviews" className="cursor-pointer flex-1">
-                  <div className="flex items-center justify-between">
-                    <span>Reviews</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {contentCounts.reviews}
-                    </Badge>
-                  </div>
-                </Label>
-              </div>
+              {typesWithContent.length === 0 && !loading && (
+                <p className="text-sm text-gray-500">No content found with this tag</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -455,84 +398,63 @@ export default function TagDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredContent.map((item) => {
-                    const itemCircles = circles.filter(c => item.circle_ids?.includes(c.id));
-                    
-                    return (
-                      <Card 
-                        key={`${item.type}-${item.id}`}
-                        className="hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => navigate(getContentLink(item))}
-                      >
-                        <CardContent className="pt-6">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
-                              <Badge variant="secondary" className="gap-1">
-                                {getContentIcon(item.type)}
-                                {item.type}
-                              </Badge>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-900 mb-1">
-                                {item.title}
-                              </h3>
-                              {item.description && (
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                  {item.description.substring(0, 200)}
-                                  {item.description.length > 200 ? '...' : ''}
-                                </p>
-                              )}
-                              
-                              <div className="flex flex-wrap items-center gap-2 mt-2">
-                                {/* Tags */}
-                                <div className="flex flex-wrap gap-1">
-                                  {item.tags.slice(0, 5).map(tag => (
-                                    <Link 
-                                      key={tag} 
-                                      to={`/tags/${encodeURIComponent(tag)}`}
-                                      onClick={(e) => e.stopPropagation()}
+                  {filteredContent.map((item) => (
+                    <Card 
+                      key={`${item.type}-${item.id}`}
+                      className="hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(getContentLink(item))}
+                    >
+                      <CardContent className="pt-6">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            <Badge variant="secondary" className="gap-1">
+                              {TYPE_META[item.type]?.icon}
+                              {TYPE_META[item.type]?.label || item.type}
+                            </Badge>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 mb-1">
+                              {item.title}
+                            </h3>
+                            {item.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                {item.description.substring(0, 200)}
+                                {item.description.length > 200 ? '...' : ''}
+                              </p>
+                            )}
+                            
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <div className="flex flex-wrap gap-1">
+                                {item.tags.slice(0, 5).map(tag => (
+                                  <Link 
+                                    key={tag} 
+                                    to={`/tags/${encodeURIComponent(tag)}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs cursor-pointer hover:bg-gray-100"
                                     >
-                                      <Badge 
-                                        variant="outline" 
-                                        className="text-xs cursor-pointer hover:bg-gray-100"
-                                      >
-                                        #{tag}
-                                      </Badge>
-                                    </Link>
-                                  ))}
-                                  {item.tags.length > 5 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{item.tags.length - 5} more
+                                      #{tag}
                                     </Badge>
-                                  )}
-                                </div>
-                                
-                                {/* Circles */}
-                                {itemCircles.length > 0 && (
-                                  <div className="flex gap-1">
-                                    {itemCircles.slice(0, 2).map(circle => (
-                                      <Badge key={circle.id} className="text-xs">
-                                        {circle.name}
-                                      </Badge>
-                                    ))}
-                                    {itemCircles.length > 2 && (
-                                      <Badge className="text-xs">
-                                        +{itemCircles.length - 2}
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  </Link>
+                                ))}
+                                {item.tags.length > 5 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{item.tags.length - 5} more
+                                  </Badge>
                                 )}
                               </div>
-                              
-                              <p className="text-xs text-gray-500 mt-2">
-                                {format(new Date(item.created_at), 'PPp')}
-                              </p>
                             </div>
+                            
+                            <p className="text-xs text-gray-500 mt-2">
+                              {format(new Date(item.created_at), 'PPp')}
+                            </p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </CardContent>
