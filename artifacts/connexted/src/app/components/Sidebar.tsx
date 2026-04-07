@@ -28,6 +28,7 @@ import { DiscoverSection } from './sidebar/DiscoverSection';
 import { MembersSection } from './sidebar/MembersSection';
 import { SponsorsSection, CirclesSection, ContentSection } from './sidebar/MinorSections';
 import { ActivitiesSection } from './sidebar/ActivitiesSection';
+import { CalendarEventsSection } from './sidebar/CalendarEventsSection';
 import { SetupSection } from './sidebar/SetupSection';
 
 interface SidebarProps {
@@ -46,6 +47,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     members: false,
     sponsors: false,
     activities: false,
+    calendarEvents: false,
     circles: false,
     content: false,
     setup: false,
@@ -158,6 +160,17 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     }
   }, [location.pathname]);
 
+  // Auto-expand CALENDAR & EVENTS section when viewing any of its child routes
+  useEffect(() => {
+    const calendarPaths = ['/calendar', '/events', '/ticketed-events', '/meetings', '/meetups', '/my-sessions', '/profile/venues'];
+    const isCalendarRoute = calendarPaths.some((p) =>
+      location.pathname === p || location.pathname.startsWith(p + '/')
+    );
+    if (isCalendarRoute) {
+      setExpandedSections((prev) => ({ ...prev, calendarEvents: true }));
+    }
+  }, [location.pathname]);
+
   // Auto-expand DISCOVER section when viewing any of its child routes
   useEffect(() => {
     const discoverPaths = ['/explore', '/topics', '/discovery', '/my-content'];
@@ -170,7 +183,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   }, [location.pathname]);
 
   const toggleSection = (key: string) => {
-    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'circles', 'content', 'setup'];
+    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'calendarEvents', 'circles', 'content', 'setup'];
     const adminSections = ['myAdmin'];
     const containerAdminSections = ['tableAdmin', 'elevatorAdmin', 'meetingAdmin', 'pitchAdmin', 'buildAdmin', 'standupAdmin', 'meetupAdmin', 'sprintAdmin'];
 
@@ -256,6 +269,14 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             isExpanded={expandedSections['myGrowth']}
             onToggle={() => toggleSection('myGrowth')}
             profileId={profile?.id}
+          />
+          <Separator className="my-1.5" />
+          <CalendarEventsSection
+            isExpanded={expandedSections['calendarEvents']}
+            onToggle={() => toggleSection('calendarEvents')}
+            eventCount={eventCounts.total}
+            meetingCount={meetings.length}
+            meetupCount={meetups.length}
           />
           <Separator className="my-1.5" />
           <DiscoverSection
