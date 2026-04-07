@@ -637,8 +637,10 @@ export default function PathwayAdminPage() {
 
     setSaving(true);
     try {
-      const pathwayPayload = {
+      const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const payload = {
         name:                     form.name,
+        slug,
         description:              form.description,
         short_description:        form.short_description,
         destination:              form.destination,
@@ -654,33 +656,7 @@ export default function PathwayAdminPage() {
         is_published:             form.status === 'published',
         is_featured:              form.is_featured,
         created_by:               profile?.id,
-      };
-
-      let pathwayId = form.id;
-
-      if (pathwayId) {
-        const { error } = await supabase
-          .from('pathways')
-          .update(pathwayPayload)
-          .eq('id', pathwayId);
-        if (error) throw error;
-      } else {
-        const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        const { data, error } = await supabase
-          .from('pathways')
-          .insert({ ...pathwayPayload, slug })
-          .select('id')
-          .single();
-        if (error) throw error;
-        pathwayId = data.id;
-      }
-
-      // Replace steps: delete all then re-insert in order
-      await supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId);
-
-      if (form.steps.length > 0) {
-        const stepsPayload = form.steps.map((s, i) => ({
-          pathway_id:           pathwayId,
+        steps: form.steps.map((s, i) => ({
           title:                s.title,
           description:          s.description,
           order_index:          i,
@@ -693,9 +669,19 @@ export default function PathwayAdminPage() {
           allow_skip:           s.allow_skip,
           verification_method:  s.verification_method || 'self_report',
           activity_criteria:    s.activity_criteria || null,
-        }));
-        const { error: stepsError } = await supabase.from('pathway_steps').insert(stepsPayload);
-        if (stepsError) throw stepsError;
+        })),
+      };
+
+      if (form.id) {
+        await fetchAPI(`/pathways/${form.id}`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetchAPI('/pathways', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
       }
 
       toast.success(form.id ? 'Pathway updated!' : 'Pathway created!');
@@ -712,8 +698,7 @@ export default function PathwayAdminPage() {
 
   async function archivePathway(id: string) {
     try {
-      const { error } = await supabase.from('pathways').delete().eq('id', id);
-      if (error) throw error;
+      await fetchAPI(`/pathways/${id}`, { method: 'DELETE' });
       toast.success('Pathway deleted');
       loadPathways();
     } catch (error: any) {
