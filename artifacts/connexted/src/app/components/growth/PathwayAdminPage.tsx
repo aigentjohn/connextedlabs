@@ -315,7 +315,16 @@ export default function PathwayAdminPage() {
         .from('pathways')
         .select('*, pathway_steps(*)')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.warn('Pathway join query failed, trying without steps:', error.message);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('pathways')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (fallbackError) throw fallbackError;
+        setPathways((fallbackData || []).map((p: any) => ({ ...p, steps: [] })));
+        return;
+      }
       setPathways(
         (data || []).map((p: any) => ({
           ...p,
@@ -324,6 +333,7 @@ export default function PathwayAdminPage() {
       );
     } catch (error) {
       console.error('Error loading pathways:', error);
+      toast.error('Failed to load pathways — check console for details');
     } finally {
       setLoadingPathways(false);
     }
