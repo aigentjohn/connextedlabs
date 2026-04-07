@@ -9,8 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useNavigate } from 'react-router';
-import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -78,21 +76,10 @@ interface EnrollmentMap {
 // API
 // ============================================================================
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
-
 async function fetchAPI(path: string, options?: RequestInit) {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${publicAnonKey}`,
-    'Content-Type': 'application/json',
-  };
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) headers['X-User-Token'] = session.access_token;
-  } catch { /* proceed without token */ }
-
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`/api${path}`, {
     method: options?.method || 'GET',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     ...(options?.body ? { body: options.body } : {}),
   });
 
@@ -102,9 +89,7 @@ async function fetchAPI(path: string, options?: RequestInit) {
     throw new Error(msg);
   }
 
-  const data = await response.json();
-  if (data && 'success' in data && !data.success) throw new Error(data.error || 'API error');
-  return data;
+  return response.json();
 }
 
 // ============================================================================
@@ -133,7 +118,7 @@ export default function BrowsePathwaysPage() {
     try {
       const [pathwaysRes, enrollmentsRes] = await Promise.allSettled([
         fetchAPI('/pathways'),
-        profile?.id ? fetchAPI('/pathways/user/enrollments') : Promise.resolve({ enrollments: [] }),
+        profile?.id ? fetchAPI(`/pathways/user/${profile.id}/enrollments`) : Promise.resolve({ enrollments: [] }),
       ]);
 
       if (pathwaysRes.status === 'fulfilled') {
@@ -165,7 +150,10 @@ export default function BrowsePathwaysPage() {
     }
     setEnrolling(pathwayId);
     try {
-      await fetchAPI(`/pathways/${pathwayId}/enroll`, { method: 'POST' });
+      await fetchAPI(`/pathways/${pathwayId}/enroll`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: profile.id }),
+      });
       toast.success('Enrolled! Head to My Pathways to start.');
       loadData();
     } catch (err: any) {
