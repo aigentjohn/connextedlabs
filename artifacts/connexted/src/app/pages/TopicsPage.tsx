@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import { Search, Users, Target, Sparkles, TrendingUp, UserPlus, FileText, ChevronRight } from 'lucide-react';
+import { Search, Users, Target, Sparkles, TrendingUp, UserPlus, FileText, ChevronRight, Star } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
@@ -37,11 +38,85 @@ export default function TopicsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'featured' | 'audience' | 'purpose' | 'theme'>('featured');
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const { profile } = useAuth();
 
   useEffect(() => {
     fetchTopics();
   }, []);
+
+  useEffect(() => {
+    if (profile?.id) {
+      fetchFollowedTopics();
+    }
+  }, [profile?.id]);
+
+  const fetchFollowedTopics = async () => {
+    if (!profile?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('topic_followers')
+        .select('topic_id')
+        .eq('user_id', profile.id);
+
+      if (error) throw error;
+      setFollowedIds(new Set((data || []).map(r => r.topic_id)));
+    } catch (err) {
+      console.error('Error fetching followed topics:', err);
+    }
+  };
+
+  const handleFollowToggle = async (e: React.MouseEvent, topic: Topic) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!profile?.id) {
+      toast.error('Sign in to follow topics');
+      return;
+    }
+    if (togglingIds.has(topic.id)) return;
+
+    const wasFollowing = followedIds.has(topic.id);
+    const endpoint = wasFollowing ? 'unfollow' : 'follow';
+
+    setTogglingIds(prev => new Set(prev).add(topic.id));
+    setFollowedIds(prev => {
+      const next = new Set(prev);
+      wasFollowing ? next.delete(topic.id) : next.add(topic.id);
+      return next;
+    });
+
+    try {
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/topics/${topic.id}/${endpoint}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: profile.id }),
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to toggle follow');
+      toast.success(wasFollowing ? `Unfollowed ${topic.name}` : `Following ${topic.name}!`);
+    } catch (err) {
+      setFollowedIds(prev => {
+        const next = new Set(prev);
+        wasFollowing ? next.add(topic.id) : next.delete(topic.id);
+        return next;
+      });
+      toast.error('Failed to update follow status');
+      console.error('Error toggling follow:', err);
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev);
+        next.delete(topic.id);
+        return next;
+      });
+    }
+  };
 
   const fetchTopics = async () => {
     try {
@@ -110,64 +185,86 @@ export default function TopicsPage() {
     }
   };
 
-  const renderTopicCard = (topic: Topic) => (
-    <Link
-      key={topic.id}
-      to={`/topics/${topic.slug}`}
-      className="group block"
-    >
-      <Card className="h-full transition-all hover:shadow-md hover:border-blue-300">
-        <CardContent className="p-5">
-          <div className="flex items-start gap-3">
-            <div 
-              className="flex-shrink-0 w-12 h-12 flex items-center justify-center text-2xl rounded-lg border-2"
-              style={{ 
-                backgroundColor: topic.color ? `${topic.color}15` : '#EEF2FF',
-                borderColor: topic.color || '#3B82F6'
-              }}
-            >
-              {topic.icon || '🏷️'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {topic.name}
-                </h3>
-                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
-              </div>
-              {topic.description && (
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {topic.description}
-                </p>
-              )}
-              <div className="flex items-center gap-3">
-                <Badge 
-                  variant="outline"
-                  className="text-xs"
+  const renderTopicCard = (topic: Topic) => {
+    const isFollowed = followedIds.has(topic.id);
+    const isToggling = togglingIds.has(topic.id);
+
+    return (
+      <div key={topic.id} className="relative group">
+        <Link
+          to={`/topics/${topic.slug}`}
+          className="block"
+        >
+          <Card className={`h-full transition-all hover:shadow-md ${isFollowed ? 'border-blue-400 bg-blue-50/30' : 'hover:border-blue-300'}`}>
+            <CardContent className="p-5">
+              <div className="flex items-start gap-3">
+                <div 
+                  className="flex-shrink-0 w-12 h-12 flex items-center justify-center text-2xl rounded-lg border-2"
                   style={{ 
-                    borderColor: topic.color || '#3B82F6',
-                    color: topic.color || '#3B82F6'
+                    backgroundColor: topic.color ? `${topic.color}15` : '#EEF2FF',
+                    borderColor: topic.color || '#3B82F6'
                   }}
                 >
-                  {getTypeLabel(topic.topic_type)}
-                </Badge>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <UserPlus className="w-3 h-3" />
-                    {topic.follower_count}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FileText className="w-3 h-3" />
-                    {topic.content_count}
-                  </span>
+                  {topic.icon || '🏷️'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {topic.name}
+                    </h3>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {profile && (
+                        <button
+                          onClick={(e) => handleFollowToggle(e, topic)}
+                          disabled={isToggling}
+                          className={`p-1.5 rounded-full transition-all ${
+                            isFollowed
+                              ? 'text-yellow-500 hover:text-yellow-600'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          } ${isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                          title={isFollowed ? 'Unfollow topic' : 'Follow topic'}
+                        >
+                          <Star className={`w-5 h-5 ${isFollowed ? 'fill-current' : ''}`} />
+                        </button>
+                      )}
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                  </div>
+                  {topic.description && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {topic.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <Badge 
+                      variant="outline"
+                      className="text-xs"
+                      style={{ 
+                        borderColor: topic.color || '#3B82F6',
+                        color: topic.color || '#3B82F6'
+                      }}
+                    >
+                      {getTypeLabel(topic.topic_type)}
+                    </Badge>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <UserPlus className="w-3 h-3" />
+                        {topic.follower_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="w-3 h-3" />
+                        {topic.content_count}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -257,11 +354,21 @@ export default function TopicsPage() {
 
       {/* Header */}
       <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Browse Topics</h1>
-          <p className="text-gray-600 mt-2">
-            Discover content organized by <strong>WHO</strong> it's for and <strong>WHY</strong> they need it
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Browse Topics</h1>
+            <p className="text-gray-600 mt-2">
+              Discover content organized by <strong>WHO</strong> it's for and <strong>WHY</strong> they need it
+            </p>
+          </div>
+          {profile && followedIds.size > 0 && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+              <Star className="w-4 h-4 text-yellow-500 fill-current" />
+              <span className="text-sm font-medium text-blue-700">
+                Following {followedIds.size} topic{followedIds.size !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Search */}
