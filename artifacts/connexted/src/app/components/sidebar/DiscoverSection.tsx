@@ -63,6 +63,9 @@ export function DiscoverSection({
           <DiscoverLink to="/topics" icon={Tag} pathname={location.pathname} match="startsWith">
             Topics
           </DiscoverLink>
+          <DiscoverLink to="/tags" icon={Hash} pathname={location.pathname} match="startsWith">
+            Tags
+          </DiscoverLink>
           <DiscoverLink to="/rankings" icon={TrendingUp} pathname={location.pathname}>
             Rankings
           </DiscoverLink>

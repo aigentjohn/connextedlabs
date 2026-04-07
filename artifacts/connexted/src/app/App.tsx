@@ -213,6 +213,9 @@ const DeckDetailPage = lazy(() => import('@/app/components/DeckDetailPage'));
 const TopicsPage = lazy(() => import('@/app/pages/TopicsPage'));
 const TopicDetailPage = lazy(() => import('@/app/pages/TopicDetailPage'));
 
+// Tags
+const TagsPage = lazy(() => import('@/app/pages/TagsPage'));
+
 // Episodes & Playlists
 const EpisodesPage = lazy(() => import('@/app/components/EpisodesPage'));
 const CreateEpisodePage = lazy(() => import('@/app/components/CreateEpisodePage'));
@@ -575,7 +578,6 @@ const router = createBrowserRouter([
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/help', element: <HelpViewer /> },
           { path: '/help/:type', element: <HelpViewer /> },
-          { path: '/tags/:tagName', element: <TagDetailPage /> },
           { path: '/rankings', element: <RankingsPage /> },
           { path: '/feed', element: <FeedPage /> },
           { path: '/blogs', element: <BlogsPage /> },
@@ -659,6 +661,9 @@ const router = createBrowserRouter([
           // Topics
           { path: '/topics', element: <TopicsPage /> },
           { path: '/topics/:slug', element: <TopicDetailPage /> },
+          // Tags
+          { path: '/tags', element: <TagsPage /> },
+          { path: '/tags/:tagName', element: <TagDetailPage /> },
           // Standups
           { path: '/standups', element: <StandupsPage /> },
           { path: '/standups/create', element: <CreateStandupPage /> },
