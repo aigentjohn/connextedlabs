@@ -188,9 +188,10 @@ export default function TagDetailPage() {
       setLoading(true);
       const allContent: TaggedContent[] = [];
 
+      const normalizedTag = decodedTag.toLowerCase();
       const results = await Promise.allSettled(
         TABLE_QUERIES.map(q =>
-          supabase.from(q.table).select(q.select).contains('tags', [decodedTag])
+          supabase.from(q.table).select(q.select).not('tags', 'is', null)
         )
       );
 
@@ -212,6 +213,9 @@ export default function TagDetailPage() {
         if (!data || data.length === 0) return;
 
         data.forEach((row: any) => {
+          const rowTags = Array.isArray(row.tags) ? row.tags : [];
+          const hasMatch = rowTags.some((t: string) => typeof t === 'string' && t.trim().toLowerCase() === normalizedTag);
+          if (!hasMatch) return;
           allContent.push({
             id: row.id,
             type: q.type,
@@ -219,7 +223,7 @@ export default function TagDetailPage() {
             description: row[q.descField] || undefined,
             created_at: row.created_at,
             circle_ids: row.circle_ids,
-            tags: row.tags || [],
+            tags: rowTags,
           });
         });
       });
