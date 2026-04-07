@@ -21,7 +21,7 @@ type ContentType =
   | 'post' | 'thread' | 'event' | 'course' | 'document' | 'review'
   | 'circle' | 'build' | 'pitch' | 'standup' | 'sprint' | 'meetup'
   | 'playlist' | 'episode' | 'book' | 'deck' | 'library'
-  | 'magazine' | 'program' | 'checklist' | 'prompt';
+  | 'magazine' | 'program' | 'checklist' | 'prompt' | 'table';
 
 interface TaggedContent {
   id: string;
@@ -44,7 +44,7 @@ const ALL_TYPES: ContentType[] = [
   'post', 'thread', 'event', 'course', 'document', 'review',
   'circle', 'build', 'pitch', 'standup', 'sprint', 'meetup',
   'playlist', 'episode', 'book', 'deck', 'library',
-  'magazine', 'program', 'checklist', 'prompt',
+  'magazine', 'program', 'checklist', 'prompt', 'table',
 ];
 
 const TYPE_META: Record<ContentType, { label: string; plural: string; icon: React.ReactNode; group: 'content' | 'container' }> = {
@@ -69,6 +69,7 @@ const TYPE_META: Record<ContentType, { label: string; plural: string; icon: Reac
   library:   { label: 'Library',      plural: 'Libraries',      icon: <Library className="w-4 h-4" />,        group: 'container' },
   checklist: { label: 'List',          plural: 'Lists',           icon: <CheckSquare className="w-4 h-4" />,    group: 'container' },
   prompt:    { label: 'Prompt',       plural: 'Prompts',        icon: <Sparkles className="w-4 h-4" />,       group: 'container' },
+  table:     { label: 'Table',        plural: 'Tables',         icon: <Table className="w-4 h-4" />,          group: 'container' },
 };
 
 interface TableQuery {
@@ -80,23 +81,10 @@ interface TableQuery {
 }
 
 const TABLE_QUERIES: TableQuery[] = [
-  { table: 'forum_threads', type: 'thread',    select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
-  { table: 'events',        type: 'event',     select: 'id, title, description, created_at, host_id, circle_ids, tags',          titleField: 'title', descField: 'description' },
-  { table: 'courses',       type: 'course',    select: 'id, title, description, created_at, created_by, circle_ids, tags',       titleField: 'title', descField: 'description' },
   { table: 'documents',     type: 'document',  select: 'id, title, description, created_at, author_id, circle_ids, tags',        titleField: 'title', descField: 'description' },
-  { table: 'endorsements',  type: 'review',    select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
-  { table: 'episodes',      type: 'episode',   select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
-  { table: 'books',         type: 'book',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
-  { table: 'decks',         type: 'deck',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
-  { table: 'programs',      type: 'program',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'builds',        type: 'build',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'tables',        type: 'table',     select: 'id, name, description, created_at, created_by, tags, slug',              titleField: 'name',  descField: 'description' },
   { table: 'pitches',       type: 'pitch',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'standups',      type: 'standup',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'sprints',       type: 'sprint',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'meetups',       type: 'meetup',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'playlists',     type: 'playlist',  select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'checklists',    type: 'checklist', select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'prompts',       type: 'prompt',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+  { table: 'episodes',      type: 'episode',   select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
 ];
 
 const getContentLink = (item: TaggedContent): string => {
@@ -122,6 +110,7 @@ const getContentLink = (item: TaggedContent): string => {
     case 'magazine':  return `/magazines/${item.id}`;
     case 'checklist': return `/checklists/${item.id}`;
     case 'prompt':    return '#';
+    case 'table':     return `/tables/${item.id}`;
     default:          return '#';
   }
 };

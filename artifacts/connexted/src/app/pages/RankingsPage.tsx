@@ -31,23 +31,10 @@ interface TopicRank {
 }
 
 const TAG_TABLES = [
-  { table: 'forum_threads', label: 'Threads',    icon: MessageSquare },
-  { table: 'events',        label: 'Events',     icon: Calendar },
-  { table: 'courses',       label: 'Courses',    icon: BookOpen },
   { table: 'documents',     label: 'Documents',  icon: FileText },
-  { table: 'endorsements',  label: 'Reviews',    icon: FileText },
-  { table: 'builds',        label: 'Builds',     icon: Hammer },
+  { table: 'tables',        label: 'Tables',     icon: Presentation },
   { table: 'pitches',       label: 'Pitches',    icon: Lightbulb },
   { table: 'episodes',      label: 'Episodes',   icon: Headphones },
-  { table: 'playlists',     label: 'Playlists',  icon: Headphones },
-  { table: 'books',         label: 'Books',      icon: BookOpen },
-  { table: 'decks',         label: 'Decks',      icon: Presentation },
-  { table: 'programs',      label: 'Programs',   icon: BookOpen },
-  { table: 'standups',      label: 'Standups',   icon: MessageSquare },
-  { table: 'sprints',       label: 'Sprints',    icon: Calendar },
-  { table: 'meetups',       label: 'Meetups',     icon: Users },
-  { table: 'checklists',    label: 'Lists',      icon: FileText },
-  { table: 'prompts',       label: 'Prompts',    icon: Lightbulb },
 ];
 
 function getRankIcon(index: number) {
