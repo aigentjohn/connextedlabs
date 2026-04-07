@@ -59,7 +59,7 @@ interface PathwayStep {
   activity_type?: string;
   verification_method?: string;
   activity_instance_id?: string | null;
-  activity_criteria?: { target_id?: string; target_title?: string } | null;
+  activity_criteria?: { target_id?: string; target_title?: string; target_slug?: string } | null;
 }
 
 interface Pathway {
@@ -148,6 +148,8 @@ function getStepLink(step: PathwayStep): string | null {
   if (step.step_type === 'program' && step.step_id) return `/programs/${step.step_id}`;
   if (step.step_type === 'activity' && step.activity_type) {
     const basePath = ACTIVITY_ROUTE_MAP[step.activity_type];
+    const slug = step.activity_criteria?.target_slug;
+    if (basePath && slug) return `${basePath}/${slug}`;
     if (basePath && step.activity_instance_id) return `${basePath}/${step.activity_instance_id}`;
     if (basePath) return basePath;
   }

@@ -411,13 +411,14 @@ export default function PathwayAdminPage() {
     try {
       const { data } = await supabase
         .from(tableInfo.table as any)
-        .select(`id, ${tableInfo.titleField}`)
+        .select(`id, slug, ${tableInfo.titleField}`)
         .ilike(tableInfo.titleField, `%${query}%`)
         .limit(12);
       setInstanceResults(
         (data || []).map((row: any) => ({
           id: row.id,
           title: row[tableInfo.titleField] || 'Untitled',
+          slug: row.slug || null,
         }))
       );
     } catch (err) {
@@ -427,7 +428,7 @@ export default function PathwayAdminPage() {
     }
   }
 
-  function addActivityStep(activityType: string, targetId?: string, targetTitle?: string) {
+  function addActivityStep(activityType: string, targetId?: string, targetTitle?: string, targetSlug?: string) {
     const activityDef = ACTIVITY_TYPES[activityType];
     if (!activityDef) return;
 
@@ -444,7 +445,7 @@ export default function PathwayAdminPage() {
       verification_method: 'self_report',
       activity_instance_id: targetId || null,
       activity_criteria: targetId
-        ? { target_id: targetId, target_title: targetTitle }
+        ? { target_id: targetId, target_title: targetTitle, target_slug: targetSlug || null }
         : undefined,
     };
 
@@ -1202,7 +1203,7 @@ export default function PathwayAdminPage() {
                   {instanceResults.map(result => (
                     <button
                       key={result.id}
-                      onClick={() => addActivityStep(pendingActivityType, result.id, result.title)}
+                      onClick={() => addActivityStep(pendingActivityType, result.id, result.title, result.slug)}
                       className="w-full flex items-center gap-3 p-2.5 hover:bg-green-50 transition-colors text-left"
                     >
                       {getActivityIcon(pendingActivityType)}
