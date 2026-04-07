@@ -202,10 +202,11 @@ export default function TagDetailPage() {
     try {
       setLoading(true);
       const allContent: TaggedContent[] = [];
+      const normalizedTag = decodedTag.toLowerCase();
 
       const results = await Promise.allSettled(
         TABLE_QUERIES.map(q =>
-          supabase.from(q.table).select(q.select).contains('tags', [decodedTag])
+          supabase.from(q.table).select(q.select).not('tags', 'is', null)
         )
       );
 
@@ -221,13 +222,18 @@ export default function TagDetailPage() {
 
         const { data, error } = result.value;
         if (error) {
-          console.warn(`Tag search failed for ${q.table}:`, error.message);
           failedTables.push(q.table);
           return;
         }
         if (!data || data.length === 0) return;
 
         data.forEach((row: any) => {
+          const rowTags: string[] = Array.isArray(row.tags) ? row.tags : [];
+          const hasTag = rowTags.some(
+            (t: string) => typeof t === 'string' && t.trim().toLowerCase() === normalizedTag
+          );
+          if (!hasTag) return;
+
           allContent.push({
             id: row.id,
             type: q.type,
@@ -235,13 +241,13 @@ export default function TagDetailPage() {
             description: row[q.descField] || undefined,
             created_at: row.created_at,
             circle_ids: row.circle_ids,
-            tags: row.tags || [],
+            tags: rowTags,
           });
         });
       });
 
       if (failedTables.length > 0) {
-        console.warn('Tag search failed for tables:', failedTables);
+        console.warn('Tag search skipped for tables:', failedTables);
       }
 
       allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
