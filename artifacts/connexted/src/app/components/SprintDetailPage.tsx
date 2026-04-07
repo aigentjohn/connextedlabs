@@ -334,7 +334,11 @@ export default function SprintDetailPage() {
   }
 
   const status = getSprintStatus(sprint);
-  const isAdmin = profile && sprint.admin_ids.includes(profile.id);
+  const isAdmin = profile && (
+    sprint.admin_ids?.includes(profile.id) ||
+    sprint.created_by === profile.id ||
+    profile.role === 'super'
+  );
   const isMember = profile && sprint.member_ids.includes(profile.id);
 
   // Gate: non-members cannot view private/member-only sprints
@@ -398,10 +402,12 @@ export default function SprintDetailPage() {
               />
             )}
             {isAdmin && (
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
+              <Link to={`/sprints/${sprint.slug}/settings`}>
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+              </Link>
             )}
           </div>
         </div>
