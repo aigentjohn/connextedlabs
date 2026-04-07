@@ -18,7 +18,7 @@ import {
   Star, MapPin, Video,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
-import ShareInviteButton from '@/app/components/shared/ShareInviteButton';
+import { ShareInviteButton } from '@/app/components/shared/ShareInviteButton';
 import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import ContainerFeed from '@/app/components/shared/ContainerFeed';
 import ContainerReviews from '@/app/components/shared/ContainerReviews';
