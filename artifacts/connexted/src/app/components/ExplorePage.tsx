@@ -196,12 +196,14 @@ export default function ExplorePage() {
       const allContainers = results.flat();
       
       // Fetch favorites for the current user across all content types
+      // Container types are plural (e.g. 'circles') but content_favorites stores singular (e.g. 'circle')
+      const pluralToSingular = (t: string) => t.endsWith('s') ? t.slice(0, -1) : t;
       const favoritePromises = accessibleTypes.map(async (type) => {
         const { data } = await supabase
           .from('content_favorites')
           .select('content_id')
           .eq('user_id', profile.id)
-          .eq('content_type', type);
+          .eq('content_type', pluralToSingular(type));
         
         return { type, ids: new Set(data?.map(f => f.content_id) || []) };
       });

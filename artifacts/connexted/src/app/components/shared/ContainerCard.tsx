@@ -35,15 +35,24 @@ import {
   StateBadge
 } from '@/lib/container-state-badges';
 
-// Map plural ContainerType keys → singular content_type strings used in content_likes
-const CONTAINER_CONTENT_TYPE: Partial<Record<ContainerType, string>> = {
-  elevators: 'elevator',
+// Map plural ContainerType keys → singular content_type strings used in content_likes / content_favorites
+const CONTAINER_CONTENT_TYPE: Record<ContainerType, string> = {
+  circles: 'circle',
+  playlists: 'playlist',
+  builds: 'build',
   tables: 'table',
-  meetups: 'meetup',
+  elevators: 'elevator',
   meetings: 'meeting',
+  pitches: 'pitch',
   standups: 'standup',
   sprints: 'sprint',
-  circles: 'circle',
+  meetups: 'meetup',
+  moments: 'moment',
+  books: 'book',
+  magazines: 'magazine',
+  libraries: 'library',
+  checklists: 'checklist',
+  prompts: 'prompt',
 };
 
 // Re-export for backwards compatibility
@@ -276,7 +285,7 @@ export default function ContainerCard({
         <div className="absolute top-4 right-4 z-10">
           <FavoriteButton
             itemId={id}
-            itemType={type}
+            itemType={CONTAINER_CONTENT_TYPE[type]}
             isFavorited={isFavorited}
             onUpdate={onFavoriteUpdate}
             className="bg-white/90 backdrop-blur-sm hover:bg-white"

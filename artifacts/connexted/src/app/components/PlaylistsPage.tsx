@@ -114,7 +114,7 @@ export default function PlaylistsPage() {
         .from('content_favorites')
         .select('content_id')
         .eq('user_id', profile.id)
-        .eq('content_type', 'playlists');
+        .eq('content_type', 'playlist');
       
       const favoritedIds = new Set(favoritesData?.map(f => f.content_id) || []);
       
