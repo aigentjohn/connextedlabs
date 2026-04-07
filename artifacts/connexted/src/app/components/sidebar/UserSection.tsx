@@ -13,8 +13,6 @@ import {
   Home,
   Bell,
   UserCircle,
-  Calendar,
-  MapPin,
   HelpCircle,
   Briefcase,
   Activity,
@@ -74,8 +72,6 @@ export function UserSection({ profile, isExpanded, onToggle, ticketCount }: User
           <NavLink to="/my-professional" icon={Briefcase} pathname={location.pathname} match="startsWith" matchPath="/my-professional">My Professional</NavLink>
           <NavLink to="/my-engagement" icon={Activity} pathname={location.pathname} match="startsWith" matchPath="/my-engagement">My Engagement</NavLink>
           <NavLink to="/my-account" icon={CreditCard} pathname={location.pathname} match="startsWith" matchPath="/my-account">My Account</NavLink>
-          <NavLink to="/calendar" icon={Calendar} pathname={location.pathname}>My Calendar</NavLink>
-          <NavLink to="/profile/venues" icon={MapPin} pathname={location.pathname}>My Venues</NavLink>
           <NavLink to="/help/welcome" icon={HelpCircle} pathname={location.pathname} match="startsWith" matchPath="/help">Help & Docs</NavLink>
         </div>
       )}
