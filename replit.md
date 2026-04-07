@@ -149,7 +149,7 @@ All previously known issues are resolved:
 
 ### Discovery & Tagging System
 
-**Tags** are free-form text arrays (`text[]`) stored directly on 21 content/container tables. The `TagDetailPage` searches ALL tables via `Promise.allSettled` with `.contains('tags', [tag])`. Filter sidebar groups results into Content vs Container sections, only showing types that have matching results.
+**Tags** are free-form text arrays (`text[]`) stored directly on 21 content/container tables. The `TagDetailPage` searches ALL tables via `Promise.allSettled` with `.contains('tags', [tag])`. Filter sidebar groups results into Content vs Container sections, only showing types that have matching results. **TagsPage** (`/tags`) fetches grouped tag suggestions from the Edge Function `/tags/suggestions/grouped` (types: what/how/status) with Popular/WHAT/HOW tabs, search, and links to `/tags/:tagName` detail pages. Route is grouped with Topics in App.tsx.
 
 **Topics** are structured records in `topics` table (3 types: audience/purpose/theme). Linked to content via `topic_links` junction table. `TopicDetailPage` fetches linked content IDs from Edge Function, then loads from 8 tables: books, decks, documents, courses, programs, episodes, playlists, magazines. Tabs are only shown when content exists for that type.
 
