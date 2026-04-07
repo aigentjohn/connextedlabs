@@ -67,7 +67,7 @@ export function MyContentSection({
             )}
           >
             <Star className="w-4 h-4" />
-            <span>My Endorsements</span>
+            <span>My Reviews</span>
             {myReviewCount > 0 && (
               <span className="text-xs text-gray-500">({myReviewCount})</span>
             )}
