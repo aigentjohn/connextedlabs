@@ -225,7 +225,7 @@ export default function MyReviewsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <Breadcrumbs
           items={[
-            { label: 'My Endorsements', path: '/my-reviews' }
+            { label: 'My Reviews', path: '/my-reviews' }
           ]}
         />
         <Card>
@@ -258,15 +258,15 @@ export default function MyReviewsPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <Breadcrumbs
         items={[
-          { label: 'My Endorsements', path: '/my-reviews' }
+          { label: 'My Reviews', path: '/my-reviews' }
         ]}
       />
 
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Endorsements</h1>
+          <h1 className="text-3xl font-bold text-gray-900">My Reviews</h1>
           <p className="text-gray-600 mt-1">
-            Manage and view endorsements
+            Manage and view reviews
           </p>
         </div>
         <Button onClick={() => navigate('/reviews/new')} className="gap-2">
@@ -280,28 +280,28 @@ export default function MyReviewsPage() {
         <CardContent className="pt-6 space-y-4">
           {/* Filter Type */}
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-3 block">Show Endorsements</Label>
+            <Label className="text-sm font-medium text-gray-700 mb-3 block">Show Reviews</Label>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={filterType === 'my_reviews' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('my_reviews')}
               >
-                My Endorsements
+                My Reviews
               </Button>
               <Button
                 variant={filterType === 'all_reviews' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('all_reviews')}
               >
-                All Endorsements
+                All Reviews
               </Button>
               <Button
                 variant={filterType === 'others_reviews' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('others_reviews')}
               >
-                Others' Endorsements
+                Others' Reviews
               </Button>
             </div>
           </div>
