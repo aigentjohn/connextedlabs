@@ -176,6 +176,7 @@ const TagDetailPage = lazy(() => import('@/app/components/TagDetailPage'));
 const NotificationsPage = lazy(() => import('@/app/components/NotificationsPage'));
 const HelpViewer = lazy(() => import('@/app/components/HelpViewer'));
 const SearchPage = lazy(() => import('@/app/components/SearchPage'));
+const RankingsPage = lazy(() => import('@/app/pages/RankingsPage'));
 
 // Content
 const FeedPage = lazy(() => import('@/app/components/FeedPage'));
@@ -571,6 +572,7 @@ const router = createBrowserRouter([
           { path: '/help', element: <HelpViewer /> },
           { path: '/help/:type', element: <HelpViewer /> },
           { path: '/tags/:tagName', element: <TagDetailPage /> },
+          { path: '/rankings', element: <RankingsPage /> },
           { path: '/feed', element: <FeedPage /> },
           { path: '/blogs', element: <BlogsPage /> },
           { path: '/blogs/create', element: <ShareBlogForm /> },

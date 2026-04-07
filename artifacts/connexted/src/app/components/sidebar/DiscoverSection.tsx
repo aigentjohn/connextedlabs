@@ -20,6 +20,7 @@ import {
   Tag,
   Hash,
   Star,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -61,6 +62,9 @@ export function DiscoverSection({
           </DiscoverLink>
           <DiscoverLink to="/topics" icon={Tag} pathname={location.pathname} match="startsWith">
             Topics
+          </DiscoverLink>
+          <DiscoverLink to="/rankings" icon={TrendingUp} pathname={location.pathname}>
+            Rankings
           </DiscoverLink>
           <DiscoverLink to="/discovery?tab=following" icon={Hash} pathname={location.pathname} match="startsWith" matchPath="/discovery">
             Following Feed

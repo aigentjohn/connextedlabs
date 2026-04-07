@@ -143,6 +143,10 @@ All previously known issues are resolved:
 
 **Topic following**: Stars on `TopicsPage` cards allow batch follow/unfollow. Follow data stored in `topic_followers` table. Batch-loaded on mount via single Supabase query. Toggle calls Edge Function `/topics/:id/follow` or `/topics/:id/unfollow`.
 
+**Rankings** (`/rankings`): Shows top tags (aggregated usage counts across 14 content tables) and top topics (ranked by content linked via `topic_links` + follower counts). Each entry links to its detail page (`/tags/:name` or `/topics/:slug`). Accessible from sidebar DISCOVER section.
+
+**Following Feed** (`/discovery?tab=following`): Aggregates content from three sources — followed people (`user_connections`), followed topics (`topic_followers` + `topic_links`), and followed tags (`tag_followers` + `.overlaps()` queries). Each card shows source badges indicating why it appeared.
+
 ### Navigation / permissions
 
 `auth-context.tsx` fetches user class permissions via two separate queries (not embedded FK join): `user_class_permissions` (204 rows) + `container_types` (24 rows), joined in JS. Nav config falls back to `nav-config.ts` if DB returns 0 rows for user's class.
