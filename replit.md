@@ -129,11 +129,23 @@ React + Vite SPA connected to Supabase (`bxxcfgizpcfaopsyxgnj.supabase.co`). Use
 
 Admin edits via Platform Admin → Documentation Manager (`/platform-admin/documentation`). Markdown format. HelpViewer and MarketingLandingPage fall back to static `src/WELCOME.md` / `src/HELP.md` and hardcoded copy respectively when DB rows are empty.
 
+### Pathway API (API Server routes)
+
+All pathway operations go through the Express API server (`artifacts/api-server/src/routes/pathways.ts`) using the Supabase service role key to bypass RLS. Tables: `pathways`, `pathway_steps`, `pathway_enrollments`, `pathway_step_reports`.
+
+Pages using the API server (`/api/pathways/...`):
+- **PathwayAdminPage** — CRUD pathways + steps
+- **BrowsePathwaysPage** — list pathways, enroll
+- **MyGrowthPage** — user enrollments, recommendations, skip/self-report steps
+- **PathwayProgressTracker** — admin progress view, verify reports, admin-complete
+
+All frontend pages pass `user_id` explicitly (not via auth token headers).
+
 ### Known DB-side issues
 
 All previously known issues are resolved:
 - `forum_threads` trigger — fixed (`NEW.content` → `to_jsonb(NEW)->>'content'` with `body` fallback)
-- Pathway CRUD — unblocked by replacing Edge Function calls with direct Supabase queries in `PathwayAdminPage.tsx`
+- Pathway CRUD — routed through Express API server with service role key (RLS on `pathways`/`pathway_steps` blocks anon key)
 
 ### Discovery & Tagging System
 

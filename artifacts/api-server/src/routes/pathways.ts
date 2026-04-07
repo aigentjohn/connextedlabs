@@ -25,6 +25,132 @@ router.get('/pathways', async (_req, res) => {
   }
 });
 
+router.get('/pathways/user/enrollments', async (req, res) => {
+  try {
+    const userId = req.query.user_id as string;
+    if (!userId) return res.status(400).json({ error: 'user_id query param is required' });
+
+    const { data, error } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .select('*, pathways(*, pathway_steps(*))')
+      .eq('user_id', userId);
+    if (error) throw error;
+
+    const enrollments = (data || []).map((e: any) => {
+      const pathway = e.pathways ? {
+        ...e.pathways,
+        steps: (e.pathways.pathway_steps || []).sort(
+          (a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0)
+        ),
+      } : null;
+      return { enrollment: e, pathway };
+    });
+
+    res.json({ enrollments });
+  } catch (err: any) {
+    console.error('GET /pathways/user/enrollments error:', err);
+    res.status(500).json({ error: err.message || 'Failed to load enrollments' });
+  }
+});
+
+router.get('/pathways/user/recommended', async (req, res) => {
+  try {
+    const userId = req.query.user_id as string;
+
+    const { data, error } = await supabaseAdmin
+      .from('pathways')
+      .select('*, pathway_steps(*)')
+      .eq('is_published', true)
+      .order('is_featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (error) throw error;
+
+    let recommendations = (data || []).map((p: any) => ({
+      ...p,
+      steps: (p.pathway_steps || []).sort(
+        (a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0)
+      ),
+    }));
+
+    if (userId) {
+      const { data: enrolled } = await supabaseAdmin
+        .from('pathway_enrollments')
+        .select('pathway_id')
+        .eq('user_id', userId);
+      const enrolledIds = new Set((enrolled || []).map((e: any) => e.pathway_id));
+      recommendations = recommendations.filter((p: any) => !enrolledIds.has(p.id));
+    }
+
+    res.json({ recommendations });
+  } catch (err: any) {
+    console.error('GET /pathways/user/recommended error:', err);
+    res.status(500).json({ error: err.message || 'Failed to load recommendations' });
+  }
+});
+
+router.get('/pathways/user/:userId/enrollments', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .select('*, pathways(*, pathway_steps(*))')
+      .eq('user_id', req.params.userId);
+    if (error) throw error;
+
+    const enrollments = (data || []).map((e: any) => {
+      const pathway = e.pathways ? {
+        ...e.pathways,
+        steps: (e.pathways.pathway_steps || []).sort(
+          (a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0)
+        ),
+      } : null;
+      return { enrollment: e, pathway };
+    });
+
+    res.json({ enrollments });
+  } catch (err: any) {
+    console.error('GET /pathways/user/:userId/enrollments error:', err);
+    res.status(500).json({ error: err.message || 'Failed to load enrollments' });
+  }
+});
+
+router.get('/pathways/admin/progress', async (_req, res) => {
+  try {
+    const { data: enrollments, error: enrollError } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .select('*, pathways(*, pathway_steps(*)), users(id, name, avatar, email)');
+    if (enrollError) throw enrollError;
+
+    const formatted = (enrollments || []).map((e: any) => {
+      const pathway = e.pathways ? {
+        ...e.pathways,
+        steps: (e.pathways.pathway_steps || []).sort(
+          (a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0)
+        ),
+      } : null;
+      return {
+        enrollment: e,
+        pathway,
+        user: e.users || null,
+      };
+    });
+
+    const { data: reports, error: reportsError } = await supabaseAdmin
+      .from('pathway_step_reports')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    res.json({
+      enrollments: formatted,
+      pending_reports: reportsError ? [] : (reports || []),
+    });
+  } catch (err: any) {
+    console.error('GET /pathways/admin/progress error:', err);
+    res.status(500).json({ error: err.message || 'Failed to load progress data' });
+  }
+});
+
 router.get('/pathways/:id', async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
@@ -186,23 +312,208 @@ router.post('/pathways/:id/enroll', async (req, res) => {
   }
 });
 
-router.get('/pathways/user/:userId/enrollments', async (req, res) => {
+router.post('/pathways/:id/verify-report', async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const pathwayId = req.params.id;
+    const { user_id, step_id, approved, rejection_reason } = req.body;
+
+    if (!user_id || !step_id) {
+      return res.status(400).json({ error: 'user_id and step_id are required' });
+    }
+
+    const { error: reportError } = await supabaseAdmin
+      .from('pathway_step_reports')
+      .update({
+        status: approved ? 'approved' : 'rejected',
+        rejection_reason: rejection_reason || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id)
+      .eq('step_id', step_id)
+      .eq('status', 'pending');
+    if (reportError) throw reportError;
+
+    if (approved) {
+      const { data: enrollment } = await supabaseAdmin
+        .from('pathway_enrollments')
+        .select('completed_step_ids')
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', user_id)
+        .single();
+
+      if (enrollment) {
+        const completedIds = [...new Set([...(enrollment.completed_step_ids || []), step_id])];
+
+        const { data: pathway } = await supabaseAdmin
+          .from('pathways')
+          .select('pathway_steps(id)')
+          .eq('id', pathwayId)
+          .single();
+
+        const totalSteps = pathway?.pathway_steps?.length || 1;
+        const progress = Math.round((completedIds.length / totalSteps) * 100);
+        const isComplete = progress >= 100;
+
+        await supabaseAdmin
+          .from('pathway_enrollments')
+          .update({
+            completed_step_ids: completedIds,
+            progress_percentage: progress,
+            status: isComplete ? 'completed' : 'active',
+            ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+          })
+          .eq('pathway_id', pathwayId)
+          .eq('user_id', user_id);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('POST /pathways/:id/verify-report error:', err);
+    res.status(500).json({ error: err.message || 'Failed to verify report' });
+  }
+});
+
+router.post('/pathways/:id/admin-complete', async (req, res) => {
+  try {
+    const pathwayId = req.params.id;
+    const { user_id, step_id } = req.body;
+
+    if (!user_id || !step_id) {
+      return res.status(400).json({ error: 'user_id and step_id are required' });
+    }
+
+    const { data: enrollment } = await supabaseAdmin
       .from('pathway_enrollments')
-      .select('*, pathways(*)')
-      .eq('user_id', req.params.userId);
+      .select('completed_step_ids')
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id)
+      .single();
+
+    if (!enrollment) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    const completedIds = [...new Set([...(enrollment.completed_step_ids || []), step_id])];
+
+    const { data: pathway } = await supabaseAdmin
+      .from('pathways')
+      .select('pathway_steps(id)')
+      .eq('id', pathwayId)
+      .single();
+
+    const totalSteps = pathway?.pathway_steps?.length || 1;
+    const progress = Math.round((completedIds.length / totalSteps) * 100);
+    const isComplete = progress >= 100;
+
+    const { error } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .update({
+        completed_step_ids: completedIds,
+        progress_percentage: progress,
+        status: isComplete ? 'completed' : 'active',
+        ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+      })
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id);
     if (error) throw error;
 
-    const enrollments = (data || []).map((e: any) => ({
-      enrollment: e,
-      pathway: e.pathways,
-    }));
-
-    res.json({ enrollments });
+    res.json({ success: true });
   } catch (err: any) {
-    console.error('GET /pathways/user/:userId/enrollments error:', err);
-    res.status(500).json({ error: err.message || 'Failed to load enrollments' });
+    console.error('POST /pathways/:id/admin-complete error:', err);
+    res.status(500).json({ error: err.message || 'Failed to complete step' });
+  }
+});
+
+router.post('/pathways/:id/skip-step', async (req, res) => {
+  try {
+    const pathwayId = req.params.id;
+    const { user_id, step_id } = req.body;
+
+    if (!user_id || !step_id) {
+      return res.status(400).json({ error: 'user_id and step_id are required' });
+    }
+
+    const { data: enrollment } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .select('completed_step_ids')
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id)
+      .single();
+
+    if (!enrollment) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    const completedIds = [...new Set([...(enrollment.completed_step_ids || []), step_id])];
+
+    const { data: pathway } = await supabaseAdmin
+      .from('pathways')
+      .select('pathway_steps(id)')
+      .eq('id', pathwayId)
+      .single();
+
+    const totalSteps = pathway?.pathway_steps?.length || 1;
+    const progress = Math.round((completedIds.length / totalSteps) * 100);
+    const isComplete = progress >= 100;
+
+    const { error } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .update({
+        completed_step_ids: completedIds,
+        progress_percentage: progress,
+        status: isComplete ? 'completed' : 'active',
+        ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+      })
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id);
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('POST /pathways/:id/skip-step error:', err);
+    res.status(500).json({ error: err.message || 'Failed to skip step' });
+  }
+});
+
+router.post('/pathways/:id/self-report', async (req, res) => {
+  try {
+    const pathwayId = req.params.id;
+    const { user_id, step_id, evidence_note } = req.body;
+
+    if (!user_id || !step_id) {
+      return res.status(400).json({ error: 'user_id and step_id are required' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('pathway_step_reports')
+      .select('id')
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', user_id)
+      .eq('step_id', step_id)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existing) {
+      return res.json({ success: true, message: 'Report already pending' });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('pathway_step_reports')
+      .insert({
+        pathway_id: pathwayId,
+        user_id,
+        step_id,
+        evidence_note: evidence_note || null,
+        status: 'pending',
+      });
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('POST /pathways/:id/self-report error:', err);
+    res.status(500).json({ error: err.message || 'Failed to submit report' });
   }
 });
 

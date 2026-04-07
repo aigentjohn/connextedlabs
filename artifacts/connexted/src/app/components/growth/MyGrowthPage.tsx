@@ -9,7 +9,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Link, useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import { useUserBadges } from '@/hooks/useBadges';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -126,25 +125,10 @@ interface CompletedCourse {
 // API HELPERS
 // ============================================================================
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
-
 async function fetchAPI(path: string, options?: RequestInit) {
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${publicAnonKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  // Get user token for authenticated routes
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers['X-User-Token'] = session.access_token;
-    }
-  } catch { /* proceed without user token */ }
-
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`/api${path}`, {
     method: options?.method || 'GET',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     ...(options?.body ? { body: options.body } : {}),
   });
 
@@ -160,7 +144,6 @@ async function fetchAPI(path: string, options?: RequestInit) {
 
   const data = await response.json();
 
-  // Our server wraps responses in { success, ... } — check for failure
   if (data && typeof data === 'object' && 'success' in data && !data.success) {
     const msg = data.error || data.message || 'API error';
     console.error(`Growth API ${path} error:`, msg, data);
@@ -195,8 +178,8 @@ export default function MyGrowthPage() {
     setLoading(true);
     try {
       const [enrollmentsRes, recommendationsRes] = await Promise.allSettled([
-        fetchAPI('/pathways/user/enrollments'),
-        fetchAPI('/pathways/user/recommended'),
+        fetchAPI(`/pathways/user/enrollments?user_id=${profile!.id}`),
+        fetchAPI(`/pathways/user/recommended?user_id=${profile!.id}`),
       ]);
 
       if (enrollmentsRes.status === 'fulfilled') {
@@ -232,7 +215,10 @@ export default function MyGrowthPage() {
   async function handleEnroll(pathwayId: string) {
     setEnrolling(pathwayId);
     try {
-      await fetchAPI(`/pathways/${pathwayId}/enroll`, { method: 'POST' });
+      await fetchAPI(`/pathways/${pathwayId}/enroll`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: profile!.id }),
+      });
       toast.success('Enrolled in pathway!');
       loadGrowthData();
     } catch (error: any) {
@@ -247,7 +233,7 @@ export default function MyGrowthPage() {
     try {
       await fetchAPI(`/pathways/${pathwayId}/skip-step`, {
         method: 'POST',
-        body: JSON.stringify({ step_id: stepId }),
+        body: JSON.stringify({ user_id: profile!.id, step_id: stepId }),
       });
       toast.success('Step marked as known — moving ahead!');
       loadGrowthData();
@@ -261,7 +247,7 @@ export default function MyGrowthPage() {
     try {
       await fetchAPI(`/pathways/${pathwayId}/self-report`, {
         method: 'POST',
-        body: JSON.stringify({ step_id: stepId, evidence_note: evidenceNote }),
+        body: JSON.stringify({ user_id: profile!.id, step_id: stepId, evidence_note: evidenceNote }),
       });
       toast.success('Activity reported! Waiting for verification.');
       loadGrowthData();

@@ -9,8 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
-import { supabase } from '@/lib/supabase';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -112,25 +110,10 @@ interface StepReport {
 // API HELPER
 // ============================================================================
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
-
 async function fetchAPI(path: string, options?: RequestInit) {
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${publicAnonKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  // Get user token for authenticated routes
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers['X-User-Token'] = session.access_token;
-    }
-  } catch { /* proceed without user token */ }
-
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`/api${path}`, {
     method: options?.method || 'GET',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     ...(options?.body ? { body: options.body } : {}),
   });
 
