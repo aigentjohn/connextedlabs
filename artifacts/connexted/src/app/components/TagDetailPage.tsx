@@ -80,7 +80,6 @@ interface TableQuery {
 }
 
 const TABLE_QUERIES: TableQuery[] = [
-  { table: 'posts',         type: 'post',      select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
   { table: 'forum_threads', type: 'thread',    select: 'id, title, body, created_at, author_id, circle_ids, tags',               titleField: 'title', descField: 'body' },
   { table: 'events',        type: 'event',     select: 'id, title, description, created_at, host_id, circle_ids, tags',          titleField: 'title', descField: 'description' },
   { table: 'courses',       type: 'course',    select: 'id, title, description, created_at, created_by, circle_ids, tags',       titleField: 'title', descField: 'description' },
@@ -90,15 +89,12 @@ const TABLE_QUERIES: TableQuery[] = [
   { table: 'books',         type: 'book',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
   { table: 'decks',         type: 'deck',      select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
   { table: 'programs',      type: 'program',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'circles',       type: 'circle',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'builds',        type: 'build',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'pitches',       type: 'pitch',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'standups',      type: 'standup',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'sprints',       type: 'sprint',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'meetups',       type: 'meetup',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'playlists',     type: 'playlist',  select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'libraries',     type: 'library',   select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'magazines',     type: 'magazine',  select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'checklists',    type: 'checklist', select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
   { table: 'prompts',       type: 'prompt',    select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
 ];
