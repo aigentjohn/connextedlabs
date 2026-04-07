@@ -91,7 +91,7 @@ export default function CreateSprintPage() {
         navigate('/checklists/setup');
         return;
       }
-      toast.error('Failed to load checklist templates');
+      toast.error('Failed to load list templates');
     } finally {
       setLoadingTemplates(false);
     }
@@ -256,7 +256,7 @@ export default function CreateSprintPage() {
           <Zap className="w-8 h-8 text-indigo-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Create Sprint</h1>
-            <p className="text-gray-600">Create a new sprint with checklists and team members</p>
+            <p className="text-gray-600">Create a new sprint with lists and team members</p>
           </div>
         </div>
 
@@ -372,20 +372,20 @@ export default function CreateSprintPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Select Checklist Templates</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Select List Templates</h2>
             </div>
             <p className="text-sm text-gray-600">
-              Choose checklist templates to include in this sprint. Each template will be copied
-              into a new checklist instance.
+              Choose list templates to include in this sprint. Each template will be copied
+              into a new list instance.
             </p>
 
             {loadingTemplates ? (
               <p className="text-center py-8 text-gray-500">Loading templates...</p>
             ) : templates.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-600 mb-2">No checklist templates available</p>
+                <p className="text-gray-600 mb-2">No list templates available</p>
                 <p className="text-sm text-gray-500">
-                  Create checklist templates first, then add them to sprints
+                  Create list templates first, then add them to sprints
                 </p>
               </div>
             ) : (

@@ -81,7 +81,7 @@ const containerTypeLabels: Record<ContainerType, string> = {
   sprints: 'Sprints',
   programs: 'Programs',
   journeys: 'Journeys',
-  checklists: 'Checklists',
+  checklists: 'Lists',
   libraries: 'Libraries',
   playlists: 'Playlists',
   moments: 'Moments',

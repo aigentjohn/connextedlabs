@@ -101,7 +101,7 @@ export default function ChecklistsManagement() {
         
       } catch (error) {
         console.error('Error fetching checklists:', error);
-        toast.error('Failed to load checklists');
+        toast.error('Failed to load lists');
       } finally {
         setLoading(false);
       }
@@ -148,10 +148,10 @@ export default function ChecklistsManagement() {
       if (error) throw error;
 
       setChecklists(checklists.filter(c => c.id !== checklistId));
-      toast.success(`Checklist "${checklistName}" deleted successfully!`);
+      toast.success(`List "${checklistName}" deleted successfully!`);
     } catch (error) {
       console.error('Error deleting checklist:', error);
-      toast.error('Failed to delete checklist');
+      toast.error('Failed to delete list');
     }
   };
 
@@ -163,7 +163,7 @@ export default function ChecklistsManagement() {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-    toast.success('Checklists exported successfully!');
+    toast.success('Lists exported successfully!');
   };
 
   if (loading) {
@@ -171,10 +171,10 @@ export default function ChecklistsManagement() {
       <div className="space-y-6">
         <Breadcrumbs items={[
           { label: 'Admin', path: '/admin' },
-          { label: 'Checklists Management' }
+          { label: 'Lists Management' }
         ]} />
         <div className="text-center py-12">
-          <p className="text-gray-600">Loading checklists...</p>
+          <p className="text-gray-600">Loading lists...</p>
         </div>
       </div>
     );
@@ -187,14 +187,14 @@ export default function ChecklistsManagement() {
     <div className="space-y-6">
       <Breadcrumbs items={[
         { label: 'Admin', path: '/admin' },
-        { label: 'Checklists Management' }
+        { label: 'Lists Management' }
       ]} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Checklists Management</h1>
-          <p className="text-gray-600">Manage all checklists across the platform</p>
+          <h1 className="text-3xl mb-2">Lists Management</h1>
+          <p className="text-gray-600">Manage all lists across the platform</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={exportToJSON} variant="outline">
@@ -204,7 +204,7 @@ export default function ChecklistsManagement() {
           <Link to="/checklists/new">
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Create Checklist
+              Create List
             </Button>
           </Link>
         </div>
@@ -214,7 +214,7 @@ export default function ChecklistsManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Checklists</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Lists</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{checklists.length}</div>
@@ -251,7 +251,7 @@ export default function ChecklistsManagement() {
         <div className="relative flex-1 min-w-[300px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
-            placeholder="Search checklists..."
+            placeholder="Search lists..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -310,7 +310,7 @@ export default function ChecklistsManagement() {
               {checklists.length === 0 ? (
                 <div>
                   <CheckSquare className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                  <p className="mb-4">No checklists found. Tables may not be set up yet.</p>
+                  <p className="mb-4">No lists found. Tables may not be set up yet.</p>
                   <Link to="/setup/checklists">
                     <Button>
                       Go to Setup
@@ -318,7 +318,7 @@ export default function ChecklistsManagement() {
                   </Link>
                 </div>
               ) : (
-                'No checklists match your filters'
+                'No lists match your filters'
               )}
             </CardContent>
           </Card>
@@ -388,7 +388,7 @@ export default function ChecklistsManagement() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Checklist?</AlertDialogTitle>
+                            <AlertDialogTitle>Delete List?</AlertDialogTitle>
                             <AlertDialogDescription>
                               Are you sure you want to delete "{checklist.name}"? This will also delete all {checklist.items?.length || 0} items. This action cannot be undone.
                             </AlertDialogDescription>

@@ -99,7 +99,7 @@ const SEED_TAGS = [
   { name: 'Case Study', slug: 'case-study', type: 'how', description: 'Real-world examples and analysis', category: 'format' },
   { name: 'Video Tutorial', slug: 'video-tutorial', type: 'how', description: 'Visual learning content', category: 'format' },
   { name: 'Worksheet', slug: 'worksheet', type: 'how', description: 'Interactive exercises and activities', category: 'format' },
-  { name: 'Checklist', slug: 'checklist', type: 'how', description: 'Task lists and verification items', category: 'format' },
+  { name: 'List', slug: 'checklist', type: 'how', description: 'Task lists and verification items', category: 'format' },
   { name: 'Framework', slug: 'framework', type: 'how', description: 'Conceptual models and approaches', category: 'format' },
   { name: 'Tool', slug: 'tool', type: 'how', description: 'Software and applications', category: 'format' },
   { name: 'Article', slug: 'article', type: 'how', description: 'Written content and blog posts', category: 'format' },
@@ -183,7 +183,7 @@ const SEED_BOOKS = [
   {
     title: 'Product-Market Fit Checklist',
     description: 'A systematic checklist for validating product-market fit across different customer segments.',
-    category: 'Checklists',
+    category: 'Lists',
     topics: ['startup-founders', 'entrepreneurs', 'build-mvp'],
     tags: ['product-strategy', 'checklist', 'framework']
   },

@@ -116,7 +116,7 @@ export default function ChecklistDetailPage() {
       setItems(itemsData || []);
     } catch (error) {
       console.error('Error fetching checklist:', error);
-      toast.error('Failed to load checklist');
+      toast.error('Failed to load list');
     } finally {
       setLoading(false);
     }
@@ -268,11 +268,11 @@ export default function ChecklistDetailPage() {
 
       if (error) throw error;
 
-      toast.success('Checklist deleted');
+      toast.success('List deleted');
       navigate('/checklists');
     } catch (error) {
       console.error('Error deleting checklist:', error);
-      toast.error('Failed to delete checklist');
+      toast.error('Failed to delete list');
     }
   };
 
@@ -280,7 +280,7 @@ export default function ChecklistDetailPage() {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        <p className="text-gray-500 mt-4">Loading checklist...</p>
+        <p className="text-gray-500 mt-4">Loading list...</p>
       </div>
     );
   }
@@ -320,7 +320,7 @@ export default function ChecklistDetailPage() {
                 id="name"
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
-                placeholder="Checklist name"
+                placeholder="List name"
               />
             </div>
             <div>
@@ -329,7 +329,7 @@ export default function ChecklistDetailPage() {
                 id="description"
                 value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
-                placeholder="What is this checklist for?"
+                placeholder="What is this list for?"
                 rows={3}
               />
             </div>

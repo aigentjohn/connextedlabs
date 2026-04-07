@@ -50,7 +50,7 @@ const containerLabels: Record<string, string> = {
   standups: 'Standups',
   meetups: 'Meetups',
   libraries: 'Libraries',
-  checklists: 'Checklists',
+  checklists: 'Lists',
   sprints: 'Sprints',
 };
 

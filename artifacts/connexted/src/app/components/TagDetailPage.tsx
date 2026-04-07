@@ -67,7 +67,7 @@ const TYPE_META: Record<ContentType, { label: string; plural: string; icon: Reac
   meetup:    { label: 'Meetup',       plural: 'Meetups',        icon: <Handshake className="w-4 h-4" />,      group: 'container' },
   playlist:  { label: 'Playlist',     plural: 'Playlists',      icon: <ListVideo className="w-4 h-4" />,      group: 'container' },
   library:   { label: 'Library',      plural: 'Libraries',      icon: <Library className="w-4 h-4" />,        group: 'container' },
-  checklist: { label: 'Checklist',    plural: 'Checklists',     icon: <CheckSquare className="w-4 h-4" />,    group: 'container' },
+  checklist: { label: 'List',          plural: 'Lists',           icon: <CheckSquare className="w-4 h-4" />,    group: 'container' },
   prompt:    { label: 'Prompt',       plural: 'Prompts',        icon: <Sparkles className="w-4 h-4" />,       group: 'container' },
 };
 

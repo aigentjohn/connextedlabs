@@ -44,7 +44,7 @@ export default function CreateChecklistPage() {
 
       if (error) throw error;
 
-      toast.success('Checklist created');
+      toast.success('List created');
       navigate(`/checklists/${data.id}`);
     } catch (error: any) {
       console.error('Error creating checklist:', error);
@@ -53,7 +53,7 @@ export default function CreateChecklistPage() {
         navigate('/checklists/setup');
         return;
       }
-      toast.error('Failed to create checklist');
+      toast.error('Failed to create list');
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +86,7 @@ export default function CreateChecklistPage() {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Development Checklist, QA Testing, Deployment"
+              placeholder="e.g., Development List, QA Testing, Deployment"
               required
             />
           </div>

@@ -67,7 +67,7 @@ export const NAV_ITEMS_CONFIG: NavItemConfig[] = [
   { type_code: 'tables',     display_name: 'Tables',     icon_name: 'Library',       route_path: '/tables',     sort_order: 4,    min_class: 3  },
   { type_code: 'meetings',   display_name: 'Meetings',   icon_name: 'Video',         route_path: '/meetings',   sort_order: 6,    min_class: 3  },
   { type_code: 'libraries',  display_name: 'Libraries',  icon_name: 'BookOpen',      route_path: '/libraries',  sort_order: 11,   min_class: 3  },
-  { type_code: 'checklists', display_name: 'Checklists', icon_name: 'CheckSquare',   route_path: '/checklists', sort_order: 12,   min_class: 3  },
+  { type_code: 'checklists', display_name: 'Lists', icon_name: 'CheckSquare',   route_path: '/checklists', sort_order: 12,   min_class: 3  },
 
   // ── Premium tier (class 7+) ───────────────────────────────────
   { type_code: 'standups',   display_name: 'Standups',   icon_name: 'MessageSquare', route_path: '/standups',   sort_order: 9,    min_class: 7  },

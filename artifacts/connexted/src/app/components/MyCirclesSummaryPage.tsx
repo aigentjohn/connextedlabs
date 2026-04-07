@@ -195,7 +195,7 @@ export default function MyCirclesSummaryPage() {
     if (circle.enabled_features?.documents) features.push({ icon: FileText, label: 'Docs' });
     if (circle.enabled_features?.reviews) features.push({ icon: Star, label: 'Reviews' });
     if (circle.enabled_features?.events) features.push({ icon: Calendar, label: 'Events' });
-    if (circle.enabled_features?.checklists) features.push({ icon: CheckSquare, label: 'Checklists' });
+    if (circle.enabled_features?.checklists) features.push({ icon: CheckSquare, label: 'Lists' });
     
     return features;
   };

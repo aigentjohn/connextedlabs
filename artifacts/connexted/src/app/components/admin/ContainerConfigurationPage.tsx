@@ -304,7 +304,7 @@ export default function ContainerConfigurationPage() {
               <h3 className="font-medium text-yellow-900">Current Default Behavior:</h3>
               <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
                 <li><strong>Class 1-2:</strong> Home, News, Circles, Calendar (4 containers)</li>
-                <li><strong>Class 3-6:</strong> Adds Tables, Meetings, Libraries, Checklists (8 containers)</li>
+                <li><strong>Class 3-6:</strong> Adds Tables, Meetings, Libraries, Lists (8 containers)</li>
                 <li><strong>Class 7-9:</strong> Adds Standups, Sprints (10 containers)</li>
                 <li><strong>Class 10:</strong> All 14 containers</li>
                 <li><strong>Admins:</strong> Always see all containers</li>

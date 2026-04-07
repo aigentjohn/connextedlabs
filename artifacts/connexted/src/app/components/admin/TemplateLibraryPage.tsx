@@ -95,9 +95,9 @@ const CONTAINER_TYPES: Record<ContainerType, ContainerInfo> = {
     generator: generateLibraryTemplate
   },
   checklists: {
-    name: 'Checklists',
+    name: 'Lists',
     icon: <FileText className="w-5 h-5" />,
-    description: 'Process checklists and workflows',
+    description: 'Process lists and workflows',
     generator: generateChecklistTemplate
   },
   sprints: {

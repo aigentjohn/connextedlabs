@@ -201,7 +201,7 @@ export default function ContentTaggingInterface() {
                   <SelectItem value="checklist">
                     <div className="flex items-center gap-2">
                       <CheckSquare className="w-4 h-4" />
-                      Checklists
+                      Lists
                     </div>
                   </SelectItem>
                   <SelectItem value="circle">

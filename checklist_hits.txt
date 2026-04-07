@@ -1,0 +1,157 @@
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:86:.from('checklists')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:110:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:112:.eq('checklist_id', id)
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:118:console.error('Error fetching checklist:', error);
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:130:.from('checklists')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:145:console.error('Error updating checklist:', error);
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:156:const { error } = await supabase.from('checklist_items').insert({
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:181:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:200:const { error } = await supabase.from('checklist_items').delete().eq('id', itemId);
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:218:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:247:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:252:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:264:if (!id || !confirm('Delete this checklist? This action cannot be undone.')) return;
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:267:const { error } = await supabase.from('checklists').delete().eq('id', id);
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:272:navigate('/checklists');
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:274:console.error('Error deleting checklist:', error);
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:294:<Link to="/checklists">Back to Lists</Link>
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:308:{ label: 'Lists', path: '/checklists' },
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:380:entityType="checklist"
+artifacts/connexted/src/app/components/ChecklistDetailPage.tsx:386:containerType="checklist"
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:63:.from('checklists')
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:71:if (checklistsError.code === 'PGRST205' || checklistsError.message?.includes('Could not find the table')) {
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:72:navigate('/checklists/setup');
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:84:.from('checklist_items')
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:103:.eq('content_type', 'checklist')
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:116:console.error('Error fetching checklists:', error);
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:186:<Link to="/checklists/new">
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:283:<Link to="/checklists/new">
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:300:to={`/checklists/${checklist.id}`}
+artifacts/connexted/src/app/components/ChecklistsPage.tsx:335:<AvatarFallback className="text-[8px]">{checklist.creator.name?.charAt(0) || '?'}</AvatarFallback>
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:23:const { data, error } = await supabase.rpc('initialize_checklists_system');
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:72:const response = await fetch('/migrations/001_initialize_checklists_sprints.sql');
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:84:{ label: 'Lists', path: '/checklists' },
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:111:This will create 4 new tables: <code className="bg-blue-100 px-1 rounded">checklists</code>, <code className="bg-blue-100 px-1 rounded">checklist_items</code>, <code className="bg-blue-100 px-1 rounded">sprints</code>, and <code className="bg-blue-100 px-1 rounded">sprint_checklists</code>.
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:169:<Button onClick={() => navigate('/checklists')}>
+artifacts/connexted/src/app/components/ChecklistsSetupPage.tsx:240:<a href="/migrations/001_initialize_checklists_sprints.sql" download>
+artifacts/connexted/src/app/components/CircleDetailPage.tsx:115:const tabs = ['feed', 'members', 'documents', 'forum', 'checklists', 'reviews', 'calendar'];
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:34:.from('checklists')
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:40:...ownerFields('checklists'),
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:48:navigate(`/checklists/${data.id}`);
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:50:console.error('Error creating checklist:', error);
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:53:navigate('/checklists/setup');
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:66:{ label: 'Lists', path: '/checklists' },
+artifacts/connexted/src/app/components/CreateChecklistPage.tsx:145:onClick={() => navigate('/checklists')}
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:66:.from('checklists')
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:75:.from('checklist_items')
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:91:navigate('/checklists/setup');
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:94:toast.error('Failed to load checklist templates');
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:182:.from('checklists')
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:188:...ownerFields('checklists'),
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:207:.from('checklist_items')
+artifacts/connexted/src/app/components/CreateSprintPage.tsx:215:.from('sprint_checklists')
+artifacts/connexted/src/app/components/DashboardLayout.tsx:200:'meetups', 'sprints', 'pitches', 'checklists', 'builds',
+artifacts/connexted/src/app/components/MarketingLandingPage.tsx:134:body: 'A course on most platforms is video plus text. A journey item on Connexted can be a document, a book, a deck, an episode, a checklist, a sprint, a build, a pitch, a table, a discussion, or an event. Leaders can design learning experiences that involve doing, not just watching.',
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:146:.from('sprint_checklists')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:147:.select('*, checklist:checklists(*)')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:156:.from('checklist_items')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:158:.in('checklist_id', checklistIds)
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:184:`Remove "${checklistName}" from this sprint? The checklist and its items will remain in the system.`
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:192:.from('sprint_checklists')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:201:console.error('Error removing checklist:', error);
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:253:.from('checklists')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:261:console.error('Error fetching available checklists:', error);
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:262:toast.error('Failed to load available checklists');
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:273:.from('sprint_checklists')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:282:.select('*, checklist:checklists(*)');
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:288:.from('checklist_items')
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:290:.in('checklist_id', checklistIds)
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:308:console.error('Error adding checklists:', error);
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:498:to={`/checklists/${checklist.id}`}
+artifacts/connexted/src/app/components/SprintDetailPage.tsx:563:to={`/checklists/${checklist.id}`}
+artifacts/connexted/src/app/components/SprintsPage.tsx:170:<Button onClick={() => navigate('/checklists/setup')}>
+artifacts/connexted/src/app/components/SprintsPage.tsx:230:description="Time-boxed collaborative challenges with checklists"
+artifacts/connexted/src/app/components/TagDetailPage.tsx:24:| 'magazine' | 'program' | 'checklist' | 'prompt';
+artifacts/connexted/src/app/components/TagDetailPage.tsx:47:'magazine', 'program', 'checklist', 'prompt',
+artifacts/connexted/src/app/components/TagDetailPage.tsx:70:checklist: { label: 'Checklist',    plural: 'Checklists',     icon: <CheckSquare className="w-4 h-4" />,    group: 'container' },
+artifacts/connexted/src/app/components/TagDetailPage.tsx:102:{ table: 'checklists',    type: 'checklist', select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
+artifacts/connexted/src/app/components/TagDetailPage.tsx:127:case 'checklist': return `/checklists/${item.id}`;
+artifacts/connexted/src/app/components/admin/AdminDashboardTabbed.tsx:145:.from('checklists')
+artifacts/connexted/src/app/components/admin/AdminDashboardTabbed.tsx:1074:<Link to="/platform-admin/checklists">
+artifacts/connexted/src/app/components/admin/AdminDashboardTabbed.tsx:1857:{checklist.is_template ? 'Template' : 'Active'} • {checklist.category || 'General'}
+artifacts/connexted/src/app/components/admin/AdminDashboardTabbed.tsx:1862:<Link to={`/platform-admin/checklists`}>
+artifacts/connexted/src/app/components/admin/BatchContainerDelete.tsx:52:| 'checklists'
+artifacts/connexted/src/app/components/admin/BatchContainerDelete.tsx:84:checklists: 'Checklists',
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:66:.from('checklists')
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:75:if (checklistsError.code === 'PGRST204' || checklistsError.code === 'PGRST205' || checklistsError.code === '42P01') {
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:76:console.log('Checklists table not found');
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:88:.from('checklist_items')
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:90:.eq('checklist_id', checklist.id)
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:103:console.error('Error fetching checklists:', error);
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:138:.from('checklist_items')
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:140:.eq('checklist_id', checklistId);
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:144:.from('checklists')
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:151:toast.success(`List "${checklistName}" deleted successfully!`);
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:153:console.error('Error deleting checklist:', error);
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:161:const exportFileDefaultName = `checklists-${new Date().toISOString().split('T')[0]}.json`;
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:204:<Link to="/checklists/new">
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:314:<Link to="/setup/checklists">
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:377:<Link to={`/checklists/${checklist.id}`}>
+artifacts/connexted/src/app/components/admin/ChecklistsManagement.tsx:393:Are you sure you want to delete "{checklist.name}"? This will also delete all {checklist.items?.length || 0} items. This action cannot be undone.
+artifacts/connexted/src/app/components/admin/CircleEditor.tsx:68:{ key: 'checklists', label: 'Lists' },
+artifacts/connexted/src/app/components/admin/ContentTaggingInterface.tsx:31:const [contentType, setContentType] = useState<'book' | 'deck' | 'document' | 'checklist' | 'circle'>('book');
+artifacts/connexted/src/app/components/admin/ContentTaggingInterface.tsx:144:case 'checklist': return <CheckSquare className="w-4 h-4" />;
+artifacts/connexted/src/app/components/admin/ContentTaggingInterface.tsx:201:<SelectItem value="checklist">
+artifacts/connexted/src/app/components/admin/DataCleanupUtility.tsx:44:'checklists',
+artifacts/connexted/src/app/components/admin/MyAdminDashboard.tsx:240:.from('checklists')
+artifacts/connexted/src/app/components/admin/MyAdminDashboard.tsx:249:console.log('Checklists error/missing, skipping...');
+artifacts/connexted/src/app/components/admin/MyAdminDashboard.tsx:436:{myAdminChecklists.length > 0 && <div><Badge variant="secondary">{myAdminChecklists.length} Checklist{myAdminChecklists.length !== 1 ? 's' : ''}</Badge></div>}
+artifacts/connexted/src/app/components/admin/MyAdminDashboard.tsx:804:<Link to={`/checklists/${checklist.id}`}>
+artifacts/connexted/src/app/components/admin/SponsorTierManagement.tsx:50:checklists: 'Checklists',
+artifacts/connexted/src/app/components/admin/SprintsManagement.tsx:100:.from('sprint_checklists')
+artifacts/connexted/src/app/components/admin/TemplateLibraryPage.tsx:39:type ContainerType = 'tables' | 'pitches' | 'builds' | 'meetings' | 'standups' | 'meetups' | 'elevators' | 'libraries' | 'checklists' | 'sprints';
+artifacts/connexted/src/app/components/admin/TemplateLibraryPage.tsx:98:name: 'Checklists',
+artifacts/connexted/src/app/components/admin/TemplateLibraryPage.tsx:100:description: 'Process checklists and workflows',
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:102:{ name: 'Checklist', slug: 'checklist', type: 'how', description: 'Task lists and verification items', category: 'format' },
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:139:title: 'Interview Prep Checklist for Product Managers',
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:143:tags: ['interview-prep', 'checklist', 'framework']
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:184:title: 'Product-Market Fit Checklist',
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:185:description: 'A systematic checklist for validating product-market fit across different customer segments.',
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:186:category: 'Checklists',
+artifacts/connexted/src/app/components/admin/TopicsTagsSeeder.tsx:188:tags: ['product-strategy', 'checklist', 'framework']
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:121:type: 'post' | 'document' | 'review' | 'checklist';
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:126:type FilterType = 'all' | 'documents' | 'reviews' | 'checklists';
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:453:type: 'checklist',
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:503:variant={filter === 'checklists' ? 'default' : 'outline'}
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:505:onClick={() => setFilter('checklists')}
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:729:} else if (item.type === 'checklist') {
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:735:<Card key={`checklist-${checklist.id}`} className="hover:shadow-lg transition-shadow">
+artifacts/connexted/src/app/components/circle/CircleFeed.tsx:920:(filter === 'checklists' && visibleChecklists.length === 0)
+artifacts/connexted/src/app/components/circle/CircleSettingsPage.tsx:593:{ key: 'checklists', label: 'Checklists', icon: CheckSquare, description: 'Allow guests to view checklists' },
+artifacts/connexted/src/app/components/growth/PathwayAdminPage.tsx:178:complete_checklist: { label: 'Complete a Checklist', icon: 'CheckSquare', category: 'Content' },
+artifacts/connexted/src/app/components/growth/PathwayAdminPage.tsx:234:complete_checklist:  { table: 'checklists',     titleField: 'title' },
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:445:.from('checklist_items')
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:447:.eq('checklist_id', data.id)
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:453:console.error('Error fetching checklist items:', err);
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:828:checklist: { table: 'checklists', select: 'id, name, description, category, is_template, created_at' },
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:890:checklist: `/checklists/${itemId}`,
+artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx:934:case 'checklist':
+artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx:43:| 'table' | 'elevator' | 'pitch' | 'build' | 'standup' | 'meetup' | 'sprint' | 'checklist'  // Container types
+artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx:235:case 'checklist':
+artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx:237:.from('checklists')
+artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx:336:case 'checklist':
+artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx:465:<SelectItem value="checklist">
+artifacts/connexted/src/app/components/program/JourneyContentGrid.tsx:14:item_type: 'document' | 'book' | 'deck' | 'shelf' | 'playlist' | 'magazine' | 'episode' | 'table' | 'elevator' | 'pitch' | 'build' | 'standup' | 'meetup' | 'sprint' | 'checklist' | 'event' | 'discussion' | 'resource' | 'container';
+artifacts/connexted/src/app/components/program/JourneyContentGrid.tsx:214:case 'checklist':
+artifacts/connexted/src/app/components/program/JourneyContentGrid.tsx:216:label: 'Open Checklist',
+artifacts/connexted/src/app/components/program/JourneyContentGrid.tsx:217:href: `/checklists/${item.item_id}`,
+artifacts/connexted/src/app/components/program/JourneyDetailView.tsx:44:'magazine' | 'episode' | 'checklist';
+artifacts/connexted/src/app/components/program/JourneyDetailView.tsx:118:case 'checklist':
+artifacts/connexted/src/app/components/program/JourneyDetailView.tsx:134:return ['document', 'book', 'deck', 'shelf', 'playlist', 'magazine', 'episode', 'checklist'].includes(itemType);
+artifacts/connexted/src/app/components/program/JourneyDetailView.tsx:158:checklist: { table: 'checklists', route: '/checklists', paramType: 'id' },
+artifacts/connexted/src/app/components/shared/ContainerCard.tsx:54:checklists: 'checklist',
+artifacts/connexted/src/app/components/shared/ContainerCard.tsx:397:<span>{checklistCount} {checklistCount === 1 ? 'checklist' : 'checklists'}</span>
+artifacts/connexted/src/app/components/shared/PrivateCommentDialog.tsx:21:containerType: 'document' | 'review' | 'pitch' | 'build' | 'circle' | 'table' | 'library' | 'event' | 'meeting' | 'meetup' | 'elevator' | 'standup' | 'program' | 'playlist' | 'magazine' | 'episode' | 'checklist' | 'book' | 'deck';
+artifacts/connexted/src/app/components/shared/PrivateCommentDialog.tsx:137:checklist: `/checklists/${id}`,
+artifacts/connexted/src/app/components/sidebar/MyContentSection.tsx:58:<SideLink to="/checklists" icon={CheckSquare} pathname={location.pathname}>My Lists</SideLink>
+artifacts/connexted/src/app/components/unified/TagSelector.tsx:20:contentType?: 'book' | 'deck' | 'document' | 'checklist' | 'event' | 'circle';

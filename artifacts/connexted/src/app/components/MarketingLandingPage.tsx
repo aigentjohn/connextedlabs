@@ -131,7 +131,7 @@ const DIFFERENTIATORS = [
     iconBg: 'bg-purple-100',
     iconColor: 'text-purple-600',
     title: 'Content types include real work, not just consumption',
-    body: 'A course on most platforms is video plus text. A journey item on Connexted can be a document, a book, a deck, an episode, a checklist, a sprint, a build, a pitch, a table, a discussion, or an event. Leaders can design learning experiences that involve doing, not just watching.',
+    body: 'A course on most platforms is video plus text. A journey item on Connexted can be a document, a book, a deck, an episode, a list, a sprint, a build, a pitch, a table, a discussion, or an event. Leaders can design learning experiences that involve doing, not just watching.',
   },
   {
     icon: Award,

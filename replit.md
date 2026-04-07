@@ -147,6 +147,10 @@ All previously known issues are resolved:
 
 **Following Feed** (`/discovery?tab=following`): Aggregates content from three sources — followed people (`user_connections`), followed topics (`topic_followers` + `topic_links`), and followed tags (`tag_followers` + `.overlaps()` queries). Each card shows source badges indicating why it appeared.
 
+### Naming conventions (Checklists → Lists)
+
+The DB table is `checklists` / `checklist_items` and internal code identifiers (variable names, route paths like `/checklists`, type keys) remain `checklist`/`checklists`. All **user-facing labels** use **"List" / "Lists"** — taxonomy, sidebar, page titles, toasts, buttons, admin pages. This is enforced across taxonomy.ts, entity-urls.ts, container-types.ts, nav-config.ts, journey-item-types.ts, and all component files.
+
 ### Navigation / permissions
 
 `auth-context.tsx` fetches user class permissions via two separate queries (not embedded FK join): `user_class_permissions` (204 rows) + `container_types` (24 rows), joined in JS. Nav config falls back to `nav-config.ts` if DB returns 0 rows for user's class.

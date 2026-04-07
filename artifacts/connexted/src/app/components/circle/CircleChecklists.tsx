@@ -51,9 +51,9 @@ export default function CircleChecklists({ circleId, isAdmin }: CircleChecklists
       <Card>
         <CardContent className="py-12 text-center">
           <CheckSquare className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 mb-2">Checklists feature coming soon</p>
+          <p className="text-gray-500 mb-2">Lists feature coming soon</p>
           <p className="text-sm text-gray-400">
-            Checklists will be available for circles in a future update
+            Lists will be available for circles in a future update
           </p>
         </CardContent>
       </Card>

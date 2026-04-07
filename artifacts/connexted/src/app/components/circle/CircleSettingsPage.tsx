@@ -590,7 +590,7 @@ function GuestAccessTab({ circle, setCircle }: { circle: Circle; setCircle: (cir
     { key: 'members', label: 'Members', icon: Users, description: 'Allow guests to see the member directory' },
     { key: 'documents', label: 'Documents', icon: FileText, description: 'Allow guests to access documents' },
     { key: 'forum', label: 'Forum', icon: MessageSquare, description: 'Allow guests to read forum discussions' },
-    { key: 'checklists', label: 'Checklists', icon: CheckSquare, description: 'Allow guests to view checklists' },
+    { key: 'checklists', label: 'Lists', icon: CheckSquare, description: 'Allow guests to view lists' },
     { key: 'reviews', label: 'Reviews', icon: Star, description: 'Allow guests to read reviews' },
     { key: 'calendar', label: 'Calendar/Events', icon: Calendar, description: 'Allow guests to see events' },
   ];

@@ -65,7 +65,7 @@ const GUEST_ACCESS_SECTIONS: { key: keyof GuestAccess; label: string }[] = [
   { key: 'members', label: 'Members' },
   { key: 'documents', label: 'Documents' },
   { key: 'forum', label: 'Forum' },
-  { key: 'checklists', label: 'Checklists' },
+  { key: 'checklists', label: 'Lists' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'calendar', label: 'Calendar' },
 ];

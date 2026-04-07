@@ -1075,10 +1075,10 @@ export default function AdminDashboardTabbed() {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <CheckSquare className="w-5 h-5 mr-2 text-teal-600" />
-                    Checklists Management
+                    Lists Management
                   </CardTitle>
                   <CardDescription>
-                    Manage all platform-wide checklists.
+                    Manage all platform-wide lists.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1840,8 +1840,8 @@ export default function AdminDashboardTabbed() {
       {myAdminChecklists.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Checklists You Manage</CardTitle>
-            <CardDescription>Platform-wide checklists you've created</CardDescription>
+            <CardTitle>Lists You Manage</CardTitle>
+            <CardDescription>Platform-wide lists you've created</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

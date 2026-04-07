@@ -152,8 +152,8 @@ export const CONTAINER_TYPES: Record<ContainerType, ContainerTypeConfig> = {
     icon: CheckSquare,
     color: 'bg-lime-100',
     iconColor: 'text-lime-600',
-    label: 'Checklist',
-    labelPlural: 'Checklists'
+    label: 'List',
+    labelPlural: 'Lists'
   },
   prompts: {
     icon: Sparkles,

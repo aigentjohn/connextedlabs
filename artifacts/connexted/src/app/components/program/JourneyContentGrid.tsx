@@ -213,7 +213,7 @@ export default function JourneyContentGrid({
         };
       case 'checklist':
         return {
-          label: 'Open Checklist',
+          label: 'Open List',
           href: `/checklists/${item.item_id}`,
           variant: 'default' as const,
         };

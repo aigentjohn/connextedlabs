@@ -160,12 +160,12 @@ export default function SprintsPage() {
               <CardTitle>Sprints System Setup Required</CardTitle>
             </div>
             <CardDescription>
-              The Sprints & Checklists system needs to be initialized before you can use it.
+              The Sprints & Lists system needs to be initialized before you can use it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-gray-600">
-              Click the button below to set up the database tables required for Sprints and Checklists.
+              Click the button below to set up the database tables required for Sprints and Lists.
             </p>
             <Button onClick={() => navigate('/checklists/setup')}>
               <CheckSquare className="w-4 h-4 mr-2" />
@@ -227,7 +227,7 @@ export default function SprintsPage() {
         iconBg="bg-cyan-100"
         iconColor="text-cyan-600"
         title="Sprints"
-        description="Time-boxed collaborative challenges with checklists"
+        description="Time-boxed collaborative challenges with lists"
         actions={
           isAdmin ? (
             <Button onClick={() => navigate('/sprints/new')} className="gap-2">

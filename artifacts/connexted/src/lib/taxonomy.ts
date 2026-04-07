@@ -83,7 +83,7 @@ export const CONTAINER_TAXONOMY: TaxonomyEntry[] = [
   { key: 'sprints',    label: 'Sprint',    labelPlural: 'Sprints',    icon: CalendarClock, path: '/sprints'    },
   { key: 'magazines',  label: 'Magazine',  labelPlural: 'Magazines',  icon: BookCopy,      path: '/magazines'  }, // containers of blogs
   { key: 'playlists',  label: 'Playlist',  labelPlural: 'Playlists',  icon: ListVideo,     path: '/playlists'  }, // containers of episodes
-  { key: 'checklists', label: 'Checklist', labelPlural: 'Checklists', icon: CheckSquare,   path: '/checklists' },
+  { key: 'checklists', label: 'List',      labelPlural: 'Lists',       icon: CheckSquare,   path: '/checklists' },
   { key: 'meetings',   label: 'Meeting',   labelPlural: 'Meetings',   icon: Calendar,      path: '/meetings'   },
   { key: 'meetups',    label: 'Meetup',    labelPlural: 'Meetups',    icon: Handshake,     path: '/meetups'    },
 ];

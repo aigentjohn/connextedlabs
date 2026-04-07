@@ -82,8 +82,8 @@ export const JOURNEY_ITEM_TYPES: Record<JourneyItemType, JourneyItemTypeConfig> 
   // CONTAINER TYPES (group activities)
   checklist: {
     icon: CheckSquare,
-    label: 'Checklist',
-    labelPlural: 'Checklists',
+    label: 'List',
+    labelPlural: 'Lists',
     category: 'container',
     tableName: 'checklists',
     description: 'Task lists and progress tracking'

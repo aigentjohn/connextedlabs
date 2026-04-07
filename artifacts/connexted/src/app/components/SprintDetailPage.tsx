@@ -181,7 +181,7 @@ export default function SprintDetailPage() {
   const handleRemoveChecklist = async (sprintChecklistId: string, checklistName: string) => {
     if (
       !confirm(
-        `Remove "${checklistName}" from this sprint? The checklist and its items will remain in the system.`
+        `Remove "${checklistName}" from this sprint? The list and its items will remain in the system.`
       )
     ) {
       return;
@@ -195,11 +195,11 @@ export default function SprintDetailPage() {
 
       if (error) throw error;
 
-      toast.success('Checklist removed from sprint');
+      toast.success('List removed from sprint');
       fetchSprint();
     } catch (error) {
       console.error('Error removing checklist:', error);
-      toast.error('Failed to remove checklist');
+      toast.error('Failed to remove list');
     }
   };
 
@@ -259,7 +259,7 @@ export default function SprintDetailPage() {
       setAvailableChecklists(checklistsData);
     } catch (error) {
       console.error('Error fetching available checklists:', error);
-      toast.error('Failed to load available checklists');
+      toast.error('Failed to load available lists');
     }
   };
 
@@ -302,11 +302,11 @@ export default function SprintDetailPage() {
       }));
 
       setSprintChecklists(checklistsWithItems);
-      toast.success('Checklists added to sprint');
+      toast.success('Lists added to sprint');
       setShowAddChecklistDialog(false);
     } catch (error) {
       console.error('Error adding checklists:', error);
-      toast.error('Failed to add checklists');
+      toast.error('Failed to add lists');
     } finally {
       setAddingChecklists(false);
     }
@@ -458,12 +458,12 @@ export default function SprintDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
-            Checklists ({sprintChecklists.length})
+            Lists ({sprintChecklists.length})
           </h2>
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={() => setShowAddChecklistDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Checklist
+              Add List
             </Button>
           )}
         </div>
@@ -471,12 +471,12 @@ export default function SprintDetailPage() {
         {sprintChecklists.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <CheckSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No checklists yet</h3>
-            <p className="text-gray-600 mb-4">Add checklists to track progress in this sprint</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
+            <p className="text-gray-600 mb-4">Add lists to track progress in this sprint</p>
             {isAdmin && (
               <Button size="sm" onClick={() => setShowAddChecklistDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Checklist
+                Add List
               </Button>
             )}
           </div>
@@ -572,7 +572,7 @@ export default function SprintDetailPage() {
                   )}
 
                   {items.length === 0 && (
-                    <p className="text-sm text-gray-500 ml-7">No items in this checklist</p>
+                    <p className="text-sm text-gray-500 ml-7">No items in this list</p>
                   )}
                 </div>
               );
@@ -585,9 +585,9 @@ export default function SprintDetailPage() {
       <Dialog open={showAddChecklistDialog} onOpenChange={setShowAddChecklistDialog}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add Checklists to Sprint</DialogTitle>
+            <DialogTitle>Add Lists to Sprint</DialogTitle>
             <DialogDescription>
-              Select checklists to add to this sprint. You can add multiple checklists at once.
+              Select lists to add to this sprint. You can add multiple lists at once.
             </DialogDescription>
           </DialogHeader>
 
@@ -596,7 +596,7 @@ export default function SprintDetailPage() {
               <Search className="w-4 h-4 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search checklists..."
+                placeholder="Search lists..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -649,7 +649,7 @@ export default function SprintDetailPage() {
               onClick={handleAddChecklist}
               disabled={addingChecklists}
             >
-              {addingChecklists ? 'Adding...' : 'Add Checklists'}
+              {addingChecklists ? 'Adding...' : 'Add Lists'}
             </Button>
           </DialogFooter>
         </DialogContent>

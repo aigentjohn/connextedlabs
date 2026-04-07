@@ -42,7 +42,7 @@ export default function ChecklistsSetupPage() {
       
       if (result.success) {
         setIsComplete(true);
-        toast.success('Checklists & Sprints system initialized successfully!');
+        toast.success('Lists & Sprints system initialized successfully!');
       } else {
         // Check if it's a "function not found" error
         if (result.error?.message?.includes('function') || result.error?.code === '42883' || result.error?.code === 'PGRST202') {
@@ -160,14 +160,14 @@ export default function ChecklistsSetupPage() {
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertTitle className="text-green-800">Setup Complete!</AlertTitle>
                 <AlertDescription className="text-green-700">
-                  The Checklists & Sprints system has been initialized successfully. You can now start using the features.
+                  The Lists & Sprints system has been initialized successfully. You can now start using the features.
                 </AlertDescription>
               </Alert>
 
               <div className="flex flex-col items-center gap-4 py-4">
                 <div className="flex gap-3">
                   <Button onClick={() => navigate('/checklists')}>
-                    Go to Checklists
+                    Go to Lists
                   </Button>
                   <Button onClick={() => navigate('/sprints')} variant="outline">
                     Go to Sprints

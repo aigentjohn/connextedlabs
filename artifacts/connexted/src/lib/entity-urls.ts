@@ -68,7 +68,7 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   pitch: 'Pitch',
   table: 'Table',
   library: 'Library',
-  checklist: 'Checklist',
+  checklist: 'List',
   elevator: 'Elevator',
   meeting: 'Meeting',
   meetup: 'Meetup',
