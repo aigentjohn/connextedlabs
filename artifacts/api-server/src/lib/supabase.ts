@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://bxxcfgizpcfaopsyxgnj.supabase.co';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
+  throw new Error('VITE_SUPABASE_URL is required');
+}
 
 if (!serviceRoleKey) {
-  console.warn('SUPABASE_SERVICE_ROLE_KEY is not set — pathway admin routes will fail');
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
 }
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {

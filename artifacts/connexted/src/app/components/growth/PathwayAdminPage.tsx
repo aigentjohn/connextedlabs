@@ -262,7 +262,7 @@ const VERIFICATION_METHODS = [
 // ============================================================================
 
 export default function PathwayAdminPage() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const navigate = useNavigate();
 
   // All pathways list
@@ -312,7 +312,9 @@ export default function PathwayAdminPage() {
   async function loadPathways() {
     setLoadingPathways(true);
     try {
-      const res = await fetch('/api/pathways');
+      const res = await fetch('/api/pathways', {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const result = await res.json();
       setPathways(result.pathways || []);
@@ -644,7 +646,10 @@ export default function PathwayAdminPage() {
       const method = form.id ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -666,7 +671,10 @@ export default function PathwayAdminPage() {
 
   async function archivePathway(id: string) {
     try {
-      const res = await fetch(`/api/pathways/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/pathways/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `API error: ${res.status}`);
