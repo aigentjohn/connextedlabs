@@ -46,7 +46,7 @@ CREATE POLICY "offering_interest_admin_read"
   ON public.offering_interest
   FOR SELECT
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 
@@ -103,7 +103,7 @@ CREATE POLICY "prompts_write_admin"
   ON public.prompts
   FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 
@@ -120,7 +120,7 @@ CREATE POLICY "program_prompts_write_admin"
   ON public.program_prompts
   FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 
@@ -138,7 +138,7 @@ CREATE POLICY "membership_tier_permissions_write_admin"
   ON public.membership_tier_permissions
   FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 
@@ -156,7 +156,7 @@ CREATE POLICY "product_mappings_write_admin"
   ON public.product_mappings
   FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 
@@ -173,5 +173,5 @@ CREATE POLICY "offering_marketing_templates_write_admin"
   ON public.offering_marketing_templates
   FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );

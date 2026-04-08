@@ -43,11 +43,11 @@ export async function requireAdmin(
 
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('user_class')
+    .select('role')
     .eq('id', userId)
     .single();
 
-  if (error || !data || data.user_class !== 10) {
+  if (error || !data || !['admin', 'super'].includes(data.role)) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
