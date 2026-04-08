@@ -250,7 +250,7 @@ router.get('/pathways/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/pathways', requireAuth, requireAdmin, async (req, res) => {
+router.post('/pathways', requireAuth, requireAdmin, async (req, res): Promise<void> => {
   try {
     const parsed = CreatePathwaySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -288,9 +288,9 @@ router.post('/pathways', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/pathways/:id', requireAuth, requireAdmin, async (req, res) => {
+router.put('/pathways/:id', requireAuth, requireAdmin, async (req, res): Promise<void> => {
   try {
-    const pathwayId = req.params.id;
+    const pathwayId = String(req.params.id);
     const parsed = UpdatePathwaySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
@@ -341,7 +341,7 @@ router.delete('/pathways/:id', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/pathways/:id/enroll', requireAuth, async (req, res) => {
+router.post('/pathways/:id/enroll', requireAuth, async (req, res): Promise<void> => {
   try {
     const pathwayId = req.params.id;
     const userId = (req as AuthRequest).userId;
@@ -371,7 +371,7 @@ router.post('/pathways/:id/enroll', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/pathways/:id/skip-step', requireAuth, async (req, res) => {
+router.post('/pathways/:id/skip-step', requireAuth, async (req, res): Promise<void> => {
   try {
     const pathwayId = req.params.id;
     const userId = (req as AuthRequest).userId;
@@ -423,7 +423,7 @@ router.post('/pathways/:id/skip-step', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/pathways/:id/admin-complete', requireAuth, requireAdmin, async (req, res) => {
+router.post('/pathways/:id/admin-complete', requireAuth, requireAdmin, async (req, res): Promise<void> => {
   try {
     const pathwayId = req.params.id;
     const parsed = AdminCompleteSchema.safeParse(req.body);
