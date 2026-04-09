@@ -59,6 +59,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * forceSignOut — clears all Supabase session data from localStorage directly,
+ * then reloads the page. Use this instead of supabase.auth.signOut() when the
+ * token refresh is hanging (Web Lock contention) and signOut() itself would
+ * also hang. Exported so any component can call it as a last-resort escape.
+ */
+export function forceSignOut(): void {
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+  } catch (_) { /* localStorage unavailable */ }
+  window.location.replace('/');
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -264,21 +279,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout: if onAuthStateChange never fires (stale/corrupted token
-    // causing an infinite refresh loop in localStorage), clear all auth state
-    // immediately so the UI redirects to login instead of hanging forever.
+    // Safety timeout: if onAuthStateChange never fires, the token refresh is
+    // hanging — likely a Web Lock held by a stale in-flight request.
+    // supabase.auth.signOut() would ALSO hang (same lock), so we bypass it
+    // entirely: wipe the Supabase localStorage keys directly and reload.
     let timedOut = false;
     const loadingTimeout = setTimeout(() => {
       if (!mounted) return;
       timedOut = true;
-      console.warn('Auth loading timed out after 10s — clearing session');
-      // Clear state directly so RequireAuth redirects to login immediately
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      setLoading(false);
-      // Clear the stored token in the background so next load starts clean
-      supabase.auth.signOut().catch(() => {});
+      console.warn('Auth loading timed out — force-clearing session');
+      forceSignOut();
     }, 10_000);
 
     // Use onAuthStateChange as the SOLE source of session truth.
