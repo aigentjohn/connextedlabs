@@ -164,7 +164,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
 
   // Auto-expand MY TEAM section when viewing any of its child routes
   useEffect(() => {
-    const teamPaths = ['/sprints', '/standups', '/surveys'];
+    const teamPaths = ['/sprints', '/standups', '/surveys', '/quizzes', '/assessments'];
     const isTeamRoute = teamPaths.some((p) =>
       location.pathname === p || location.pathname.startsWith(p + '/')
     );

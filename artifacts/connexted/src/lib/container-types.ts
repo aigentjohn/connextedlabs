@@ -16,6 +16,8 @@ import {
   CheckSquare,
   Sparkles,
   ClipboardList,
+  Brain,
+  BarChart3,
   LucideIcon
 } from 'lucide-react';
 
@@ -36,7 +38,9 @@ export type ContainerType =
   | 'libraries'
   | 'checklists'
   | 'prompts'
-  | 'surveys';
+  | 'surveys'
+  | 'quizzes'
+  | 'assessments';
 
 export interface ContainerTypeConfig {
   icon: LucideIcon;
@@ -170,6 +174,20 @@ export const CONTAINER_TYPES: Record<ContainerType, ContainerTypeConfig> = {
     iconColor: 'text-rose-600',
     label: 'Survey',
     labelPlural: 'Surveys'
+  },
+  quizzes: {
+    icon: Brain,
+    color: 'bg-indigo-100',
+    iconColor: 'text-indigo-600',
+    label: 'Quiz',
+    labelPlural: 'Quizzes'
+  },
+  assessments: {
+    icon: BarChart3,
+    color: 'bg-amber-100',
+    iconColor: 'text-amber-600',
+    label: 'Assessment',
+    labelPlural: 'Assessments'
   },
 } as const;
 

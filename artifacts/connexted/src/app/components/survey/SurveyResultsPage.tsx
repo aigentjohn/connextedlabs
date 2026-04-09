@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { supabase } from '@/lib/supabase';
@@ -172,7 +172,15 @@ function getQuizQuestionCorrectRate(question: Question, responses: Response[]) {
 export default function SurveyResultsPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuth();
+
+  const basePath = location.pathname.startsWith('/quizzes') ? '/quizzes'
+    : location.pathname.startsWith('/assessments') ? '/assessments'
+    : '/surveys';
+  const baseLabel = basePath === '/quizzes' ? 'Quizzes'
+    : basePath === '/assessments' ? 'Assessments'
+    : 'Surveys';
 
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [responses, setResponses] = useState<Response[]>([]);
@@ -182,7 +190,7 @@ export default function SurveyResultsPage() {
   const isAdmin = profile && hasRoleLevel(profile.role, 'admin');
 
   useEffect(() => {
-    if (!isAdmin) { navigate('/surveys'); return; }
+    if (!isAdmin) { navigate(basePath); return; }
     loadData();
   }, [slug, isAdmin]);
 
@@ -291,7 +299,7 @@ export default function SurveyResultsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <Breadcrumbs items={[{ label: 'Surveys', href: '/surveys' }, { label: survey.name, href: `/surveys/${survey.slug}` }, { label: 'Results' }]} />
+      <Breadcrumbs items={[{ label: baseLabel, href: basePath }, { label: survey.name, href: `${basePath}/${survey.slug}` }, { label: 'Results' }]} />
 
       {/* Header */}
       <div className={`rounded-xl bg-gradient-to-r ${config.bg} p-5 text-white`}>
@@ -310,7 +318,7 @@ export default function SurveyResultsPage() {
               variant="outline"
               size="sm"
               className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              onClick={() => navigate(`/surveys/${survey.slug}`)}
+              onClick={() => navigate(`${basePath}/${survey.slug}`)}
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Survey

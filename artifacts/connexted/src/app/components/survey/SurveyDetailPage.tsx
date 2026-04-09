@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { supabase } from '@/lib/supabase';
@@ -160,6 +160,13 @@ export default function SurveyDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/quizzes') ? '/quizzes'
+    : location.pathname.startsWith('/assessments') ? '/assessments'
+    : '/surveys';
+  const baseLabel = basePath === '/quizzes' ? 'Quizzes'
+    : basePath === '/assessments' ? 'Assessments'
+    : 'Surveys';
 
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [existingResponse, setExistingResponse] = useState<ExistingResponse | null>(null);
@@ -189,7 +196,7 @@ export default function SurveyDetailPage() {
         .eq('slug', slug!)
         .single();
 
-      if (error || !data) { toast.error('Survey not found'); navigate('/surveys'); return; }
+      if (error || !data) { toast.error('Survey not found'); navigate(basePath); return; }
 
       const questions: Question[] = (data.survey_questions || [])
         .sort((a: any, b: any) => a.order_index - b.order_index);
@@ -328,7 +335,9 @@ export default function SurveyDetailPage() {
         result={submissionResult}
         answers={existingResponse?.answers || answers}
         isAdmin={!!isAdmin}
-        onViewResults={() => navigate(`/surveys/${slug}/results`)}
+        onViewResults={() => navigate(`${basePath}/${slug}/results`)}
+        basePath={basePath}
+        baseLabel={baseLabel}
       />
     );
   }
@@ -336,7 +345,7 @@ export default function SurveyDetailPage() {
   if (submitted && !showResults) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+        <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
         <Card>
           <CardContent className="py-16 text-center space-y-4">
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
@@ -345,9 +354,9 @@ export default function SurveyDetailPage() {
             {survey.show_results_after === 'close' && (
               <p className="text-sm text-gray-400">Results will be available once the {config.label.toLowerCase()} closes.</p>
             )}
-            <Button onClick={() => navigate('/surveys')} variant="outline">
+            <Button onClick={() => navigate(basePath)} variant="outline">
               <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Surveys
+              Back to {baseLabel}
             </Button>
           </CardContent>
         </Card>
@@ -359,13 +368,13 @@ export default function SurveyDetailPage() {
   if (survey.status === 'closed' && !isAdmin) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+        <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
         <Card>
           <CardContent className="py-16 text-center space-y-3">
             <ClipboardList className="w-14 h-14 text-gray-200 mx-auto" />
             <h2 className="text-xl font-bold text-gray-500">This {config.label.toLowerCase()} is closed</h2>
             <p className="text-gray-400 text-sm">Responses are no longer being accepted.</p>
-            <Button onClick={() => navigate('/surveys')} variant="outline">Back to Surveys</Button>
+            <Button onClick={() => navigate(basePath)} variant="outline">Back to {baseLabel}</Button>
           </CardContent>
         </Card>
       </div>
@@ -375,7 +384,7 @@ export default function SurveyDetailPage() {
   // ── Take the survey ──────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+      <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
 
       {/* Header card */}
       <Card className="overflow-hidden">
@@ -422,7 +431,7 @@ export default function SurveyDetailPage() {
               </div>
             </div>
             {isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => navigate(`/surveys/${slug}/edit`)}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`${basePath}/${slug}/edit`)}>
                 <Pencil className="w-4 h-4 mr-1" />
                 Edit
               </Button>
@@ -447,7 +456,7 @@ export default function SurveyDetailPage() {
 
       {/* Submit */}
       <div className="flex items-center justify-between pb-8">
-        <Button variant="outline" onClick={() => navigate('/surveys')}>
+        <Button variant="outline" onClick={() => navigate(basePath)}>
           <ChevronLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
@@ -620,12 +629,16 @@ function SubmissionResult({
   answers,
   isAdmin,
   onViewResults,
+  basePath,
+  baseLabel,
 }: {
   survey: Survey;
   result: { score?: number; maxScore?: number; passed?: boolean; conclusionKey?: string; } | null;
   answers: Answers;
   isAdmin: boolean;
   onViewResults: () => void;
+  basePath: string;
+  baseLabel: string;
 }) {
   const navigate = useNavigate();
   const config = TYPE_CONFIG[survey.survey_type];
@@ -636,7 +649,7 @@ function SubmissionResult({
     if (conclusion) {
       return (
         <div className="max-w-3xl mx-auto space-y-6">
-          <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+          <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
           <Card className="overflow-hidden">
             <div className={`h-2 bg-gradient-to-r ${conclusion.color}`} />
             <CardContent className="p-8 text-center space-y-4">
@@ -660,9 +673,9 @@ function SubmissionResult({
                 </div>
               )}
               <div className="flex items-center justify-center gap-3 pt-2">
-                <Button variant="outline" onClick={() => navigate('/surveys')}>
+                <Button variant="outline" onClick={() => navigate(basePath)}>
                   <ChevronLeft className="w-4 h-4 mr-2" />
-                  Back to Surveys
+                  Back to {baseLabel}
                 </Button>
                 {isAdmin && (
                   <Button variant="outline" onClick={onViewResults}>
@@ -683,7 +696,7 @@ function SubmissionResult({
     const pct = result.maxScore ? Math.round((result.score! / result.maxScore) * 100) : 0;
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+        <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
 
         <Card className="overflow-hidden">
           <div className={`h-2 bg-gradient-to-r ${config.bg}`} />
@@ -751,9 +764,9 @@ function SubmissionResult({
         </Card>
 
         <div className="flex items-center justify-between pb-8">
-          <Button variant="outline" onClick={() => navigate('/surveys')}>
+          <Button variant="outline" onClick={() => navigate(basePath)}>
             <ChevronLeft className="w-4 h-4 mr-2" />
-            Back to Surveys
+            Back to {baseLabel}
           </Button>
           {isAdmin && (
             <Button variant="outline" onClick={onViewResults}>
@@ -769,16 +782,16 @@ function SubmissionResult({
   // Survey: simple thank you + option to see aggregate results
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <Breadcrumbs items={[{ label: 'Surveys', path: '/surveys' }, { label: survey.name }]} />
+      <Breadcrumbs items={[{ label: baseLabel, path: basePath }, { label: survey.name }]} />
       <Card>
         <CardContent className="py-16 text-center space-y-4">
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
           <h2 className="text-2xl font-bold">Thank you!</h2>
           <p className="text-gray-600">Your response has been recorded.</p>
           <div className="flex items-center justify-center gap-3">
-            <Button variant="outline" onClick={() => navigate('/surveys')}>
+            <Button variant="outline" onClick={() => navigate(basePath)}>
               <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Surveys
+              Back to {baseLabel}
             </Button>
             {isAdmin && (
               <Button variant="outline" onClick={onViewResults}>

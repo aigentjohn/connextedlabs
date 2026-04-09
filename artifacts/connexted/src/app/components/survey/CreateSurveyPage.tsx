@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useLocation } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
 import { supabase } from '@/lib/supabase';
@@ -198,10 +198,26 @@ function slugify(text: string): string {
 export default function CreateSurveyPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { slug: editSlug } = useParams<{ slug: string }>();
   const isEditing = !!editSlug;
 
-  const [form, setForm] = useState<SurveyForm>(emptyForm());
+  // Derive locked type + base path from the URL namespace
+  const lockedType: SurveyType | null =
+    location.pathname.startsWith('/quizzes') ? 'quiz' :
+    location.pathname.startsWith('/assessments') ? 'assessment' :
+    location.pathname.startsWith('/surveys') ? null : // /surveys allows choosing
+    null;
+  const basePath =
+    location.pathname.startsWith('/quizzes') ? '/quizzes' :
+    location.pathname.startsWith('/assessments') ? '/assessments' :
+    '/surveys';
+
+  const [form, setForm] = useState<SurveyForm>(() => {
+    const f = emptyForm();
+    if (lockedType) f.survey_type = lockedType;
+    return f;
+  });
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -469,7 +485,7 @@ export default function CreateSurveyPage() {
       }
 
       toast.success(isEditing ? 'Survey updated!' : 'Survey created!');
-      navigate(`/surveys/${slug}`);
+      navigate(`${basePath}/${slug}`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to save survey');
     } finally {
@@ -689,17 +705,20 @@ YOUR REQUEST:
     toast.success(`Imported ${questions.length} question${questions.length !== 1 ? 's' : ''}${conclusions.length ? ` and ${conclusions.length} conclusions` : ''}`);
   }
 
+  const typeLabel = form.survey_type === 'quiz' ? 'Quiz' : form.survey_type === 'assessment' ? 'Assessment' : 'Survey';
+  const parentLabel = basePath === '/quizzes' ? 'Quizzes' : basePath === '/assessments' ? 'Assessments' : 'Surveys';
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <Breadcrumbs items={[
-        { label: 'Surveys', path: '/surveys' },
-        { label: isEditing ? 'Edit Survey' : 'New Survey' },
+        { label: parentLabel, path: basePath },
+        { label: isEditing ? `Edit ${typeLabel}` : `New ${typeLabel}` },
       ]} />
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <TypeIcon className="w-6 h-6 text-rose-600" />
-          {isEditing ? 'Edit Survey' : 'Create New Survey'}
+          {isEditing ? `Edit ${typeLabel}` : `Create New ${typeLabel}`}
         </h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={downloadPrompt}>
@@ -710,7 +729,7 @@ YOUR REQUEST:
             <Upload className="w-4 h-4 mr-1.5" />
             Import JSON
           </Button>
-          <Button variant="outline" onClick={() => navigate('/surveys')}>Cancel</Button>
+          <Button variant="outline" onClick={() => navigate(basePath)}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="bg-rose-600 hover:bg-rose-700 text-white">
             <Save className="w-4 h-4 mr-2" />
             {saving ? 'Saving...' : 'Save Survey'}
@@ -722,33 +741,35 @@ YOUR REQUEST:
       <Card>
         <CardHeader><CardTitle className="text-lg">Basic Information</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {/* Type selector */}
-          <div>
-            <Label>Type</Label>
-            <div className="flex gap-2 mt-2">
-              {([
-                { value: 'survey',     label: 'Survey',     Icon: ClipboardList, desc: 'Collect responses'       },
-                { value: 'quiz',       label: 'Quiz',       Icon: Brain,         desc: 'Test knowledge + score'  },
-                { value: 'assessment', label: 'Assessment', Icon: BarChart3,      desc: 'Lead to a conclusion'    },
-              ] as const).map(({ value, label, Icon, desc }) => (
-                <button
-                  key={value}
-                  onClick={() => setField('survey_type', value)}
-                  className={`flex-1 p-3 rounded-lg border text-left transition-colors ${
-                    form.survey_type === value
-                      ? 'border-rose-400 bg-rose-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className={`w-4 h-4 ${form.survey_type === value ? 'text-rose-600' : 'text-gray-400'}`} />
-                    <span className="text-sm font-medium">{label}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">{desc}</p>
-                </button>
-              ))}
+          {/* Type selector — hidden when type is locked by URL namespace */}
+          {!lockedType && (
+            <div>
+              <Label>Type</Label>
+              <div className="flex gap-2 mt-2">
+                {([
+                  { value: 'survey',     label: 'Survey',     Icon: ClipboardList, desc: 'Collect responses'       },
+                  { value: 'quiz',       label: 'Quiz',       Icon: Brain,         desc: 'Test knowledge + score'  },
+                  { value: 'assessment', label: 'Assessment', Icon: BarChart3,      desc: 'Lead to a conclusion'    },
+                ] as const).map(({ value, label, Icon, desc }) => (
+                  <button
+                    key={value}
+                    onClick={() => setField('survey_type', value)}
+                    className={`flex-1 p-3 rounded-lg border text-left transition-colors ${
+                      form.survey_type === value
+                        ? 'border-rose-400 bg-rose-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={`w-4 h-4 ${form.survey_type === value ? 'text-rose-600' : 'text-gray-400'}`} />
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">{desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -1225,10 +1246,10 @@ YOUR REQUEST:
 
       {/* Save */}
       <div className="flex justify-end gap-2 pb-8">
-        <Button variant="outline" onClick={() => navigate('/surveys')}>Cancel</Button>
+        <Button variant="outline" onClick={() => navigate(basePath)}>Cancel</Button>
         <Button onClick={save} disabled={saving} className="bg-rose-600 hover:bg-rose-700 text-white">
           <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Survey'}
+          {saving ? 'Saving...' : `Save ${typeLabel}`}
         </Button>
       </div>
 

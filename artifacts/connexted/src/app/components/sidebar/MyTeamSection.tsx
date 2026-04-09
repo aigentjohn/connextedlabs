@@ -1,8 +1,8 @@
 /**
  * MyTeamSection Component
  *
- * Collaborative team tools: Sprints, Standups, and Surveys/Quizzes/Assessments.
- * Admins also see a "Create Survey" shortcut.
+ * Collaborative team tools: Sprints, Standups, Surveys, Quizzes, Assessments.
+ * Admins see a "Create" shortcut beneath each of the three survey-type entries.
  */
 
 import { Link, useLocation } from 'react-router';
@@ -14,6 +14,8 @@ import {
   CalendarClock,
   MessageSquare,
   ClipboardList,
+  Brain,
+  BarChart3,
   Plus,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
@@ -47,19 +49,44 @@ export function MyTeamSection({ isExpanded, onToggle, isAdmin }: MyTeamSectionPr
 
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">
+          {/* Sprints */}
           <TeamLink to="/sprints" icon={CalendarClock} pathname={location.pathname}>
             Sprints
           </TeamLink>
+
+          {/* Standups */}
           <TeamLink to="/standups" icon={MessageSquare} pathname={location.pathname}>
             Standups
           </TeamLink>
+
+          {/* Surveys */}
           <TeamLink to="/surveys" icon={ClipboardList} pathname={location.pathname}>
-            Surveys &amp; Quizzes
+            Surveys
           </TeamLink>
           {isAdmin && (
-            <TeamLink to="/surveys/create" icon={Plus} pathname={location.pathname} activeColor="text-rose-700 bg-rose-50">
-              Create Survey
-            </TeamLink>
+            <AdminLink to="/surveys/create" pathname={location.pathname}>
+              + New Survey
+            </AdminLink>
+          )}
+
+          {/* Quizzes */}
+          <TeamLink to="/quizzes" icon={Brain} pathname={location.pathname}>
+            Quizzes
+          </TeamLink>
+          {isAdmin && (
+            <AdminLink to="/quizzes/create" pathname={location.pathname}>
+              + New Quiz
+            </AdminLink>
+          )}
+
+          {/* Assessments */}
+          <TeamLink to="/assessments" icon={BarChart3} pathname={location.pathname}>
+            Assessments
+          </TeamLink>
+          {isAdmin && (
+            <AdminLink to="/assessments/create" pathname={location.pathname}>
+              + New Assessment
+            </AdminLink>
           )}
         </div>
       )}
@@ -72,25 +99,43 @@ function TeamLink({
   icon: Icon,
   pathname,
   children,
-  activeColor = 'bg-indigo-50 text-indigo-700',
 }: {
   to: string;
   icon: ComponentType<{ className?: string }>;
   pathname: string;
   children: ReactNode;
-  activeColor?: string;
 }) {
-  const isActive = pathname === to || pathname.startsWith(to + '/');
+  // Active if on the browse page or any sub-page, but not on a sibling's sub-page
+  const isActive = pathname === to || (
+    pathname.startsWith(to + '/') &&
+    !pathname.startsWith(to + '/create') // don't highlight browse when on create
+  );
 
   return (
     <Link
       to={to}
       className={cn(
         'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
-        isActive && activeColor
+        isActive && 'bg-indigo-50 text-indigo-700'
       )}
     >
       <Icon className="w-4 h-4" />
+      <span>{children}</span>
+    </Link>
+  );
+}
+
+function AdminLink({ to, pathname, children }: { to: string; pathname: string; children: ReactNode }) {
+  const isActive = pathname === to || pathname.startsWith(to + '/');
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'flex items-center gap-1.5 pl-9 pr-3 py-1 text-xs rounded-lg hover:bg-gray-100 transition-colors text-gray-500',
+        isActive && 'bg-rose-50 text-rose-600'
+      )}
+    >
+      <Plus className="w-3 h-3" />
       <span>{children}</span>
     </Link>
   );

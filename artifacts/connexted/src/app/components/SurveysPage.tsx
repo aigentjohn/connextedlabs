@@ -1,12 +1,16 @@
 /**
- * Surveys Page
+ * Surveys / Quizzes / Assessments Browse Page
  *
- * Browse all active surveys, quizzes, and assessments.
- * Filterable by type. Members can see which ones they've completed.
+ * Single component registered under three routes:
+ *   /surveys     → shows surveys only
+ *   /quizzes     → shows quizzes only
+ *   /assessments → shows assessments only
+ *
+ * Detects context from useLocation — no props needed.
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { hasRoleLevel } from '@/lib/constants/roles';
@@ -27,7 +31,6 @@ import {
   Brain,
   BarChart3,
   ArrowRight,
-  Filter,
 } from 'lucide-react';
 
 // ============================================================================
@@ -43,44 +46,66 @@ interface Survey {
   status: 'draft' | 'active' | 'closed';
   closes_at: string | null;
   tags: string[];
-  allow_anonymous: boolean;
   passing_score: number | null;
-  created_by: string;
   created_at: string;
-  // computed
   question_count?: number;
   response_count?: number;
   is_completed?: boolean;
 }
 
+type SurveyType = 'survey' | 'quiz' | 'assessment';
+
 // ============================================================================
-// HELPERS
+// CONFIG
 // ============================================================================
 
-const TYPE_CONFIG = {
+const TYPE_CONFIG: Record<SurveyType, {
+  label: string;
+  labelPlural: string;
+  icon: typeof ClipboardList;
+  color: string;
+  iconColor: string;
+  bg: string;
+  cta: string;
+  emptyTitle: string;
+  emptyAdmin: string;
+  emptyMember: string;
+}> = {
   survey: {
     label: 'Survey',
+    labelPlural: 'Surveys',
     icon: ClipboardList,
     color: 'bg-rose-100 text-rose-700 border-rose-200',
     iconColor: 'text-rose-600',
     bg: 'from-rose-500 to-pink-600',
-    description: 'Share your thoughts',
+    cta: 'Take Survey',
+    emptyTitle: 'No surveys yet',
+    emptyAdmin: 'Create your first survey to start collecting responses.',
+    emptyMember: 'No surveys have been published yet.',
   },
   quiz: {
     label: 'Quiz',
+    labelPlural: 'Quizzes',
     icon: Brain,
     color: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     iconColor: 'text-indigo-600',
     bg: 'from-indigo-500 to-violet-600',
-    description: 'Test your knowledge',
+    cta: 'Take Quiz',
+    emptyTitle: 'No quizzes yet',
+    emptyAdmin: 'Create your first quiz to start testing knowledge.',
+    emptyMember: 'No quizzes have been published yet.',
   },
   assessment: {
     label: 'Assessment',
+    labelPlural: 'Assessments',
     icon: BarChart3,
     color: 'bg-amber-100 text-amber-700 border-amber-200',
     iconColor: 'text-amber-600',
     bg: 'from-amber-500 to-orange-600',
-    description: 'Discover your profile',
+    cta: 'Start Assessment',
+    emptyTitle: 'No assessments yet',
+    emptyAdmin: 'Create your first assessment to guide members to an outcome.',
+    emptyMember: 'No assessments have been published yet.',
   },
 };
 
@@ -95,6 +120,13 @@ function timeRemaining(closesAt: string | null): string | null {
   return 'Closing soon';
 }
 
+function useTypeContext(): { type: SurveyType; basePath: string } {
+  const location = useLocation();
+  if (location.pathname.startsWith('/quizzes')) return { type: 'quiz', basePath: '/quizzes' };
+  if (location.pathname.startsWith('/assessments')) return { type: 'assessment', basePath: '/assessments' };
+  return { type: 'survey', basePath: '/surveys' };
+}
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -102,28 +134,31 @@ function timeRemaining(closesAt: string | null): string | null {
 export default function SurveysPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { type, basePath } = useTypeContext();
+  const config = TYPE_CONFIG[type];
+  const Icon = config.icon;
 
-  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [items, setItems] = useState<Survey[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'survey' | 'quiz' | 'assessment'>('all');
 
   const isAdmin = profile && hasRoleLevel(profile.role, 'admin');
 
   useEffect(() => {
+    setItems([]);
+    setLoading(true);
     loadData();
-  }, [profile?.id]);
+  }, [type, profile?.id]);
 
   async function loadData() {
-    setLoading(true);
     try {
-      const query = supabase
+      const { data, error } = await supabase
         .from('surveys')
         .select('*, survey_questions(count), survey_responses(count)')
+        .eq('survey_type', type)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
       if (error) throw error;
 
       const surveysData: Survey[] = (data || []).map((s: any) => ({
@@ -132,9 +167,8 @@ export default function SurveysPage() {
         response_count: s.survey_responses?.[0]?.count ?? 0,
       }));
 
-      setSurveys(surveysData);
+      setItems(surveysData);
 
-      // Check which ones the current user has completed
       if (profile?.id && surveysData.length > 0) {
         const { data: responses } = await supabase
           .from('survey_responses')
@@ -145,78 +179,63 @@ export default function SurveysPage() {
         setCompletedIds(new Set((responses || []).map((r: any) => r.survey_id)));
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to load surveys');
+      toast.error(err.message || `Failed to load ${config.labelPlural.toLowerCase()}`);
     } finally {
       setLoading(false);
     }
   }
 
-  const filtered = surveys.filter(s => {
-    if (typeFilter !== 'all' && s.survey_type !== typeFilter) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      return (
-        s.name.toLowerCase().includes(q) ||
-        (s.short_description || '').toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-    return true;
+  const filtered = items.filter(s => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.short_description || '').toLowerCase().includes(q) ||
+      s.tags.some(t => t.toLowerCase().includes(q))
+    );
   });
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <Breadcrumbs items={[{ label: 'Surveys' }]} />
+      <Breadcrumbs items={[{ label: config.labelPlural }]} />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <ClipboardList className="w-8 h-8 text-rose-600" />
-            Surveys
+            <Icon className={`w-8 h-8 ${config.iconColor}`} />
+            {config.labelPlural}
           </h1>
           <p className="text-gray-600 mt-1">
-            Surveys, quizzes, and assessments for this community.
+            {type === 'survey' && 'Collect feedback and opinions from your community.'}
+            {type === 'quiz' && 'Test knowledge and track scores across your community.'}
+            {type === 'assessment' && 'Guide members to discover their profile or outcome.'}
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => navigate('/surveys/create')} className="bg-rose-600 hover:bg-rose-700 text-white">
+          <Button
+            onClick={() => navigate(`${basePath}/create`)}
+            className="text-white"
+            style={{ background: `linear-gradient(to right, var(--tw-gradient-stops))` }}
+          >
             <Plus className="w-4 h-4 mr-2" />
-            New Survey
+            New {config.label}
           </Button>
         )}
       </div>
 
-      {/* Search + Type Filter */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search surveys..."
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-gray-400" />
-          {(['all', 'survey', 'quiz', 'assessment'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
-                typeFilter === t
-                  ? 'bg-rose-100 text-rose-700 border-rose-300'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {t === 'all' ? 'All' : TYPE_CONFIG[t].label}
-            </button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={`Search ${config.labelPlural.toLowerCase()}…`}
+          className="pl-9"
+        />
       </div>
 
-      {/* List */}
+      {/* Grid */}
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
@@ -224,37 +243,36 @@ export default function SurveysPage() {
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <ClipboardList className="w-14 h-14 text-gray-200 mx-auto mb-4" />
+            <Icon className="w-14 h-14 text-gray-200 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-500 mb-1">
-              {surveys.length === 0 ? 'No surveys yet' : 'No matching surveys'}
+              {items.length === 0 ? config.emptyTitle : `No matching ${config.labelPlural.toLowerCase()}`}
             </h3>
             <p className="text-gray-400 text-sm max-w-sm mx-auto">
-              {surveys.length === 0
-                ? isAdmin
-                  ? 'Create your first survey to get started.'
-                  : 'No surveys have been published yet.'
-                : 'Try adjusting your search or filters.'}
+              {items.length === 0
+                ? isAdmin ? config.emptyAdmin : config.emptyMember
+                : 'Try adjusting your search.'}
             </p>
-            {surveys.length === 0 && isAdmin && (
+            {items.length === 0 && isAdmin && (
               <Button
-                className="mt-4 bg-rose-600 hover:bg-rose-700 text-white"
-                onClick={() => navigate('/surveys/create')}
+                className="mt-4 text-white"
+                onClick={() => navigate(`${basePath}/create`)}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create First Survey
+                Create First {config.label}
               </Button>
             )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {filtered.map(survey => (
+          {filtered.map(item => (
             <SurveyCard
-              key={survey.id}
-              survey={survey}
-              isCompleted={completedIds.has(survey.id)}
+              key={item.id}
+              survey={item}
+              config={config}
+              isCompleted={completedIds.has(item.id)}
               isAdmin={!!isAdmin}
-              onClick={() => navigate(`/surveys/${survey.slug}`)}
+              onClick={() => navigate(`${basePath}/${item.slug}`)}
             />
           ))}
         </div>
@@ -264,21 +282,22 @@ export default function SurveysPage() {
 }
 
 // ============================================================================
-// SURVEY CARD
+// CARD
 // ============================================================================
 
 function SurveyCard({
   survey,
+  config,
   isCompleted,
   isAdmin,
   onClick,
 }: {
   survey: Survey;
+  config: typeof TYPE_CONFIG[SurveyType];
   isCompleted: boolean;
   isAdmin: boolean;
   onClick: () => void;
 }) {
-  const config = TYPE_CONFIG[survey.survey_type];
   const Icon = config.icon;
   const remaining = timeRemaining(survey.closes_at);
 
@@ -303,9 +322,7 @@ function SurveyCard({
                 </Badge>
               )}
               {survey.status === 'closed' && (
-                <Badge variant="outline" className="text-gray-500 text-[10px] px-1.5 py-0">
-                  Closed
-                </Badge>
+                <Badge variant="outline" className="text-gray-500 text-[10px] px-1.5 py-0">Closed</Badge>
               )}
             </div>
             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 mt-1 ${config.color}`}>
@@ -314,11 +331,8 @@ function SurveyCard({
           </div>
         </div>
 
-        {/* Description */}
         {survey.short_description && (
-          <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-            {survey.short_description}
-          </p>
+          <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">{survey.short_description}</p>
         )}
 
         {/* Meta */}
@@ -343,13 +357,10 @@ function SurveyCard({
           )}
         </div>
 
-        {/* Tags */}
         {survey.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {survey.tags.slice(0, 4).map(tag => (
-              <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0 text-gray-500">
-                {tag}
-              </Badge>
+              <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0 text-gray-500">{tag}</Badge>
             ))}
           </div>
         )}
@@ -365,8 +376,7 @@ function SurveyCard({
             <div className="text-sm text-gray-400">This {config.label.toLowerCase()} is closed.</div>
           ) : (
             <Button size="sm" className={`w-full text-white bg-gradient-to-r ${config.bg}`}>
-              {survey.survey_type === 'quiz' ? 'Take Quiz' :
-               survey.survey_type === 'assessment' ? 'Start Assessment' : 'Take Survey'}
+              {config.cta}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}

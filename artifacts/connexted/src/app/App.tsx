@@ -674,11 +674,24 @@ const router = createBrowserRouter([
           { path: '/standups/:slug', element: <StandupDetailPage /> },
           { path: '/standups/:slug/settings', element: <StandupSettingsPage /> },
           // Surveys / Quizzes / Assessments
+          // Surveys
           { path: '/surveys', element: <SurveysPage /> },
           { path: '/surveys/create', element: <CreateSurveyPage /> },
           { path: '/surveys/:slug', element: <SurveyDetailPage /> },
           { path: '/surveys/:slug/edit', element: <CreateSurveyPage /> },
           { path: '/surveys/:slug/results', element: <SurveyResultsPage /> },
+          // Quizzes
+          { path: '/quizzes', element: <SurveysPage /> },
+          { path: '/quizzes/create', element: <CreateSurveyPage /> },
+          { path: '/quizzes/:slug', element: <SurveyDetailPage /> },
+          { path: '/quizzes/:slug/edit', element: <CreateSurveyPage /> },
+          { path: '/quizzes/:slug/results', element: <SurveyResultsPage /> },
+          // Assessments
+          { path: '/assessments', element: <SurveysPage /> },
+          { path: '/assessments/create', element: <CreateSurveyPage /> },
+          { path: '/assessments/:slug', element: <SurveyDetailPage /> },
+          { path: '/assessments/:slug/edit', element: <CreateSurveyPage /> },
+          { path: '/assessments/:slug/results', element: <SurveyResultsPage /> },
           // Meetups
           { path: '/meetups', element: <MeetupsPage /> },
           { path: '/meetups/create', element: <CreateMeetupPage /> },
