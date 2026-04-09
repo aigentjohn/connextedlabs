@@ -16,9 +16,21 @@ if (Number.isNaN(port) || port <= 0) {
 
 const basePath = process.env.BASE_PATH ?? '/';
 
+// Strip "use client" directives — these are Next.js-only; Vite treats them as
+// unknown directives and can't resolve sourcemaps for the affected lines.
+const stripUseClient = {
+  name: 'strip-use-client',
+  transform(code: string, id: string) {
+    if (id.includes('/components/ui/') && code.startsWith('"use client"')) {
+      return { code: code.replace(/^"use client";\n?/, ''), map: null };
+    }
+  },
+};
+
 export default defineConfig({
   base: basePath,
   plugins: [
+    stripUseClient,
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),

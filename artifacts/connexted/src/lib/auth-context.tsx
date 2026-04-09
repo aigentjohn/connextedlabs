@@ -79,13 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
       if (error) {
-        // Check if it's a network error - silently continue, don't set error state
         if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-          console.debug('Temporary network issue, will auto-retry');
-          // Don't set error state for network issues - they auto-retry
+          // Network error — surface it so the UI doesn't hang silently on profile = null
+          console.warn('Network error fetching profile:', error.message);
+          setError('Connection issue — please refresh to try again.');
+          setProfile(null);
           return;
         }
-        logError('Error fetching profile:', error, { component: 'auth-context' });
+        console.error('Error fetching profile:', error);
         throw error;
       }
       
@@ -125,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .single();
               
               if (refetchError) {
-                logError('Error refetching profile:', refetchError, { component: 'auth-context' });
+                console.error('Error refetching profile:', refetchError);
                 setProfile(null);
                 setError('Failed to load user profile');
               } else {
@@ -134,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setError(null);
               }
             } else {
-              logError('Error creating profile:', insertError, { component: 'auth-context' });
+              console.error('Error creating profile:', insertError);
               setProfile(null);
               setError('Failed to create user profile');
             }
@@ -156,7 +157,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError('Connection issue - please check your internet connection');
         setProfile(null);
       } else {
-        logError('Error fetching profile:', error, { component: 'auth-context' });
+        console.error('Error fetching profile:', {
+          message: error.message || 'Unknown error',
+          details: error.toString(),
+          hint: error.hint || '',
+          code: error.code || ''
+        });
         setProfile(null);
         
         // Set user-friendly error message
@@ -258,6 +264,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Safety timeout: if onAuthStateChange never fires (stale/corrupted token
+    // causing an infinite refresh loop in localStorage), force loading to false
+    // and sign out to clear the bad token rather than hanging forever.
+    const loadingTimeout = setTimeout(() => {
+      if (!mounted) return;
+      setLoading((prev) => {
+        if (prev) {
+          // Still loading after 10s — clear bad token and unblock the UI
+          console.warn('Auth loading timed out after 10s — clearing session');
+          supabase.auth.signOut().catch(() => {});
+        }
+        return false;
+      });
+    }, 10_000);
+
     // Use onAuthStateChange as the SOLE source of session truth.
     //
     // Why: calling getSession() *and* onAuthStateChange() concurrently causes
@@ -284,11 +305,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Mark loading done after the first event (INITIAL_SESSION or otherwise)
+      clearTimeout(loadingTimeout);
       setLoading(false);
     });
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -310,7 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return { error };
     } catch (error: any) {
-      logError('Sign in error:', error, { component: 'auth-context' });
+      console.error('Sign in error:', error);
       setError('Unable to sign in. Please try again.');
       return { error: error as Error };
     }
@@ -337,13 +360,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.message?.includes('Failed to fetch')) {
           setError('Unable to connect to authentication service. Please check your internet connection.');
         }
-        logError('Passwordless sign in error:', error, { component: 'auth-context' });
+        console.error('Passwordless sign in error:', error);
         return { error };
       }
       
       return { error: null };
     } catch (error: any) {
-      logError('Passwordless sign in error:', error, { component: 'auth-context' });
+      console.error('Passwordless sign in error:', error);
       setError('Unable to send magic link. Please try again.');
       return { error: error as Error };
     }
@@ -403,7 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Ignore duplicate key errors (profile was created by trigger)
             if (insertError && insertError.code !== '23505') {
-              logError('Error creating user profile:', insertError, { component: 'auth-context' });
+              console.error('Error creating user profile:', insertError);
             }
           }
 
@@ -437,13 +460,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Don't fail signup if container creation fails
           }
         } catch (profileError) {
-          logError('Error checking/creating profile:', profileError, { component: 'auth-context' });
+          console.error('Error checking/creating profile:', profileError);
         }
       }
 
       return { error: null };
     } catch (error: any) {
-      logError('Sign up error:', error, { component: 'auth-context' });
+      console.error('Sign up error:', error);
       setError('Unable to sign up. Please try again.');
       return { error: error as Error };
     }
@@ -494,7 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsImpersonating(true);
       }
     } catch (error: any) {
-      logError('Error impersonating user:', error, { component: 'auth-context' });
+      console.error('Error impersonating user:', error);
       setError('Failed to impersonate user');
     }
   };

@@ -230,34 +230,35 @@ export default function CreateEventDialog({ isOpen, onClose, circleId, event }: 
         title: formData.title,
         description: formData.description || null,
         event_type: formData.eventType,
-        
+        event_status: formData.isSaveTheDate ? 'save_the_date' : 'confirmed',
+
         // Date & Time - use start_time/end_time as TIMESTAMPTZ (not separate date/time fields)
         start_time: startDateTime,
         end_time: endDateTime || null,
-        
+
         // Location (nullable for Save the Date)
         location: formData.location || null,
         venue_id: (formData.venueId && formData.venueId !== 'manual') ? formData.venueId : null,
         is_virtual: formData.isVirtual,
         external_link: formData.externalLink || null,
         external_platform: formData.externalPlatform !== 'none' ? formData.externalPlatform : null,
-        
+
         // RSVP Configuration
         rsvp_type: formData.rsvpType,
         rsvp_required: formData.rsvpType === 'internal' ? formData.rsvpRequired : false,
         max_attendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
         rsvp_deadline: formData.rsvpDeadline || null,
-        
+
         // External Registration
         external_rsvp_url: formData.rsvpType === 'external' ? formData.externalRsvpUrl : null,
         // external_rsvp_label column does not exist in the events table schema — omitted
         is_paid_event: formData.isPaidEvent,
         price_info: formData.priceInfo || null,
-        
+
         // Host & Attendees
         host_id: event?.host_id || profile.id,
         attendee_ids: event?.attendee_ids || [profile.id],
-        
+
         // Other
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
         agenda_url: formData.agendaUrl || null,
@@ -309,9 +310,10 @@ export default function CreateEventDialog({ isOpen, onClose, circleId, event }: 
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
+      const msg = error?.message || error?.details || JSON.stringify(error);
       console.error('Error saving event:', error);
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} event`);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} event: ${msg}`);
     } finally {
       setLoading(false);
     }

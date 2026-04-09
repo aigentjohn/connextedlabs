@@ -225,7 +225,30 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    // Profile failed to load (network error, RLS issue, etc.) — show a
+    // recovery screen instead of a blank page. The auth error banner would
+    // otherwise never appear because it lives inside the main return JSX.
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-sm px-6">
+          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Unable to load your profile</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            {authError || 'There was a problem loading your account. Please try again.'}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+            <Button variant="ghost" size="sm" className="text-red-600" onClick={onLogout}>
+              Sign out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -306,7 +329,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center min-h-16 py-2">
+          <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center gap-4">
               {/* Mobile sidebar toggle */}
