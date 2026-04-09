@@ -230,7 +230,6 @@ export default function CreateEventDialog({ isOpen, onClose, circleId, event }: 
         title: formData.title,
         description: formData.description || null,
         event_type: formData.eventType,
-        event_status: formData.isSaveTheDate ? 'save_the_date' : 'confirmed',
 
         // Date & Time - use start_time/end_time as TIMESTAMPTZ (not separate date/time fields)
         start_time: startDateTime,
