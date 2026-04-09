@@ -19,7 +19,7 @@ CREATE POLICY "member_states_read_all" ON public.member_states
   FOR SELECT USING (true);
 CREATE POLICY "member_states_admin_write" ON public.member_states
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'super'))
   );
 
 INSERT INTO public.member_states (id, name, category, description, color, icon, sort_order) VALUES

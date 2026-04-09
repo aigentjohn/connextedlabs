@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { supabaseAdmin } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { logger } from '../lib/logger.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/event-companions', async (_req, res) => {
+router.get('/event-companions', requireAuth, async (_req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('event_companions')
@@ -15,10 +17,10 @@ router.get('/event-companions', async (_req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(data || []);
-  } catch (err: any) {
-    console.error('GET /event-companions error:', err);
-    res.status(500).json({ error: err.message });
+    res.json(data ?? []);
+  } catch (err) {
+    logger.error({ err }, 'GET /event-companions failed');
+    res.status(500).json({ error: 'Failed to load event companions' });
   }
 });
 
