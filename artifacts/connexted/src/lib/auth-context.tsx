@@ -265,18 +265,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     // Safety timeout: if onAuthStateChange never fires (stale/corrupted token
-    // causing an infinite refresh loop in localStorage), force loading to false
-    // and sign out to clear the bad token rather than hanging forever.
+    // causing an infinite refresh loop in localStorage), clear all auth state
+    // immediately so the UI redirects to login instead of hanging forever.
+    let timedOut = false;
     const loadingTimeout = setTimeout(() => {
       if (!mounted) return;
-      setLoading((prev) => {
-        if (prev) {
-          // Still loading after 10s — clear bad token and unblock the UI
-          console.warn('Auth loading timed out after 10s — clearing session');
-          supabase.auth.signOut().catch(() => {});
-        }
-        return false;
-      });
+      timedOut = true;
+      console.warn('Auth loading timed out after 10s — clearing session');
+      // Clear state directly so RequireAuth redirects to login immediately
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      // Clear the stored token in the background so next load starts clean
+      supabase.auth.signOut().catch(() => {});
     }, 10_000);
 
     // Use onAuthStateChange as the SOLE source of session truth.
@@ -294,6 +296,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      // Ignore the SIGNED_OUT event we ourselves triggered from the timeout
+      if (timedOut && event === 'SIGNED_OUT') return;
 
       setSession(session);
       setUser(session?.user ?? null);
