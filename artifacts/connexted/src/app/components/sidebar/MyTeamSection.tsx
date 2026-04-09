@@ -2,6 +2,7 @@
  * MyTeamSection Component
  *
  * Collaborative team tools: Sprints, Standups, and Surveys/Quizzes/Assessments.
+ * Admins also see a "Create Survey" shortcut.
  */
 
 import { Link, useLocation } from 'react-router';
@@ -13,15 +14,17 @@ import {
   CalendarClock,
   MessageSquare,
   ClipboardList,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
 interface MyTeamSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
+  isAdmin: boolean;
 }
 
-export function MyTeamSection({ isExpanded, onToggle }: MyTeamSectionProps) {
+export function MyTeamSection({ isExpanded, onToggle, isAdmin }: MyTeamSectionProps) {
   const location = useLocation();
 
   return (
@@ -53,6 +56,11 @@ export function MyTeamSection({ isExpanded, onToggle }: MyTeamSectionProps) {
           <TeamLink to="/surveys" icon={ClipboardList} pathname={location.pathname}>
             Surveys &amp; Quizzes
           </TeamLink>
+          {isAdmin && (
+            <TeamLink to="/surveys/create" icon={Plus} pathname={location.pathname} activeColor="text-rose-700 bg-rose-50">
+              Create Survey
+            </TeamLink>
+          )}
         </div>
       )}
     </div>
@@ -64,11 +72,13 @@ function TeamLink({
   icon: Icon,
   pathname,
   children,
+  activeColor = 'bg-indigo-50 text-indigo-700',
 }: {
   to: string;
   icon: ComponentType<{ className?: string }>;
   pathname: string;
   children: ReactNode;
+  activeColor?: string;
 }) {
   const isActive = pathname === to || pathname.startsWith(to + '/');
 
@@ -77,7 +87,7 @@ function TeamLink({
       to={to}
       className={cn(
         'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
-        isActive && 'bg-indigo-50 text-indigo-700'
+        isActive && activeColor
       )}
     >
       <Icon className="w-4 h-4" />

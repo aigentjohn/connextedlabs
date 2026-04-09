@@ -287,6 +287,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
           <MyTeamSection
             isExpanded={expandedSections['myTeam']}
             onToggle={() => toggleSection('myTeam')}
+            isAdmin={isAdminOrSuper}
           />
           <Separator className="my-1.5" />
           <CalendarEventsSection
