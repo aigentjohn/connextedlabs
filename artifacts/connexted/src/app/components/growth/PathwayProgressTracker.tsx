@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { hasRoleLevel } from '@/lib/constants/roles';
+import { supabase } from '@/lib/supabase';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -103,37 +104,6 @@ interface StepReport {
 }
 
 // ============================================================================
-// API HELPER
-// ============================================================================
-
-async function fetchAPI(path: string, options?: RequestInit) {
-  const response = await fetch(`/api${path}`, {
-    method: options?.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    ...(options?.body ? { body: options.body } : {}),
-  });
-
-  if (!response.ok) {
-    let errorMsg = `API error: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorData.message || errorMsg;
-    } catch { /* ignore parse errors */ }
-    console.error(`Progress Tracker API ${path} error:`, errorMsg);
-    throw new Error(errorMsg);
-  }
-
-  const data = await response.json();
-
-  if (data && typeof data === 'object' && 'success' in data && !data.success) {
-    const msg = data.error || data.message || 'API error';
-    throw new Error(msg);
-  }
-
-  return data;
-}
-
-// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -169,9 +139,38 @@ export default function PathwayProgressTracker() {
   async function loadData() {
     setLoading(true);
     try {
-      const data = await fetchAPI('/pathways/admin/progress');
-      setEnrollments(data.enrollments || []);
-      setPendingReports(data.pending_reports || []);
+      const { data, error } = await supabase
+        .from('pathway_enrollments')
+        .select('*, pathways(*, pathway_steps(*)), users(id, name, email)');
+
+      if (error) throw error;
+
+      const entries: EnrollmentEntry[] = (data || []).map((e: any) => ({
+        enrollment: {
+          pathway_id: e.pathway_id,
+          user_id: e.user_id,
+          enrolled_at: e.enrolled_at,
+          completed_at: e.completed_at,
+          progress_pct: e.progress_pct || 0,
+          status: e.status,
+        },
+        pathway: {
+          id: e.pathways?.id,
+          name: e.pathways?.name,
+          color: e.pathways?.color,
+          steps: (e.pathways?.pathway_steps || []).sort(
+            (a: any, b: any) => a.order_index - b.order_index
+          ),
+        },
+        user: {
+          name: e.users?.name || 'Unknown',
+          email: e.users?.email || '',
+        },
+        reports: [],
+      }));
+
+      setEnrollments(entries);
+      setPendingReports([]);
     } catch (error) {
       console.error('Error loading progress data:', error);
       toast.error('Failed to load progress data');
@@ -180,37 +179,50 @@ export default function PathwayProgressTracker() {
     }
   }
 
-  async function handleVerify(approved: boolean) {
-    if (!verifyingReport) return;
-    setActionLoading(true);
-    try {
-      await fetchAPI(`/pathways/${verifyingReport.pathwayId}/verify-report`, {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: verifyingReport.userId,
-          step_id: verifyingReport.stepId,
-          approved,
-          rejection_reason: !approved ? rejectionReason : undefined,
-        }),
-      });
-      toast.success(approved ? 'Step verified!' : 'Report rejected');
-      setVerifyingReport(null);
-      setRejectionReason('');
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to verify');
-    } finally {
-      setActionLoading(false);
-    }
+  async function handleVerify(_approved: boolean) {
+    // Self-report verification requires a pathway_step_reports table not yet created.
+    toast.error('Self-report verification is not yet available.');
+    setVerifyingReport(null);
+    setRejectionReason('');
   }
 
-  async function handleAdminComplete(pathwayId: string, userId: string, stepId: string) {
+  async function handleAdminComplete(pathwayId: string, userId: string, _stepId: string) {
     setActionLoading(true);
     try {
-      await fetchAPI(`/pathways/${pathwayId}/admin-complete`, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: userId, step_id: stepId }),
-      });
+      const { data: pathwayData } = await supabase
+        .from('pathways')
+        .select('pathway_steps(id)')
+        .eq('id', pathwayId)
+        .single();
+
+      const totalSteps = (pathwayData as any)?.pathway_steps?.length ?? 1;
+
+      const { data: enrollment } = await supabase
+        .from('pathway_enrollments')
+        .select('progress_pct')
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', userId)
+        .single();
+
+      if (!enrollment) throw new Error('Enrollment not found');
+
+      const currentPct = (enrollment as any).progress_pct ?? 0;
+      const stepPct = Math.round(100 / totalSteps);
+      const newPct = Math.min(100, currentPct + stepPct);
+      const isComplete = newPct >= 100;
+
+      const { error } = await supabase
+        .from('pathway_enrollments')
+        .update({
+          progress_pct: newPct,
+          status: isComplete ? 'completed' : 'active',
+          ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+        })
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       toast.success('Step marked as complete');
       loadData();
     } catch (error: any) {

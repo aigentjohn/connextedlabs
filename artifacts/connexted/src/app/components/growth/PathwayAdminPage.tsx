@@ -262,7 +262,7 @@ const VERIFICATION_METHODS = [
 // ============================================================================
 
 export default function PathwayAdminPage() {
-  const { profile, session } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   // All pathways list
@@ -312,12 +312,17 @@ export default function PathwayAdminPage() {
   async function loadPathways() {
     setLoadingPathways(true);
     try {
-      const res = await fetch('/api/pathways', {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const result = await res.json();
-      setPathways(result.pathways || []);
+      const { data, error } = await supabase
+        .from('pathways')
+        .select('*, pathway_steps(*)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPathways(
+        (data || []).map((p: any) => ({
+          ...p,
+          steps: (p.pathway_steps || []).sort((a: any, b: any) => a.order_index - b.order_index),
+        }))
+      );
     } catch (error) {
       console.error('Error loading pathways:', error);
       toast.error('Failed to load pathways');
@@ -642,19 +647,23 @@ export default function PathwayAdminPage() {
         })),
       };
 
-      const url = form.id ? `/api/pathways/${form.id}` : '/api/pathways';
-      const method = form.id ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `API error: ${res.status}`);
+      const { steps: stepPayload, ...pathwayData } = payload as { steps: any[] } & Record<string, unknown>;
+
+      let pathwayId = form.id;
+      if (pathwayId) {
+        const { error } = await supabase.from('pathways').update(pathwayData).eq('id', pathwayId);
+        if (error) throw error;
+        await supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId);
+      } else {
+        const { data, error } = await supabase.from('pathways').insert(pathwayData).select('id').single();
+        if (error) throw error;
+        pathwayId = (data as any).id;
+      }
+
+      if (stepPayload && stepPayload.length > 0) {
+        const stepRows = stepPayload.map((s: any) => ({ ...s, pathway_id: pathwayId }));
+        const { error } = await supabase.from('pathway_steps').insert(stepRows);
+        if (error) throw error;
       }
 
       toast.success(form.id ? 'Pathway updated!' : 'Pathway created!');
@@ -671,14 +680,9 @@ export default function PathwayAdminPage() {
 
   async function archivePathway(id: string) {
     try {
-      const res = await fetch(`/api/pathways/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `API error: ${res.status}`);
-      }
+      await supabase.from('pathway_steps').delete().eq('pathway_id', id);
+      const { error } = await supabase.from('pathways').delete().eq('id', id);
+      if (error) throw error;
       toast.success('Pathway deleted');
       loadPathways();
     } catch (error: any) {

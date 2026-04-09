@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Card, CardContent } from '@/app/components/ui/card';
@@ -72,26 +73,6 @@ interface EnrollmentMap {
 }
 
 // ============================================================================
-// API
-// ============================================================================
-
-async function fetchAPI(path: string, options?: RequestInit) {
-  const response = await fetch(`/api${path}`, {
-    method: options?.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    ...(options?.body ? { body: options.body } : {}),
-  });
-
-  if (!response.ok) {
-    let msg = `API error: ${response.status}`;
-    try { const e = await response.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
-    throw new Error(msg);
-  }
-
-  return response.json();
-}
-
-// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -115,22 +96,30 @@ export default function BrowsePathwaysPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [pathwaysRes, enrollmentsRes] = await Promise.allSettled([
-        fetchAPI('/pathways'),
-        profile?.id ? fetchAPI(`/pathways/user/${profile.id}/enrollments`) : Promise.resolve({ enrollments: [] }),
-      ]);
+      const { data: pathwaysData, error: pathwaysError } = await supabase
+        .from('pathways')
+        .select('*, pathway_steps(*)')
+        .eq('status', 'published')
+        .order('is_featured', { ascending: false });
 
-      if (pathwaysRes.status === 'fulfilled') {
-        setPathways(pathwaysRes.value.pathways || []);
-      }
+      if (pathwaysError) throw pathwaysError;
 
-      if (enrollmentsRes.status === 'fulfilled') {
+      setPathways(
+        (pathwaysData || []).map((p: any) => ({
+          ...p,
+          steps: (p.pathway_steps || []).sort((a: any, b: any) => a.order_index - b.order_index),
+        }))
+      );
+
+      if (profile?.id) {
+        const { data: enrollData } = await supabase
+          .from('pathway_enrollments')
+          .select('pathway_id, status, progress_pct')
+          .eq('user_id', profile.id);
+
         const map: EnrollmentMap = {};
-        for (const ep of (enrollmentsRes.value.enrollments || [])) {
-          map[ep.enrollment.pathway_id] = {
-            status: ep.enrollment.status,
-            progress_pct: ep.enrollment.progress_pct || 0,
-          };
+        for (const e of (enrollData || [])) {
+          map[e.pathway_id] = { status: e.status, progress_pct: e.progress_pct || 0 };
         }
         setEnrollments(map);
       }
@@ -148,10 +137,20 @@ export default function BrowsePathwaysPage() {
     }
     setEnrolling(pathwayId);
     try {
-      await fetchAPI(`/pathways/${pathwayId}/enroll`, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: profile.id }),
-      });
+      const { data: existing } = await supabase
+        .from('pathway_enrollments')
+        .select('id')
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await supabase
+          .from('pathway_enrollments')
+          .insert({ pathway_id: pathwayId, user_id: profile.id });
+        if (error) throw error;
+      }
+
       toast.success('Enrolled! Head to My Pathways to start.');
       loadData();
     } catch (err: any) {
