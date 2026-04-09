@@ -1,5 +1,8 @@
 {
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/connexted run build",
-  "outputDirectory": "artifacts/connexted/dist/public"
+  "outputDirectory": "artifacts/connexted/dist/public",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
