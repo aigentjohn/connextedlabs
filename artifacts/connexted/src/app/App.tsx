@@ -677,6 +677,7 @@ const router = createBrowserRouter([
           { path: '/surveys', element: <SurveysPage /> },
           { path: '/surveys/create', element: <CreateSurveyPage /> },
           { path: '/surveys/:slug', element: <SurveyDetailPage /> },
+          { path: '/surveys/:slug/edit', element: <CreateSurveyPage /> },
           { path: '/surveys/:slug/results', element: <SurveyResultsPage /> },
           // Meetups
           { path: '/meetups', element: <MeetupsPage /> },
