@@ -43,6 +43,8 @@ import {
   X,
   GripVertical,
   Info,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 // ============================================================================
@@ -203,6 +205,9 @@ export default function CreateSurveyPage() {
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
 
   useEffect(() => {
     if (isEditing) loadSurvey();
@@ -478,6 +483,212 @@ export default function CreateSurveyPage() {
                    form.survey_type === 'assessment' ? BarChart3 : ClipboardList;
   const TypeIcon = typeIcon;
 
+  // ── AI Prompt Download ──────────────────────────────────────────────────────
+
+  function downloadPrompt() {
+    const prompt = `You are a survey builder. Generate a survey, quiz, or assessment in the exact JSON format below.
+
+INSTRUCTIONS
+============
+- Output only valid JSON — no markdown, no explanation, no code fences.
+- Follow the schema exactly. Do not add extra fields.
+- For "survey_type" use one of: "survey", "quiz", "assessment"
+- For "question_type" use one of: "multiple_choice", "multi_select", "yes_no", "rating", "text", "long_text"
+- Option ids must be unique strings (e.g. "opt_1", "opt_2", ...).
+- For quiz: set "correct_option_ids" to the ids of the correct options. Set "points" per question.
+- For assessment: fill in the "weights" object — for each option id, map each conclusion key to a numeric weight (0–10). Leave "weights" as {} for non-choice questions.
+- For non-choice questions (rating, text, long_text, yes_no) "options" should be [].
+- "conclusions" is only used for assessments. Leave it as [] for survey and quiz.
+- "tags" is an array of short keyword strings.
+
+JSON SCHEMA
+===========
+{
+  "name": "string — title of the survey",
+  "short_description": "string — one sentence shown on the browse page",
+  "description": "string — longer optional description",
+  "survey_type": "survey | quiz | assessment",
+  "tags": ["string"],
+  "questions": [
+    {
+      "order_index": 0,
+      "question_type": "multiple_choice | multi_select | yes_no | rating | text | long_text",
+      "text": "string — the question",
+      "description": "string — optional hint shown under the question",
+      "is_required": true,
+      "options": [
+        { "id": "opt_1", "text": "string" }
+      ],
+      "correct_option_ids": ["opt_1"],
+      "points": 1,
+      "explanation": "string — shown after quiz submission",
+      "weights": {
+        "opt_1": { "conclusion_key": 5 }
+      },
+      "rating_min": 1,
+      "rating_max": 5,
+      "rating_min_label": "string",
+      "rating_max_label": "string"
+    }
+  ],
+  "conclusions": [
+    {
+      "key": "string — short slug, e.g. explorer",
+      "title": "string — conclusion title",
+      "description": "string — 2-3 sentences describing this outcome",
+      "recommendation": "string — optional action or next step",
+      "color": "from-indigo-400 to-violet-500",
+      "order_index": 0
+    }
+  ]
+}
+
+EXAMPLE OUTPUT (Quiz)
+=====================
+{
+  "name": "JavaScript Fundamentals Quiz",
+  "short_description": "Test your knowledge of JavaScript basics.",
+  "description": "A 3-question quiz covering variables, types, and functions.",
+  "survey_type": "quiz",
+  "tags": ["javascript", "programming", "beginner"],
+  "questions": [
+    {
+      "order_index": 0,
+      "question_type": "multiple_choice",
+      "text": "Which keyword declares a block-scoped variable in JavaScript?",
+      "description": "",
+      "is_required": true,
+      "options": [
+        { "id": "opt_1", "text": "var" },
+        { "id": "opt_2", "text": "let" },
+        { "id": "opt_3", "text": "const" },
+        { "id": "opt_4", "text": "def" }
+      ],
+      "correct_option_ids": ["opt_2"],
+      "points": 1,
+      "explanation": "'let' declares a block-scoped variable. 'var' is function-scoped. 'const' is block-scoped but cannot be reassigned. 'def' is not valid JavaScript.",
+      "weights": {},
+      "rating_min": 1, "rating_max": 5,
+      "rating_min_label": "", "rating_max_label": ""
+    }
+  ],
+  "conclusions": []
+}
+
+NOW GENERATE
+============
+Describe what you want below and paste this entire prompt into Claude, ChatGPT, or any AI assistant.
+Copy the JSON it outputs, then use the "Import JSON" button in the survey builder to load it.
+
+YOUR REQUEST:
+[Describe your survey here — e.g. "A 5-question quiz on photosynthesis for high school students, multiple choice, with explanations"]
+`;
+
+    const blob = new Blob([prompt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'survey-ai-prompt.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── JSON Import ─────────────────────────────────────────────────────────────
+
+  function importJson() {
+    setImportError('');
+    let parsed: any;
+    try {
+      parsed = JSON.parse(importText.trim());
+    } catch {
+      setImportError('Invalid JSON — make sure you copied the full output from the AI tool.');
+      return;
+    }
+
+    // Basic shape validation
+    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      setImportError('Missing "questions" array. Make sure you used the provided prompt.');
+      return;
+    }
+
+    const questions: Question[] = parsed.questions.map((q: any, i: number) => ({
+      id: crypto.randomUUID(),
+      order_index: i,
+      question_type: q.question_type || 'multiple_choice',
+      text: q.text || '',
+      description: q.description || '',
+      is_required: q.is_required !== false,
+      options: (q.options || []).map((o: any) => ({
+        id: crypto.randomUUID(),
+        text: o.text || '',
+        _importId: o.id, // preserve for correct_option_ids remapping below
+      })),
+      correct_option_ids: [],
+      points: q.points ?? 1,
+      explanation: q.explanation || '',
+      weights: {},
+      rating_min: q.rating_min ?? 1,
+      rating_max: q.rating_max ?? 5,
+      rating_min_label: q.rating_min_label || '',
+      rating_max_label: q.rating_max_label || '',
+    }));
+
+    // Remap correct_option_ids from import ids to new UUIDs
+    parsed.questions.forEach((origQ: any, i: number) => {
+      if (!origQ.correct_option_ids?.length) return;
+      const idMap: Record<string, string> = {};
+      (origQ.options || []).forEach((o: any, oi: number) => {
+        idMap[o.id] = (questions[i].options[oi] as any).id;
+      });
+      questions[i].correct_option_ids = origQ.correct_option_ids
+        .map((oldId: string) => idMap[oldId])
+        .filter(Boolean);
+    });
+
+    // Remap weights
+    parsed.questions.forEach((origQ: any, i: number) => {
+      if (!origQ.weights || Object.keys(origQ.weights).length === 0) return;
+      const idMap: Record<string, string> = {};
+      (origQ.options || []).forEach((o: any, oi: number) => {
+        idMap[o.id] = (questions[i].options[oi] as any).id;
+      });
+      const remapped: Record<string, Record<string, number>> = {};
+      for (const [oldOptId, conclusionWeights] of Object.entries(origQ.weights)) {
+        const newOptId = idMap[oldOptId];
+        if (newOptId) remapped[newOptId] = conclusionWeights as Record<string, number>;
+      }
+      questions[i].weights = remapped;
+    });
+
+    // Strip _importId helper field
+    questions.forEach(q => q.options.forEach((o: any) => delete o._importId));
+
+    const conclusions: Conclusion[] = (parsed.conclusions || []).map((c: any, i: number) => ({
+      id: crypto.randomUUID(),
+      key: c.key || slugify(c.title || ''),
+      title: c.title || '',
+      description: c.description || '',
+      recommendation: c.recommendation || '',
+      color: c.color || GRADIENT_OPTIONS[i % GRADIENT_OPTIONS.length].value,
+      order_index: i,
+    }));
+
+    setForm(prev => ({
+      ...prev,
+      name:             parsed.name             || prev.name,
+      short_description: parsed.short_description || prev.short_description,
+      description:      parsed.description      || prev.description,
+      survey_type:      parsed.survey_type       || prev.survey_type,
+      tags:             Array.isArray(parsed.tags) ? parsed.tags : prev.tags,
+      questions,
+      conclusions,
+    }));
+
+    setImportModalOpen(false);
+    setImportText('');
+    toast.success(`Imported ${questions.length} question${questions.length !== 1 ? 's' : ''}${conclusions.length ? ` and ${conclusions.length} conclusions` : ''}`);
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <Breadcrumbs items={[
@@ -491,6 +702,14 @@ export default function CreateSurveyPage() {
           {isEditing ? 'Edit Survey' : 'Create New Survey'}
         </h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={downloadPrompt}>
+            <Download className="w-4 h-4 mr-1.5" />
+            AI Prompt
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setImportError(''); setImportModalOpen(true); }}>
+            <Upload className="w-4 h-4 mr-1.5" />
+            Import JSON
+          </Button>
           <Button variant="outline" onClick={() => navigate('/surveys')}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="bg-rose-600 hover:bg-rose-700 text-white">
             <Save className="w-4 h-4 mr-2" />
@@ -1012,6 +1231,54 @@ export default function CreateSurveyPage() {
           {saving ? 'Saving...' : 'Save Survey'}
         </Button>
       </div>
+
+      {/* ── Import JSON Modal ── */}
+      {importModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl flex flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Upload className="w-5 h-5 text-rose-500" />
+                Import Survey JSON
+              </h2>
+              <button onClick={() => setImportModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Paste the JSON output from your AI tool below. Use the{' '}
+              <button onClick={downloadPrompt} className="text-rose-600 underline hover:no-underline">
+                AI Prompt
+              </button>{' '}
+              button to get the exact prompt to run in Claude, ChatGPT, or similar.
+            </p>
+
+            <Textarea
+              value={importText}
+              onChange={e => { setImportText(e.target.value); setImportError(''); }}
+              placeholder={'{\n  "name": "...",\n  "survey_type": "quiz",\n  "questions": [...]\n}'}
+              className="font-mono text-xs min-h-[240px] resize-y"
+            />
+
+            {importError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{importError}</p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setImportModalOpen(false)}>Cancel</Button>
+              <Button
+                onClick={importJson}
+                disabled={!importText.trim()}
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
