@@ -83,6 +83,7 @@ export const VISIBILITY_RULES: Record<string, VisibilityRule> = {
   checklists: { unlistedPassesListFilter: true,  memberRequiresTier: false },
   prompts:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
   circles:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
+  surveys:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
 
   // ── Containers where 'unlisted' should NOT appear in browse lists ──
   // (e.g. builds/pitches are typically shared by direct link)

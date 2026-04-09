@@ -15,10 +15,11 @@ import {
   Library,
   CheckSquare,
   Sparkles,
+  ClipboardList,
   LucideIcon
 } from 'lucide-react';
 
-export type ContainerType = 
+export type ContainerType =
   | 'circles'
   | 'playlists'
   | 'builds'
@@ -34,7 +35,8 @@ export type ContainerType =
   | 'magazines'
   | 'libraries'
   | 'checklists'
-  | 'prompts';
+  | 'prompts'
+  | 'surveys';
 
 export interface ContainerTypeConfig {
   icon: LucideIcon;
@@ -161,6 +163,13 @@ export const CONTAINER_TYPES: Record<ContainerType, ContainerTypeConfig> = {
     iconColor: 'text-amber-600',
     label: 'Prompt',
     labelPlural: 'Prompts'
+  },
+  surveys: {
+    icon: ClipboardList,
+    color: 'bg-rose-100',
+    iconColor: 'text-rose-600',
+    label: 'Survey',
+    labelPlural: 'Surveys'
   },
 } as const;
 

@@ -293,6 +293,10 @@ const StandupsPage = lazy(() => import('@/app/components/StandupsPage'));
 const CreateStandupPage = lazy(() => import('@/app/components/standup/CreateStandupPage'));
 const StandupDetailPage = lazy(() => import('@/app/components/standup/StandupDetailPage'));
 const StandupSettingsPage = lazy(() => import('@/app/components/standup/StandupSettingsPage'));
+const SurveysPage = lazy(() => import('@/app/components/SurveysPage'));
+const CreateSurveyPage = lazy(() => import('@/app/components/survey/CreateSurveyPage'));
+const SurveyDetailPage = lazy(() => import('@/app/components/survey/SurveyDetailPage'));
+const SurveyResultsPage = lazy(() => import('@/app/components/survey/SurveyResultsPage'));
 
 // Meetups
 const MeetupsPage = lazy(() => import('@/app/components/MeetupsPage'));
@@ -669,6 +673,11 @@ const router = createBrowserRouter([
           { path: '/standups/create', element: <CreateStandupPage /> },
           { path: '/standups/:slug', element: <StandupDetailPage /> },
           { path: '/standups/:slug/settings', element: <StandupSettingsPage /> },
+          // Surveys / Quizzes / Assessments
+          { path: '/surveys', element: <SurveysPage /> },
+          { path: '/surveys/create', element: <CreateSurveyPage /> },
+          { path: '/surveys/:slug', element: <SurveyDetailPage /> },
+          { path: '/surveys/:slug/results', element: <SurveyResultsPage /> },
           // Meetups
           { path: '/meetups', element: <MeetupsPage /> },
           { path: '/meetups/create', element: <CreateMeetupPage /> },
