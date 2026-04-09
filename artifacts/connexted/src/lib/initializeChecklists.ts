@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Initialize the checklists and sprints system
@@ -17,13 +18,13 @@ export async function initializeChecklistsSystem() {
     }
 
     if (error) {
-      console.error('Error calling initialize_checklists_system function:', error);
+      logError('Error calling initialize_checklists_system function:', error, { component: 'initializeChecklists' });
       return { success: false, error };
     }
 
     return { success: true, data };
   } catch (error) {
-    console.error('Error initializing checklists system:', error);
+    logError('Error initializing checklists system:', error, { component: 'initializeChecklists' });
     return { success: false, error };
   }
 }
@@ -245,7 +246,7 @@ async function createTablesDirectly() {
     const { error } = await supabase.rpc('exec_sql', { sql: createTablesSQL });
     
     if (error) {
-      console.error('Error creating tables:', error);
+      logError('Error creating tables:', error, { component: 'initializeChecklists' });
       return {
         success: false,
         error,
@@ -255,7 +256,7 @@ async function createTablesDirectly() {
 
     return { success: true, message: 'Tables created successfully' };
   } catch (error: any) {
-    console.error('Error in createTablesDirectly:', error);
+    logError('Error in createTablesDirectly:', error, { component: 'initializeChecklists' });
     return {
       success: false,
       error,

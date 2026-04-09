@@ -9,6 +9,7 @@
 
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f`;
 
@@ -19,7 +20,7 @@ async function getAuthToken(): Promise<string | null> {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token ?? null;
   } catch (err) {
-    console.error('Error getting auth token:', err);
+    logError('Error getting auth token:', err, { component: 'ticketSystemService' });
     return null;
   }
 }
@@ -51,12 +52,7 @@ async function api<T = any>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    console.error(`API Error [${path}]:`, {
-      status: res.status,
-      error: err,
-      requireAuth,
-      hasToken: !!token,
-    });
+    logError(`API Error [${path}]:`, { status: res.status, error: err, requireAuth, hasToken: !!token }, { component: 'ticketSystemService' });
     throw new Error(err.error || `Request failed: ${res.status}`);
   }
   return res.json();

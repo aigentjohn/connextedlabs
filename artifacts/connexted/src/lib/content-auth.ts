@@ -10,6 +10,7 @@
  */
 
 import { useAuth } from './auth-context';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Maps each Supabase table to the column name(s) that identify the creator.
@@ -70,7 +71,7 @@ export function useContentAuth() {
 
   function ownerFields(table: string): Record<string, string> {
     if (!userId) {
-      console.error('[content-auth] ownerFields called with no authenticated user');
+      logError('[content-auth] ownerFields called with no authenticated user', null, { component: 'content-auth' });
     }
     return ownerFieldsFor(table, userId);
   }

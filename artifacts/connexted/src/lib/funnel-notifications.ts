@@ -8,6 +8,7 @@
 import { supabase } from './supabase';
 import { MemberState, MEMBER_STATES } from './funnel-system';
 import { sendNotification } from './notification-sender';
+import { logError } from '@/lib/error-handler';
 
 interface CreateFunnelNotificationParams {
   userId: string;
@@ -101,7 +102,7 @@ export async function createPaymentNotification(
   const { error } = await supabase.from('notifications').insert(notification);
 
   if (error) {
-    console.error('Error creating payment notification:', error);
+    logError('Error creating payment notification:', error, { component: 'funnel-notifications' });
     throw error;
   }
 }
@@ -140,7 +141,7 @@ export async function createInvitationNotification(
   const { error } = await supabase.from('notifications').insert(notification);
 
   if (error) {
-    console.error('Error creating invitation notification:', error);
+    logError('Error creating invitation notification:', error, { component: 'funnel-notifications' });
     throw error;
   }
 }
@@ -174,7 +175,7 @@ export async function createApplicationNotification(
   const { error } = await supabase.from('notifications').insert(notification);
 
   if (error) {
-    console.error('Error creating application notification:', error);
+    logError('Error creating application notification:', error, { component: 'funnel-notifications' });
     throw error;
   }
 }
@@ -200,7 +201,7 @@ export async function onParticipantStateChange(
     .single();
 
   if (error || !participant) {
-    console.error('Error fetching participant for notification:', error);
+    logError('Error fetching participant for notification:', error, { component: 'funnel-notifications' });
     return;
   }
 

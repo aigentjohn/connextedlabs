@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 interface SendNotificationParams {
   userId: string;
@@ -70,13 +71,13 @@ export async function sendNotification({
       });
 
     if (error) {
-      console.error('Error creating notification:', error);
+      logError('Error creating notification:', error, { component: 'notification-sender' });
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error sending notification:', error);
+    logError('Error sending notification:', error, { component: 'notification-sender' });
     return false;
   }
 }
@@ -108,13 +109,13 @@ export async function getUserNotificationPreferences(userId: string) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error fetching preferences:', error);
+      logError('Error fetching preferences:', error, { component: 'notification-sender' });
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching preferences:', error);
+    logError('Error fetching preferences:', error, { component: 'notification-sender' });
     return [];
   }
 }
@@ -154,17 +155,17 @@ export async function setNotificationPreference(
         });
 
       if (insertError) {
-        console.error('Error inserting preference:', insertError);
+        logError('Error inserting preference:', insertError, { component: 'notification-sender' });
         return false;
       }
     } else if (updateError) {
-      console.error('Error updating preference:', updateError);
+      logError('Error updating preference:', updateError, { component: 'notification-sender' });
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error setting preference:', error);
+    logError('Error setting preference:', error, { component: 'notification-sender' });
     return false;
   }
 }

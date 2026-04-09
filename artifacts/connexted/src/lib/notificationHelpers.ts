@@ -1,5 +1,6 @@
 // Split candidate: ~792 lines — consider separating notifyUser, notifyBulk, and notification-type-specific helpers into sub-modules.
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 // Notification Categories
 export type NotificationCategory = 'social' | 'events' | 'circles' | 'programs' | 'system';
@@ -75,14 +76,14 @@ async function checkUserPreference(userId: string, category: NotificationCategor
       if (error.code === 'PGRST116' || error.code === '42P01') {
         return true;
       }
-      console.error('Error checking notification preference:', error);
+      logError('Error checking notification preference:', error, { component: 'notificationHelpers' });
       return true; // Default to enabled on error
     }
 
     // If no preference set, default to enabled
     return data?.enabled !== false;
   } catch (error) {
-    console.error('Error checking notification preference:', error);
+    logError('Error checking notification preference:', error, { component: 'notificationHelpers' });
     return true; // Default to enabled
   }
 }
@@ -133,7 +134,7 @@ async function createNotification(
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logError('Error creating notification:', error, { component: 'notificationHelpers' });
     return false;
   }
 }
@@ -323,7 +324,7 @@ export async function notifyEventCreated(
       );
     }
   } catch (error) {
-    console.error('Error notifying event created:', error);
+    logError('Error notifying event created:', error, { component: 'notificationHelpers' });
   }
 }
 
@@ -363,7 +364,7 @@ export async function notifyEventCancelled(
       );
     }
   } catch (error) {
-    console.error('Error notifying event cancelled:', error);
+    logError('Error notifying event cancelled:', error, { component: 'notificationHelpers' });
   }
 }
 
@@ -406,7 +407,7 @@ export async function notifyEventRescheduled(
       );
     }
   } catch (error) {
-    console.error('Error notifying event rescheduled:', error);
+    logError('Error notifying event rescheduled:', error, { component: 'notificationHelpers' });
   }
 }
 
@@ -576,7 +577,7 @@ export async function createApplicationNotification(
       .eq('user_id', userId)
       .eq('program_id', programId);
   } catch (error) {
-    console.error('Error updating program application:', error);
+    logError('Error updating program application:', error, { component: 'notificationHelpers' });
   }
 }
 

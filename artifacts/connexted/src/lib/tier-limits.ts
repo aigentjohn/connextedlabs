@@ -7,6 +7,7 @@
 // Split candidate: ~576 lines — consider separating tier-check helpers, tier-limit constants, and upgrade-prompt utilities into sub-modules.
 
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 // ============================================================
 // TYPES
@@ -72,7 +73,7 @@ export async function getUserTierLimits(userId: string): Promise<TierLimits | nu
       .single();
 
     if (error || !data) {
-      console.error('Error fetching tier limits:', error);
+      logError('Error fetching tier limits:', error, { component: 'tier-limits' });
       return null;
     }
 
@@ -91,7 +92,7 @@ export async function getUserTierLimits(userId: string): Promise<TierLimits | nu
       tierNumber: tier.tier_number,
     };
   } catch (error) {
-    console.error('Error in getUserTierLimits:', error);
+    logError('Error in getUserTierLimits:', error, { component: 'tier-limits' });
     return null;
   }
 }
@@ -153,7 +154,7 @@ export async function canJoinCircle(userId: string): Promise<AccessCheckResult> 
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Error counting circles:', error);
+    logError('Error counting circles:', error, { component: 'tier-limits' });
     return {
       canAccess: false,
       reason: 'Error checking circle limit',
@@ -246,7 +247,7 @@ export async function canJoinContainer(
     .eq('is_program_container', false);
 
   if (error) {
-    console.error('Error counting containers:', error);
+    logError('Error counting containers:', error, { component: 'tier-limits' });
     return {
       canAccess: false,
       reason: 'Error checking container limit',

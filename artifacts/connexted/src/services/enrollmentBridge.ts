@@ -22,6 +22,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { accessTicketService, type ContainerType, type AcquisitionSource, type TicketType } from './accessTicketService';
+import { logError } from '@/lib/error-handler';
 
 // ============================================================================
 // COURSE ENROLLMENT (free/direct)
@@ -113,14 +114,14 @@ export async function enrollInCourse(params: {
           .single();
         enrollmentId = existing?.id || '';
       } else {
-        console.error('Failed to create legacy course_enrollment:', error);
+        logError('Failed to create legacy course_enrollment:', error, { component: 'enrollmentBridge' });
         // Don't throw — ticket was created successfully, legacy is best-effort
       }
     } else {
       enrollmentId = enrollment?.id || '';
     }
   } catch (err) {
-    console.error('Legacy course_enrollment bridge error:', err);
+    logError('Legacy course_enrollment bridge error:', err, { component: 'enrollmentBridge' });
     // Non-fatal — ticket is the source of truth
   }
 
@@ -218,13 +219,13 @@ export async function enrollInProgram(params: {
           .single();
         membershipId = existing?.id || '';
       } else {
-        console.error('Failed to create legacy program_member:', error);
+        logError('Failed to create legacy program_member:', error, { component: 'enrollmentBridge' });
       }
     } else {
       membershipId = membership?.id || '';
     }
   } catch (err) {
-    console.error('Legacy program_member bridge error:', err);
+    logError('Legacy program_member bridge error:', err, { component: 'enrollmentBridge' });
   }
 
   return { ticketId, membershipId };
@@ -460,7 +461,7 @@ export async function checkAccess(params: {
       return { hasAccess: true, source: 'ticket' };
     }
   } catch (err) {
-    console.error('Ticket access check error:', err);
+    logError('Ticket access check error:', err, { component: 'enrollmentBridge' });
   }
 
   // 2. Fallback to legacy tables

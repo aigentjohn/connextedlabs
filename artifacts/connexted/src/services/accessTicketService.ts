@@ -16,6 +16,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 // ============================================================================
 // HELPERS
@@ -351,7 +352,7 @@ export const accessTicketService = {
           updated_at: now,
         } as AccessTicket;
       }
-      console.error('Failed to create access ticket:', error);
+      logError('Failed to create access ticket:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to create ticket: ${error.message}`);
     }
 
@@ -376,7 +377,7 @@ export const accessTicketService = {
             .eq('id', referrer.id);
         }
       } catch (refErr) {
-        console.error('Failed to credit referrer (non-critical):', refErr);
+        logError('Failed to credit referrer (non-critical):', refErr, { component: 'accessTicketService' });
       }
     }
 
@@ -410,7 +411,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return false;
-      console.error('Failed to check access:', error);
+      logError('Failed to check access:', error, { component: 'accessTicketService' });
       return false;
     }
 
@@ -441,7 +442,7 @@ export const accessTicketService = {
 
       if (error) {
         if (isTableMissing(error)) return false;
-        console.error('Failed to check bundle access:', error);
+        logError('Failed to check bundle access:', error, { component: 'accessTicketService' });
         return false;
       }
 
@@ -457,7 +458,7 @@ export const accessTicketService = {
         );
       });
     } catch (err) {
-      console.error('Failed to check bundle access:', err);
+      logError('Failed to check bundle access:', err, { component: 'accessTicketService' });
       return false;
     }
   },
@@ -487,7 +488,7 @@ export const accessTicketService = {
       if (error.code === 'PGRST116' || isTableMissing(error)) {
         return null;
       }
-      console.error('Failed to fetch user ticket:', error);
+      logError('Failed to fetch user ticket:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch ticket: ${error.message}`);
     }
 
@@ -513,7 +514,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return [];
-      console.error('Failed to fetch user active tickets:', error);
+      logError('Failed to fetch user active tickets:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch tickets: ${error.message}`);
     }
 
@@ -541,7 +542,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return [];
-      console.error('Failed to fetch user tickets by type:', error);
+      logError('Failed to fetch user tickets by type:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch tickets: ${error.message}`);
     }
 
@@ -584,7 +585,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return false;
-      console.error('Failed to update ticket progress:', error);
+      logError('Failed to update ticket progress:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to update progress: ${error.message}`);
     }
 
@@ -616,7 +617,7 @@ export const accessTicketService = {
 
       if (readErr || !ticket) {
         if (readErr && !isTableMissing(readErr)) {
-          console.error('Failed to read ticket for access recording:', readErr);
+          logError('Failed to read ticket for access recording:', readErr, { component: 'accessTicketService' });
         }
         return;
       }
@@ -631,7 +632,7 @@ export const accessTicketService = {
         })
         .eq('id', ticket.id);
     } catch (err) {
-      console.error('Failed to record access (non-critical):', err);
+      logError('Failed to record access (non-critical):', err, { component: 'accessTicketService' });
     }
   },
 
@@ -658,7 +659,7 @@ export const accessTicketService = {
 
     if (error) {
       if (error.code === 'PGRST116' || isTableMissing(error)) return null;
-      console.error('Failed to fetch referral stats:', error);
+      logError('Failed to fetch referral stats:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch stats: ${error.message}`);
     }
 
@@ -691,7 +692,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return { total: 0, active: 0, completed: 0, totalRevenue: 0, bySource: {} };
-      console.error('Failed to fetch container analytics:', error);
+      logError('Failed to fetch container analytics:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch analytics: ${error.message}`);
     }
 
@@ -748,7 +749,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return { total: 0, active: 0, completed: 0, totalRevenue: 0, bySource: {}, byType: {} };
-      console.error('Failed to fetch platform analytics:', error);
+      logError('Failed to fetch platform analytics:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch analytics: ${error.message}`);
     }
 
@@ -839,7 +840,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return false;
-      console.error('Failed to cancel ticket:', error);
+      logError('Failed to cancel ticket:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to cancel: ${error.message}`);
     }
 
@@ -885,7 +886,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return [];
-      console.error('Failed to fetch top referrers:', error);
+      logError('Failed to fetch top referrers:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch referrers: ${error.message}`);
     }
 
@@ -908,7 +909,7 @@ export const accessTicketService = {
 
     if (error) {
       if (error.code === 'PGRST116' || isTableMissing(error)) return null;
-      console.error('Failed to validate referral code:', error);
+      logError('Failed to validate referral code:', error, { component: 'accessTicketService' });
       return null;
     }
 
@@ -931,7 +932,7 @@ export const accessTicketService = {
 
       if (readErr || !ticket) {
         if (readErr && !isTableMissing(readErr)) {
-          console.error('Failed to read ticket for referral click:', readErr);
+          logError('Failed to read ticket for referral click:', readErr, { component: 'accessTicketService' });
         }
         return;
       }
@@ -943,7 +944,7 @@ export const accessTicketService = {
         })
         .eq('id', ticket.id);
     } catch (err) {
-      console.error('Failed to track referral click (non-critical):', err);
+      logError('Failed to track referral click (non-critical):', err, { component: 'accessTicketService' });
     }
   },
 
@@ -969,7 +970,7 @@ export const accessTicketService = {
 
     if (error) {
       if (isTableMissing(error)) return { totalEarnings: 0, totalConversions: 0, totalClicks: 0, byType: {} };
-      console.error('Failed to fetch user referral earnings:', error);
+      logError('Failed to fetch user referral earnings:', error, { component: 'accessTicketService' });
       throw new Error(`Failed to fetch earnings: ${error.message}`);
     }
 

@@ -1,6 +1,7 @@
 // Split candidate: ~410 lines — consider separating ContentAnalytics, MemberAnalytics, and EngagementAnalytics into focused modules.
 import { supabase } from '@/lib/supabase';
 import { startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, startOfDay, subDays, format } from 'date-fns';
+import { logError } from '@/lib/error-handler';
 
 export interface PlatformMetrics {
   totalUsers: number;
@@ -155,7 +156,7 @@ export async function getPlatformMetrics(): Promise<PlatformMetrics> {
       },
     };
   } catch (error) {
-    console.error('Error fetching platform metrics:', error);
+    logError('Error fetching platform metrics:', error, { component: 'analytics' });
     throw error;
   }
 }
@@ -213,7 +214,7 @@ export async function getEngagementTrend(days: number = 30): Promise<EngagementT
       users: data.users.size,
     }));
   } catch (error) {
-    console.error('Error fetching engagement trend:', error);
+    logError('Error fetching engagement trend:', error, { component: 'analytics' });
     return [];
   }
 }
@@ -335,7 +336,7 @@ export async function getProgramMetrics(programId: string): Promise<ProgramMetri
       memberGrowthData,
     };
   } catch (error) {
-    console.error('Error fetching program metrics:', error);
+    logError('Error fetching program metrics:', error, { component: 'analytics' });
     throw error;
   }
 }
@@ -373,7 +374,7 @@ export async function getUserGrowthData(months: number = 12): Promise<{ month: s
 
     return result;
   } catch (error) {
-    console.error('Error fetching user growth data:', error);
+    logError('Error fetching user growth data:', error, { component: 'analytics' });
     return [];
   }
 }
@@ -405,7 +406,7 @@ export async function getContainerUsageBreakdown(): Promise<{ name: string; valu
 
     return results.filter(r => r.value > 0);
   } catch (error) {
-    console.error('Error fetching container usage:', error);
+    logError('Error fetching container usage:', error, { component: 'analytics' });
     return [];
   }
 }

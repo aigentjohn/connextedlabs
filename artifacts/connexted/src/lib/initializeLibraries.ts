@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Initialize the libraries system
@@ -11,13 +12,13 @@ export async function initializeLibrariesSystem() {
     const { data, error } = await supabase.rpc('initialize_libraries_system');
 
     if (error) {
-      console.error('Error calling initialize_libraries_system function:', error);
+      logError('Error calling initialize_libraries_system function:', error, { component: 'initializeLibraries' });
       return { success: false, error };
     }
 
     return { success: true, data };
   } catch (error) {
-    console.error('Error initializing libraries system:', error);
+    logError('Error initializing libraries system:', error, { component: 'initializeLibraries' });
     return { success: false, error };
   }
 }

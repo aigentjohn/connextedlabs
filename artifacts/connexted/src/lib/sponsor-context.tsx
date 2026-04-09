@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
+import { logError } from '@/lib/error-handler';
 
 // =====================================================
 // TYPES
@@ -196,14 +197,14 @@ export function SponsorProvider({ children }: { children: ReactNode }) {
               .eq('sponsor_id', membership.sponsor_id);
 
             if (error) {
-              console.error(`Error counting ${type}:`, error);
+              logError(`Error counting ${type}:`, error, { component: 'sponsor-context' });
               return { container_type: type, count: 0 };
             }
 
             return { container_type: type, count: count || 0 };
           } catch (error) {
             // Silently handle errors for tables that might not exist
-            console.error(`Error counting ${type}:`, error);
+            logError(`Error counting ${type}:`, error, { component: 'sponsor-context' });
             return { container_type: type, count: 0 };
           }
         });
@@ -222,7 +223,7 @@ export function SponsorProvider({ children }: { children: ReactNode }) {
       const permissionsData = await Promise.all(permissionsPromises);
       setPermissions(permissionsData.filter((p): p is SponsorPermissions => p !== null));
     } catch (error) {
-      console.error('Error fetching sponsor data:', error);
+      logError('Error fetching sponsor data:', error, { component: 'sponsor-context' });
     } finally {
       setLoading(false);
     }

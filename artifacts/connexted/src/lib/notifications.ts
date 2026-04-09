@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Get count of programs/circles with updates for a user
@@ -21,13 +22,13 @@ export async function getNotificationCount(userId: string): Promise<number> {
       .eq('read', false);
 
     if (error) {
-      console.error('Error fetching notification count:', error);
+      logError('Error fetching notification count:', error, { component: 'notifications' });
       return 0;
     }
 
     return data?.length || 0;
   } catch (error) {
-    console.error('Error getting notification count:', error);
+    logError('Error getting notification count:', error, { component: 'notifications' });
     return 0;
   }
 }
@@ -43,7 +44,7 @@ export async function clearNotificationFlag(userId: string): Promise<void> {
       .update({ has_new_notifications: false })
       .eq('id', userId);
   } catch (error) {
-    console.error('Error clearing notification flag:', error);
+    logError('Error clearing notification flag:', error, { component: 'notifications' });
   }
 }
 
@@ -59,13 +60,13 @@ export async function hasNewNotifications(userId: string): Promise<boolean> {
       .single();
 
     if (error) {
-      console.error('Error checking notification flag:', error);
+      logError('Error checking notification flag:', error, { component: 'notifications' });
       return false;
     }
 
     return data?.has_new_notifications || false;
   } catch (error) {
-    console.error('Error checking notification flag:', error);
+    logError('Error checking notification flag:', error, { component: 'notifications' });
     return false;
   }
 }
