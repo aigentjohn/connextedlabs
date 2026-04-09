@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { logError } from '@/lib/error-handler';
 
 // ============================================================================
 // COURSE EXPORT/IMPORT SYSTEM
@@ -136,7 +137,7 @@ export async function exportCourse(courseId: string): Promise<CourseExport | nul
 
     return exportData;
   } catch (error: any) {
-    console.error('Error exporting course:', error);
+    logError('Error exporting course:', error, { component: 'courseExportService' });
     toast.error('Failed to export course: ' + error.message);
     return null;
   }
@@ -258,7 +259,7 @@ export async function importCourse(
     toast.success(`Course "${exportData.course.title}" imported successfully!`);
     return course.id;
   } catch (error: any) {
-    console.error('Error importing course:', error);
+    logError('Error importing course:', error, { component: 'courseExportService' });
     toast.error('Failed to import course: ' + error.message);
     return null;
   }
@@ -294,7 +295,7 @@ export function parseCourseExport(jsonString: string): CourseExport | null {
 
     return data as CourseExport;
   } catch (error: any) {
-    console.error('Error parsing course export:', error);
+    logError('Error parsing course export:', error, { component: 'courseExportService' });
     toast.error('Invalid course export file: ' + error.message);
     return null;
   }
@@ -328,7 +329,7 @@ export async function duplicateCourse(
     toast.success(`Course duplicated successfully!`);
     return newCourseId;
   } catch (error: any) {
-    console.error('Error duplicating course:', error);
+    logError('Error duplicating course:', error, { component: 'courseExportService' });
     toast.error('Failed to duplicate course: ' + error.message);
     return null;
   }

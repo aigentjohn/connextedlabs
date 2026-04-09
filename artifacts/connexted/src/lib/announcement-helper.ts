@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Helper to create announcement posts when library items are shared to circles
@@ -35,7 +36,7 @@ export async function createLibraryShareAnnouncement({
       .single();
 
     if (authorError) {
-      console.error('Error fetching author for announcement:', authorError);
+      logError('Error fetching author for announcement:', authorError, { component: 'announcement-helper' });
       return;
     }
 
@@ -74,11 +75,11 @@ export async function createLibraryShareAnnouncement({
       .insert(posts);
 
     if (postError) {
-      console.error('Error creating announcement post:', postError);
+      logError('Error creating announcement post:', postError, { component: 'announcement-helper' });
       // Don't throw - announcement is nice-to-have, shouldn't break the main flow
     }
   } catch (error) {
-    console.error('Unexpected error in createLibraryShareAnnouncement:', error);
+    logError('Unexpected error in createLibraryShareAnnouncement:', error, { component: 'announcement-helper' });
     // Don't throw - announcement is nice-to-have
   }
 }

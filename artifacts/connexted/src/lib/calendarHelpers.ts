@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { CalendarStatus } from '@/app/components/calendar/StatusBadge';
+import { logError } from '@/lib/error-handler';
 
 export type EventType = 
   | 'meeting' 
@@ -169,7 +170,7 @@ export async function fetchUnifiedCalendarData(userId: string, userCircleIds: st
       .order('start_time', { ascending: true });
 
     if (eventsError) {
-      console.error('Error fetching events:', eventsError);
+      logError('Error fetching events:', eventsError, { component: 'calendarHelpers' });
     }
 
     // Filter events to those accessible to user
@@ -215,7 +216,7 @@ export async function fetchUnifiedCalendarData(userId: string, userCircleIds: st
       }
     };
   } catch (error) {
-    console.error('Error fetching unified calendar data:', error);
+    logError('Error fetching unified calendar data:', error, { component: 'calendarHelpers' });
     throw error;
   }
 }

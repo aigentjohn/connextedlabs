@@ -14,6 +14,7 @@
 
 import { supabase } from './supabase';
 import { createFunnelNotification } from './funnel-notifications';
+import { logError } from '@/lib/error-handler';
 
 // =====================================================
 // TYPES
@@ -381,7 +382,7 @@ export async function transitionParticipantState(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
     // Don't fail the whole operation if notification fails
   }
 }
@@ -430,7 +431,7 @@ export async function approveApplication(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
   }
 }
 
@@ -478,7 +479,7 @@ export async function enrollMember(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
   }
 }
 
@@ -526,7 +527,7 @@ export async function markCompleted(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
   }
 }
 
@@ -576,7 +577,7 @@ export async function removeMember(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
   }
 }
 
@@ -624,7 +625,7 @@ export async function rejectApplication(
       });
     }
   } catch (notifError) {
-    console.error('Error creating notification:', notifError);
+    logError('Error creating notification:', notifError, { component: 'funnel-system' });
   }
 }
 

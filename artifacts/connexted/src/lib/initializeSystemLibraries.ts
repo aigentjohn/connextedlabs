@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 /**
  * Initialize system libraries that should exist for all users
@@ -13,7 +14,7 @@ export async function initializeSystemLibraries() {
     const { data, error } = await supabase.rpc('initialize_system_libraries');
 
     if (error) {
-      console.error('Error calling initialize_system_libraries function:', error);
+      logError('Error calling initialize_system_libraries function:', error, { component: 'initializeSystemLibraries' });
       return { success: false, error };
     }
 
@@ -27,7 +28,7 @@ export async function initializeSystemLibraries() {
 
     return { success: true, createdCount };
   } catch (error) {
-    console.error('Error initializing system libraries:', error);
+    logError('Error initializing system libraries:', error, { component: 'initializeSystemLibraries' });
     return { success: false, error };
   }
 }

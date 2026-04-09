@@ -7,6 +7,7 @@
 // Split candidate: ~767 lines — consider splitting into participant-state-transitions.ts, participant-state-history.ts, and participant-state-suggestions.ts.
 
 import { supabase } from './supabase';
+import { logError } from '@/lib/error-handler';
 
 // =====================================================
 // TYPES
@@ -110,13 +111,13 @@ export async function getAllMemberStates(): Promise<MemberState[]> {
       .order('sort_order');
     
     if (error) {
-      console.error('Error loading states:', error);
+      logError('Error loading states:', error, { component: 'participant-states' });
       // Return default states if table doesn't exist
       return getDefaultMemberStates();
     }
     return data || getDefaultMemberStates();
   } catch (error) {
-    console.error('Error loading states:', error);
+    logError('Error loading states:', error, { component: 'participant-states' });
     return getDefaultMemberStates();
   }
 }
@@ -463,12 +464,12 @@ export async function getProgramStateSuggestions(programId: string): Promise<Sta
     });
     
     if (error) {
-      console.error('Error loading suggestions:', error);
+      logError('Error loading suggestions:', error, { component: 'participant-states' });
       return []; // Return empty array instead of throwing
     }
     return data || [];
   } catch (error) {
-    console.error('Error loading suggestions:', error);
+    logError('Error loading suggestions:', error, { component: 'participant-states' });
     return [];
   }
 }
@@ -482,14 +483,14 @@ export async function getCircleStateSuggestions(circleId: string): Promise<State
       p_program_id: null,
       p_circle_id: circleId
     });
-    
+
     if (error) {
-      console.error('Error loading suggestions:', error);
+      logError('Error loading suggestions:', error, { component: 'participant-states' });
       return []; // Return empty array instead of throwing
     }
     return data || [];
   } catch (error) {
-    console.error('Error loading suggestions:', error);
+    logError('Error loading suggestions:', error, { component: 'participant-states' });
     return [];
   }
 }
@@ -744,7 +745,7 @@ async function createStateChangeNotification(
 
   } catch (error) {
     // Log error but don't fail the state change
-    console.error('Error creating state change notification:', error);
+    logError('Error creating state change notification:', error, { component: 'participant-states' });
   }
 }
 

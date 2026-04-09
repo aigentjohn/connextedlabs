@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 export interface TierPermissions {
   tier_id: string;
@@ -71,7 +72,7 @@ export async function fetchAllMarkets(): Promise<MarketInfo[]> {
     }
     return data || [];
   } catch (error) {
-    console.error('Error fetching markets:', error);
+    logError('Error fetching markets:', error, { component: 'tier-permissions' });
     return [];
   }
 }
@@ -96,7 +97,7 @@ export async function getTierPermissions(tierName: string): Promise<TierPermissi
 
     return normalizeTierPermissions(data);
   } catch (error) {
-    console.error('Error fetching tier permissions:', error);
+    logError('Error fetching tier permissions:', error, { component: 'tier-permissions' });
     return getDefaultTierPermissions(tierName);
   }
 }
@@ -298,7 +299,7 @@ export async function checkMarketAccess(userId: string): Promise<MarketAccessChe
       blockers,
     };
   } catch (error) {
-    console.error('Error checking market access:', error);
+    logError('Error checking market access:', error, { component: 'tier-permissions' });
 
     // Return restrictive defaults on error
     return {

@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 import type { ContainerType } from './journeyService';
 
 export interface ProgressData {
@@ -55,7 +56,7 @@ export class ProgressService {
     });
 
     if (error) {
-      console.error('Error getting progress:', error);
+      logError('Error getting progress:', error, { component: 'progressService' });
       return { percentage: 0 };
     }
 
@@ -79,7 +80,7 @@ export class ProgressService {
     });
 
     if (error) {
-      console.error('Error updating progress:', error);
+      logError('Error updating progress:', error, { component: 'progressService' });
       throw error;
     }
 

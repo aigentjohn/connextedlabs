@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { logError } from '@/lib/error-handler';
 
 export interface Venue {
   id: string;
@@ -66,7 +67,7 @@ export async function fetchUserVenues(userId: string): Promise<Venue[]> {
     .order('name');
 
   if (error) {
-    console.error('Error fetching venues:', error);
+    logError('Error fetching venues:', error, { component: 'venueHelpers' });
     toast.error('Failed to load venues');
     return [];
   }
@@ -85,7 +86,7 @@ export async function fetchMyVenues(userId: string): Promise<Venue[]> {
     .order('name');
 
   if (error) {
-    console.error('Error fetching my venues:', error);
+    logError('Error fetching my venues:', error, { component: 'venueHelpers' });
     toast.error('Failed to load your venues');
     return [];
   }
@@ -114,7 +115,7 @@ export async function fetchPublicVenues(userId?: string): Promise<Venue[]> {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching public venues:', error);
+    logError('Error fetching public venues:', error, { component: 'venueHelpers' });
     toast.error('Failed to load public venues');
     return [];
   }
@@ -133,7 +134,7 @@ export async function fetchVenueById(venueId: string): Promise<Venue | null> {
     .single();
 
   if (error) {
-    console.error('Error fetching venue:', error);
+    logError('Error fetching venue:', error, { component: 'venueHelpers' });
     return null;
   }
 
@@ -158,7 +159,7 @@ export async function createVenue(
     .single();
 
   if (error) {
-    console.error('Error creating venue:', error);
+    logError('Error creating venue:', error, { component: 'venueHelpers' });
     toast.error('Failed to create venue');
     return null;
   }
@@ -182,7 +183,7 @@ export async function updateVenue(
     .single();
 
   if (error) {
-    console.error('Error updating venue:', error);
+    logError('Error updating venue:', error, { component: 'venueHelpers' });
     toast.error('Failed to update venue');
     return null;
   }
@@ -201,7 +202,7 @@ export async function deleteVenue(venueId: string): Promise<boolean> {
     .eq('id', venueId);
 
   if (error) {
-    console.error('Error deleting venue:', error);
+    logError('Error deleting venue:', error, { component: 'venueHelpers' });
     toast.error('Failed to delete venue');
     return false;
   }
@@ -225,7 +226,7 @@ export async function getVenueUsageCount(venueId: string): Promise<number> {
     .eq('venue_id', venueId);
 
   if (eventsError || sessionsError) {
-    console.error('Error fetching venue usage:', eventsError || sessionsError);
+    logError('Error fetching venue usage:', eventsError || sessionsError, { component: 'venueHelpers' });
     return 0;
   }
 
@@ -254,11 +255,11 @@ export async function fetchVenueEvents(venueId: string): Promise<{
     .order('start_date', { ascending: true });
 
   if (eventsError) {
-    console.error('Error fetching venue events:', eventsError);
+    logError('Error fetching venue events:', eventsError, { component: 'venueHelpers' });
   }
-  
+
   if (sessionsError) {
-    console.error('Error fetching venue sessions:', sessionsError);
+    logError('Error fetching venue sessions:', sessionsError, { component: 'venueHelpers' });
   }
 
   // If both failed, show toast

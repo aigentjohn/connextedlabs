@@ -26,6 +26,7 @@ import {
   MemberData,
   ImportOptions,
 } from '@/types/templates';
+import { logError } from '@/lib/error-handler';
 
 // ==========================================
 // UTILITY FUNCTIONS
@@ -69,7 +70,7 @@ async function ensureUniqueSlug(
     const { data, error } = await query;
     
     if (error) {
-      console.error(`Error checking slug uniqueness:`, error);
+      logError(`Error checking slug uniqueness:`, error, { component: 'template-engine' });
       return `${slug}-${Date.now()}`; // Fallback to timestamp
     }
     
@@ -378,7 +379,7 @@ export async function exportProgram(
       .single();
 
     if (programError || !program) {
-      console.error('Error fetching program:', programError);
+      logError('Error fetching program:', programError, { component: 'template-engine' });
       return null;
     }
 
@@ -424,7 +425,7 @@ export async function exportProgram(
       .order('order_index', { ascending: true });
 
     if (journeysError) {
-      console.error('Error fetching journeys:', journeysError);
+      logError('Error fetching journeys:', journeysError, { component: 'template-engine' });
       return null;
     }
 
@@ -496,7 +497,7 @@ export async function exportProgram(
 
     return template;
   } catch (error) {
-    console.error('Error exporting program:', error);
+    logError('Error exporting program:', error, { component: 'template-engine' });
     return null;
   }
 }
@@ -602,7 +603,7 @@ export async function exportCircle(circleId: string): Promise<CircleOnlyTemplate
       .single();
 
     if (error || !circle) {
-      console.error('Error fetching circle:', error);
+      logError('Error fetching circle:', error, { component: 'template-engine' });
       return null;
     }
 
@@ -621,7 +622,7 @@ export async function exportCircle(circleId: string): Promise<CircleOnlyTemplate
       },
     };
   } catch (error) {
-    console.error('Error exporting circle:', error);
+    logError('Error exporting circle:', error, { component: 'template-engine' });
     return null;
   }
 }
@@ -641,7 +642,7 @@ export async function exportContainer(
       .single();
 
     if (error || !container) {
-      console.error('Error fetching container:', error);
+      logError('Error fetching container:', error, { component: 'template-engine' });
       return null;
     }
 
@@ -650,7 +651,7 @@ export async function exportContainer(
       container: formatContainerForExport(container, containerType, 'full'),
     };
   } catch (error) {
-    console.error('Error exporting container:', error);
+    logError('Error exporting container:', error, { component: 'template-engine' });
     return null;
   }
 }
@@ -709,13 +710,13 @@ async function importContainerPosts(
         });
 
       if (error) {
-        console.error('Error importing post:', error);
+        logError('Error importing post:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
       }
     } catch (err) {
-      console.error('Error importing post:', err);
+      logError('Error importing post:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -759,13 +760,13 @@ async function importContainerDocuments(
         });
 
       if (error) {
-        console.error('Error importing document:', error);
+        logError('Error importing document:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
       }
     } catch (err) {
-      console.error('Error importing document:', err);
+      logError('Error importing document:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -805,13 +806,13 @@ async function importContainerReviews(
         });
 
       if (error) {
-        console.error('Error importing review:', error);
+        logError('Error importing review:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
       }
     } catch (err) {
-      console.error('Error importing review:', err);
+      logError('Error importing review:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -865,14 +866,14 @@ async function importContainerEvents(
         .single();
 
       if (error) {
-        console.error('Error importing event:', error);
+        logError('Error importing event:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
         if (data) eventIds.push(data.id);
       }
     } catch (err) {
-      console.error('Error importing event:', err);
+      logError('Error importing event:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -914,7 +915,7 @@ async function importContainerForumThreads(
         .single();
 
       if (threadError) {
-        console.error('Error importing forum thread:', threadError);
+        logError('Error importing forum thread:', threadError, { component: 'template-engine' });
         failed++;
         continue;
       }
@@ -939,7 +940,7 @@ async function importContainerForumThreads(
 
       success++;
     } catch (err) {
-      console.error('Error importing forum thread:', err);
+      logError('Error importing forum thread:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -976,13 +977,13 @@ async function importStandupResponses(
         });
 
       if (error) {
-        console.error('Error importing standup response:', error);
+        logError('Error importing standup response:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
       }
     } catch (err) {
-      console.error('Error importing standup response:', err);
+      logError('Error importing standup response:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -1021,13 +1022,13 @@ async function importPitchSubmissions(
         });
 
       if (error) {
-        console.error('Error importing pitch:', error);
+        logError('Error importing pitch:', error, { component: 'template-engine' });
         failed++;
       } else {
         success++;
       }
     } catch (err) {
-      console.error('Error importing pitch:', err);
+      logError('Error importing pitch:', err, { component: 'template-engine' });
       failed++;
     }
   }
@@ -1319,7 +1320,7 @@ export async function importProgram(
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error: any) {
-    console.error('Error importing program:', error);
+    logError('Error importing program:', error, { component: 'template-engine' });
     return {
       success: false,
       message: 'Failed to import program',
@@ -1441,7 +1442,7 @@ async function createContainer(
       .single();
 
     if (error) {
-      console.error(`Error creating ${template.type}:`, error);
+      logError(`Error creating ${template.type}:`, error, { component: 'template-engine' });
       return null;
     }
 
@@ -1457,7 +1458,7 @@ async function createContainer(
         }));
         const { error: chapError } = await supabase.from('chapters').insert(chapterRows);
         if (chapError) {
-          console.error('Error creating chapters for book:', chapError);
+          logError('Error creating chapters for book:', chapError, { component: 'template-engine' });
         }
       }
     }
@@ -1469,7 +1470,7 @@ async function createContainer(
       slug: data.slug || '',
     };
   } catch (error) {
-    console.error('Error creating container:', error);
+    logError('Error creating container:', error, { component: 'template-engine' });
     return null;
   }
 }

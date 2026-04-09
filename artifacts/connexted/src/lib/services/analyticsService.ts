@@ -7,6 +7,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { ContainerType } from './journeyService';
+import { logError } from '@/lib/error-handler';
 
 export interface ParticipantAnalytics {
   user_id: string;
@@ -64,7 +65,7 @@ export class AnalyticsService {
     });
 
     if (error) {
-      console.error('Error getting participant analytics:', error);
+      logError('Error getting participant analytics:', error, { component: 'analyticsService' });
       throw error;
     }
 
@@ -98,7 +99,7 @@ export class AnalyticsService {
     });
 
     if (error) {
-      console.error('Error getting journey completion stats:', error);
+      logError('Error getting journey completion stats:', error, { component: 'analyticsService' });
       throw error;
     }
 

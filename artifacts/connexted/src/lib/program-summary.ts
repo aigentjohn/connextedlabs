@@ -7,6 +7,7 @@
 // Split candidate: ~543 lines — consider extracting MembershipReport, JourneyReport, and EngagementReport into separate report-builder modules.
 
 import { supabase } from '@/lib/supabase';
+import { logError } from '@/lib/error-handler';
 
 export interface ContainerSummary {
   type: string;
@@ -144,7 +145,7 @@ export async function generateProgramSummary(programId: string): Promise<Program
       .single();
 
     if (programError || !program) {
-      console.error('Error fetching program:', programError);
+      logError('Error fetching program:', programError, { component: 'program-summary' });
       return null;
     }
 
@@ -156,7 +157,7 @@ export async function generateProgramSummary(programId: string): Promise<Program
       .single();
 
     if (circleError || !circle) {
-      console.error('Error fetching circle:', circleError);
+      logError('Error fetching circle:', circleError, { component: 'program-summary' });
       return null;
     }
 
@@ -168,7 +169,7 @@ export async function generateProgramSummary(programId: string): Promise<Program
       .order('order_index', { ascending: true });
 
     if (journeysError) {
-      console.error('Error fetching journeys:', journeysError);
+      logError('Error fetching journeys:', journeysError, { component: 'program-summary' });
       return null;
     }
 
@@ -275,7 +276,7 @@ export async function generateProgramSummary(programId: string): Promise<Program
       generated_at: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('Error generating program summary:', error);
+    logError('Error generating program summary:', error, { component: 'program-summary' });
     return null;
   }
 }

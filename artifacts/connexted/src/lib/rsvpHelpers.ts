@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { RSVPStatus, EventType, RSVPType } from './calendarHelpers';
 import { notifyEventRSVP } from '@/lib/notificationHelpers';
+import { logError } from '@/lib/error-handler';
 
 export interface EventRSVP {
   id: string;
@@ -96,7 +97,7 @@ export async function getUserRSVP(eventId: string, userId: string): Promise<Even
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching user RSVP:', error);
+    logError('Error fetching user RSVP:', error, { component: 'rsvpHelpers' });
     return null;
   }
 
@@ -132,7 +133,7 @@ export async function updateUserRSVP(
       .single();
 
     if (error) {
-      console.error('Error updating RSVP:', error);
+      logError('Error updating RSVP:', error, { component: 'rsvpHelpers' });
       toast.error('Failed to update RSVP');
       return null;
     }
@@ -168,7 +169,7 @@ export async function updateUserRSVP(
       .single();
 
     if (error) {
-      console.error('Error creating RSVP:', error);
+      logError('Error creating RSVP:', error, { component: 'rsvpHelpers' });
       toast.error('Failed to create RSVP');
       return null;
     }
@@ -202,7 +203,7 @@ export async function getEventRSVPCounts(eventId: string): Promise<{
     .eq('event_id', eventId);
 
   if (error) {
-    console.error('Error fetching RSVP counts:', error);
+    logError('Error fetching RSVP counts:', error, { component: 'rsvpHelpers' });
     return { going: 0, maybe: 0, not_going: 0, total: 0 };
   }
 
@@ -232,7 +233,7 @@ export async function getEventRSVPs(eventId: string): Promise<EventRSVP[]> {
     .order('response_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching event RSVPs:', error);
+    logError('Error fetching event RSVPs:', error, { component: 'rsvpHelpers' });
     toast.error('Failed to load RSVPs');
     return [];
   }
@@ -258,7 +259,7 @@ export async function trackExternalRSVPClick(
     });
 
   if (error) {
-    console.error('Error tracking external click:', error);
+    logError('Error tracking external click:', error, { component: 'rsvpHelpers' });
     // Don't show error to user, this is just analytics
   }
 }
@@ -273,7 +274,7 @@ export async function getExternalClickCount(eventId: string): Promise<number> {
     .eq('event_id', eventId);
 
   if (error) {
-    console.error('Error fetching external click count:', error);
+    logError('Error fetching external click count:', error, { component: 'rsvpHelpers' });
     return 0;
   }
 
@@ -410,6 +411,6 @@ async function sendRSVPNotification(eventId: string, userId: string, status: RSV
       status as 'going' | 'maybe'
     );
   } catch (error) {
-    console.error('Error sending RSVP notification:', error);
+    logError('Error sending RSVP notification:', error, { component: 'rsvpHelpers' });
   }
 }

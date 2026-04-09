@@ -9,6 +9,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { importJSONResume } from '@/app/components/utils/jsonResumeImporter';
+import { logError } from '@/lib/error-handler';
 
 // --- Proficiency Mapping Utilities ---
 
@@ -336,7 +337,7 @@ export async function importProfileFromJSON(
         .insert(skillsToInsert);
 
       if (skillsError) {
-        console.error('Error inserting skills:', skillsError);
+        logError('Error inserting skills:', skillsError, { component: 'profile-import-export' });
       }
     }
   }
@@ -367,7 +368,7 @@ export async function importProfileFromJSON(
         .insert(credentialsToInsert);
 
       if (credsError) {
-        console.error('Error inserting credentials:', credsError);
+        logError('Error inserting credentials:', credsError, { component: 'profile-import-export' });
       }
     }
   }
@@ -399,7 +400,7 @@ export async function importProfileFromJSON(
         .insert(affiliationsToInsert);
 
       if (affsError) {
-        console.error('Error inserting affiliations:', affsError);
+        logError('Error inserting affiliations:', affsError, { component: 'profile-import-export' });
       }
     }
   }
