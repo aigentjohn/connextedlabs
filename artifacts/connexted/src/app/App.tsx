@@ -293,10 +293,6 @@ const StandupsPage = lazy(() => import('@/app/components/StandupsPage'));
 const CreateStandupPage = lazy(() => import('@/app/components/standup/CreateStandupPage'));
 const StandupDetailPage = lazy(() => import('@/app/components/standup/StandupDetailPage'));
 const StandupSettingsPage = lazy(() => import('@/app/components/standup/StandupSettingsPage'));
-const SurveysPage = lazy(() => import('@/app/components/SurveysPage'));
-const CreateSurveyPage = lazy(() => import('@/app/components/survey/CreateSurveyPage'));
-const SurveyDetailPage = lazy(() => import('@/app/components/survey/SurveyDetailPage'));
-const SurveyResultsPage = lazy(() => import('@/app/components/survey/SurveyResultsPage'));
 
 // Meetups
 const MeetupsPage = lazy(() => import('@/app/components/MeetupsPage'));
@@ -344,6 +340,7 @@ const CompanyNewsSettings = lazy(() => import('@/app/components/markets/CompanyN
 // Sponsors
 const SponsorsPage = lazy(() => import('@/app/components/SponsorsPage'));
 const SponsorDetailPage = lazy(() => import('@/app/components/SponsorDetailPage'));
+const SponsorManagePage = lazy(() => import('@/app/components/sponsor/SponsorManagePage'));
 
 // Misc
 const AIDiscussionDemo = lazy(() => import('@/app/components/AIDiscussionDemo'));
@@ -673,25 +670,6 @@ const router = createBrowserRouter([
           { path: '/standups/create', element: <CreateStandupPage /> },
           { path: '/standups/:slug', element: <StandupDetailPage /> },
           { path: '/standups/:slug/settings', element: <StandupSettingsPage /> },
-          // Surveys / Quizzes / Assessments
-          // Surveys
-          { path: '/surveys', element: <SurveysPage /> },
-          { path: '/surveys/create', element: <CreateSurveyPage /> },
-          { path: '/surveys/:slug', element: <SurveyDetailPage /> },
-          { path: '/surveys/:slug/edit', element: <CreateSurveyPage /> },
-          { path: '/surveys/:slug/results', element: <SurveyResultsPage /> },
-          // Quizzes
-          { path: '/quizzes', element: <SurveysPage /> },
-          { path: '/quizzes/create', element: <CreateSurveyPage /> },
-          { path: '/quizzes/:slug', element: <SurveyDetailPage /> },
-          { path: '/quizzes/:slug/edit', element: <CreateSurveyPage /> },
-          { path: '/quizzes/:slug/results', element: <SurveyResultsPage /> },
-          // Assessments
-          { path: '/assessments', element: <SurveysPage /> },
-          { path: '/assessments/create', element: <CreateSurveyPage /> },
-          { path: '/assessments/:slug', element: <SurveyDetailPage /> },
-          { path: '/assessments/:slug/edit', element: <CreateSurveyPage /> },
-          { path: '/assessments/:slug/results', element: <SurveyResultsPage /> },
           // Meetups
           { path: '/meetups', element: <MeetupsPage /> },
           { path: '/meetups/create', element: <CreateMeetupPage /> },
@@ -724,6 +702,8 @@ const router = createBrowserRouter([
           { path: '/search', element: <SearchPage /> },
           { path: '/sponsors', element: <SponsorsPage /> },
           { path: '/sponsors/:slug', element: <SponsorDetailPage /> },
+          { path: '/sponsor/:slug/manage', element: <SponsorManagePage /> },
+          { path: '/sponsor/:slug/members', element: <SponsorManagePage /> },
           // Markets
           { path: '/markets', element: <MarketsPage /> },
           { path: '/markets/all-markets', element: <MarketsAllMarketsPage /> },

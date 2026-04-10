@@ -30,7 +30,12 @@ import {
   CheckSquare,
   CalendarClock,
   Settings,
+  Mic,
+  Headphones,
+  BookOpen,
+  QrCode,
 } from 'lucide-react';
+import { CompanionQRCode } from '@/app/components/events/CompanionQRCode';
 
 interface Sponsor {
   id: string;
@@ -60,6 +65,16 @@ interface SponsoredContainer {
   created_at: string;
 }
 
+interface SponsorContentItem {
+  id: string;
+  item_type: string;
+  item_id: string;
+  order_index: number;
+  notes: string | null;
+  resolved_name?: string;
+  resolved_slug?: string;
+}
+
 interface TierPermission {
   container_type: string;
   can_view: boolean;
@@ -74,6 +89,7 @@ export default function SponsorDetailPage() {
   const [sponsor, setSponsor] = useState<Sponsor | null>(null);
   const [containers, setContainers] = useState<SponsoredContainer[]>([]);
   const [permissions, setPermissions] = useState<TierPermission[]>([]);
+  const [contentItems, setContentItems] = useState<SponsorContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
   const [showMembers, setShowMembers] = useState(false);
@@ -103,6 +119,16 @@ export default function SponsorDetailPage() {
 
       if (sponsorError) throw sponsorError;
       setSponsor(sponsorData);
+
+      // Fetch sponsor content items
+      if (sponsorData?.id) {
+        const { data: itemsData } = await supabase
+          .from('sponsor_companion_items')
+          .select('*')
+          .eq('sponsor_id', sponsorData.id)
+          .order('order_index');
+        setContentItems(itemsData || []);
+      }
 
       // Fetch all containers sponsored by this sponsor
       if (sponsorData?.id) {
@@ -340,6 +366,76 @@ export default function SponsorDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sponsor Content Items (read-only) */}
+      {contentItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>From {sponsor.name}</CardTitle>
+              {canManageSponsor(sponsor.id) && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/sponsor/${sponsor.slug}/manage`}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Manage
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {contentItems.map(item => {
+                const ITEM_ICONS: Record<string, any> = {
+                  elevator: Mic, pitch: Presentation, document: FileText,
+                  checklist: CheckSquare, episode: Headphones, book: BookOpen, qr_code: QrCode,
+                };
+                const ITEM_ROUTES: Record<string, string> = {
+                  elevator: '/elevators', pitch: '/pitches', document: '/documents',
+                  checklist: '/checklists', episode: '/episodes', book: '/books',
+                };
+                const Icon = ITEM_ICONS[item.item_type] || FileText;
+                const isQR = item.item_type === 'qr_code';
+
+                return (
+                  <div key={item.id} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 border-b">
+                      <Icon className="w-4 h-4 text-indigo-500" />
+                      <span className="flex-1 text-sm font-medium text-gray-700 capitalize">
+                        {item.item_type.replace('_', ' ')}
+                        {isQR && (() => {
+                          try {
+                            const d = JSON.parse(item.notes || '{}');
+                            return d.label ? <span className="ml-2 font-normal text-gray-500">— {d.label}</span> : null;
+                          } catch { return null; }
+                        })()}
+                      </span>
+                    </div>
+                    <div className="px-3 py-3">
+                      {isQR && (() => {
+                        let qrData = { url: '', label: '' };
+                        try { qrData = JSON.parse(item.notes || '{}'); } catch {}
+                        return qrData.url
+                          ? <CompanionQRCode url={qrData.url} label={qrData.label || undefined} />
+                          : null;
+                      })()}
+                      {!isQR && ITEM_ROUTES[item.item_type] && (
+                        <Link
+                          to={`${ITEM_ROUTES[item.item_type]}/${item.item_id}`}
+                          className="flex items-center gap-1.5 text-sm text-indigo-600 hover:underline"
+                        >
+                          View {item.item_type}
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sponsored Containers */}
       <Card>
