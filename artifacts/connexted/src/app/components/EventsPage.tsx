@@ -14,6 +14,7 @@ import { PageHeader } from '@/app/components/shared/PageHeader';
 import CreateEventDialog from '@/app/components/calendar/CreateEventDialog';
 import { RSVPActions } from '@/app/components/calendar/RSVPActions';
 import { CalendarStatus } from '@/app/components/calendar/StatusBadge';
+import { EventAttendeesDialog } from '@/app/components/calendar/EventAttendeesDialog';
 import { downloadICS, UnifiedCalendarItem, getUserEventStatus } from '@/lib/calendarHelpers';
 import { toast } from 'sonner';
 
@@ -29,6 +30,8 @@ interface EventCardProps {
 
 function EventCard({ event, users, circles, profile, canAccessContent, setRefreshKey }: EventCardProps) {
   const [reminderPreference, setReminderPreference] = useState('none');
+  const [showAttendees, setShowAttendees] = useState(false);
+  const isHost = profile.id === event.host_id;
   const now = new Date();
   const host = users.find(u => u.id === event.host_id);
   const eventCircles = event.circle_ids
@@ -124,11 +127,22 @@ function EventCard({ event, users, circles, profile, canAccessContent, setRefres
                   itemType="event"
                   currentStatus={userStatus}
                   onRSVPChange={() => setRefreshKey(prev => prev + 1)}
+                  onManageAttendees={isHost ? () => setShowAttendees(true) : undefined}
                   registrationUrl={event.registration_url}
                   agendaUrl={event.agenda_url}
                   signupsClosed={event.signups_closed}
                 />
               </div>
+            )}
+
+            {/* Attendees Dialog (host only) */}
+            {isHost && showAttendees && (
+              <EventAttendeesDialog
+                eventId={event.id}
+                eventTitle={event.title}
+                open={showAttendees}
+                onClose={() => setShowAttendees(false)}
+              />
             )}
 
             {/* Calendar Download - separate section */}
