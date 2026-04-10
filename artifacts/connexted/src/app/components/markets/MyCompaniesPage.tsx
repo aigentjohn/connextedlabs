@@ -36,19 +36,32 @@ export default function MyCompaniesPage() {
     try {
       setLoading(true);
 
-      // Fetch companies user is a member of (not owner)
-      const { data: memberships, error } = await supabase
+      // Step 1: get company_ids the user is a member of
+      const { data: memberships, error: memberError } = await supabase
         .from('company_members')
-        .select('company:market_companies(id, name, slug, tagline, logo_url, industry, owner_user_id)')
+        .select('company_id')
         .eq('user_id', profile.id);
 
-      if (error) throw error;
+      if (memberError) throw memberError;
 
-      const raw = (memberships || [])
-        .map((m: any) => m.company)
-        .filter(Boolean)
-        // Exclude companies the user owns (they belong in My Ventures)
-        .filter((c: any) => c.owner_user_id !== profile.id);
+      const companyIds = (memberships || []).map((m: any) => m.company_id);
+
+      if (companyIds.length === 0) {
+        setCompanies([]);
+        return;
+      }
+
+      // Step 2: fetch those companies directly
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('market_companies')
+        .select('id, name, slug, tagline, logo_url, industry, owner_user_id')
+        .in('id', companyIds)
+        .order('name');
+
+      if (companiesError) throw companiesError;
+
+      // Exclude companies the user owns (they belong in My Ventures)
+      const raw = (companiesData || []).filter((c: any) => c.owner_user_id !== profile.id);
 
       if (raw.length === 0) {
         setCompanies([]);

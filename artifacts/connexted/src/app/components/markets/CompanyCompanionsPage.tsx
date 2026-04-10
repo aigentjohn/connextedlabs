@@ -43,16 +43,21 @@ export default function CompanyCompanionsPage() {
         .eq('owner_user_id', profile.id)
         .order('name');
 
-      // Companies user is a member of
+      // Companies user is a member of — two-step to avoid join RLS issues
       const { data: memberships } = await supabase
         .from('company_members')
-        .select('company:market_companies(id, name, slug, tagline, logo_url, industry, owner_user_id)')
+        .select('company_id')
         .eq('user_id', profile.id);
 
-      const memberCompanies = (memberships || [])
-        .map((m: any) => m.company)
-        .filter(Boolean)
-        .filter((c: any) => c.owner_user_id !== profile.id);
+      const memberIds = (memberships || []).map((m: any) => m.company_id);
+      let memberCompanies: any[] = [];
+      if (memberIds.length > 0) {
+        const { data: memberData } = await supabase
+          .from('market_companies')
+          .select('id, name, slug, tagline, logo_url, industry, owner_user_id')
+          .in('id', memberIds);
+        memberCompanies = (memberData || []).filter((c: any) => c.owner_user_id !== profile.id);
+      }
 
       // Merge all companies, tag ownership
       const ownedIds = new Set((owned || []).map((c: any) => c.id));
