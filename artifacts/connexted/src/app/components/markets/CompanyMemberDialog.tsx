@@ -40,14 +40,38 @@ export default function CompanyMemberDialog({ companyId, companyName, ownerUserI
 
   async function loadMembers() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('company_members')
-      .select('*, user:users!company_members_user_id_fkey(id, name, email, avatar)')
-      .eq('company_id', companyId)
-      .order('created_at');
-    if (error) { console.error(error); toast.error('Failed to load members'); }
-    setMembers(data || []);
-    setLoading(false);
+    try {
+      // Step 1: fetch company_members rows
+      const { data: memberRows, error: memberError } = await supabase
+        .from('company_members')
+        .select('id, user_id, role, created_at')
+        .eq('company_id', companyId)
+        .order('created_at');
+
+      if (memberError) throw memberError;
+      if (!memberRows || memberRows.length === 0) {
+        setMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: fetch user details for each member
+      const userIds = memberRows.map((m: any) => m.user_id);
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id, name, email, avatar')
+        .in('id', userIds);
+
+      if (userError) throw userError;
+
+      const userMap = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+      setMembers(memberRows.map((m: any) => ({ ...m, user: userMap[m.user_id] || null })));
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to load members');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAdd() {
@@ -183,7 +207,7 @@ function OwnerRow({ ownerUserId }: { ownerUserId: string }) {
   useEffect(() => {
     supabase
       .from('users')
-      .select('name, email, avatar')
+      .select('id, name, email, avatar')
       .eq('id', ownerUserId)
       .single()
       .then(({ data }) => setOwner(data));
