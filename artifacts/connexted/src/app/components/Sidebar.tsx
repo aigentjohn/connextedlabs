@@ -26,7 +26,8 @@ import { MyContentSection } from './sidebar/MyContentSection';
 import { MyGrowthSection } from './sidebar/MyGrowthSection';
 import { DiscoverSection } from './sidebar/DiscoverSection';
 import { MembersSection } from './sidebar/MembersSection';
-import { SponsorsSection, CirclesSection, ContentSection, CompaniesSection } from './sidebar/MinorSections';
+import { SponsorsSection, CirclesSection, ContentSection } from './sidebar/MinorSections';
+import { MyBusinessSection } from './sidebar/MyBusinessSection';
 import { ActivitiesSection } from './sidebar/ActivitiesSection';
 import { CalendarEventsSection } from './sidebar/CalendarEventsSection';
 import { SetupSection } from './sidebar/SetupSection';
@@ -66,7 +67,8 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   const {
     circles, tables, elevators, meetings, pitches, builds,
     standups, meetups, sprints, magazines, playlists, episodes,
-    checklists, moments, allUsers, sponsors, mySponsorMemberships, myCompanies, community, events,
+    checklists, moments, allUsers, sponsors, mySponsorMemberships,
+    myOwnedCompanies, myMemberCompanies, community, events,
     programs, loading, documentCounts, eventCounts, reviewCounts,
   } = useSidebarData(currentUserId);
 
@@ -301,11 +303,11 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             allSponsors={sponsors}
           />
           <Separator className="my-1.5" />
-          <CompaniesSection
+          <MyBusinessSection
             isExpanded={expandedSections['companies']}
             onToggle={() => toggleSection('companies')}
-            myCompanies={myCompanies}
-            isPlatformAdmin={isAdminOrSuper}
+            ownedCount={myOwnedCompanies.length}
+            memberCount={myMemberCompanies.length}
           />
           <Separator className="my-1.5" />
           <CirclesSection

@@ -23,6 +23,8 @@ export interface SidebarData {
   sponsors: any[];
   mySponsorMemberships: any[];
   myCompanies: any[];
+  myOwnedCompanies: any[];
+  myMemberCompanies: any[];
   community: any | null;
   events: any[];
   programs: any[];
@@ -58,6 +60,8 @@ export function useSidebarData(currentUserId: string) {
   const [sponsors, setSponsors] = useState<any[]>([]);
   const [mySponsorMemberships, setMySponsorMemberships] = useState<any[]>([]);
   const [myCompanies, setMyCompanies] = useState<any[]>([]);
+  const [myOwnedCompanies, setMyOwnedCompanies] = useState<any[]>([]);
+  const [myMemberCompanies, setMyMemberCompanies] = useState<any[]>([]);
   const [community, setCommunity] = useState<any | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
@@ -275,11 +279,14 @@ export function useSidebarData(currentUserId: string) {
 
           // Merge, deduplicate by id
           const allIds = new Set((ownedCompanies || []).map((c: any) => c.id));
+          const filteredMemberCompanies = memberCompanies.filter((c: any) => !allIds.has(c.id));
           const combined = [
             ...(ownedCompanies || []),
-            ...memberCompanies.filter((c: any) => !allIds.has(c.id)),
+            ...filteredMemberCompanies,
           ];
           setMyCompanies(combined);
+          setMyOwnedCompanies(ownedCompanies || []);
+          setMyMemberCompanies(filteredMemberCompanies);
         } catch (err) {
           setMyCompanies([]);
         }
@@ -486,6 +493,8 @@ export function useSidebarData(currentUserId: string) {
     sponsors,
     mySponsorMemberships,
     myCompanies,
+    myOwnedCompanies,
+    myMemberCompanies,
     community,
     events,
     programs,
