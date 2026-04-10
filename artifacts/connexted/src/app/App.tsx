@@ -206,6 +206,7 @@ const PricingPage = lazy(() => import('@/app/components/PricingPage'));
 const BooksPage = lazy(() => import('@/app/components/BooksPage'));
 const BookDetailPage = lazy(() => import('@/app/components/BookDetailPage'));
 const BooksSetupPage = lazy(() => import('@/app/components/BooksSetupPage'));
+const AddBookForm = lazy(() => import('@/app/components/AddBookForm'));
 const DecksPage = lazy(() => import('@/app/components/DecksPage'));
 const DeckDetailPage = lazy(() => import('@/app/components/DeckDetailPage'));
 
@@ -654,6 +655,7 @@ const router = createBrowserRouter([
           { path: '/builds/:slug/settings', element: <BuildSettingsPage /> },
           // Books
           { path: '/books', element: <BooksPage /> },
+          { path: '/books/new', element: <AddBookForm /> },
           { path: '/books/:id', element: <BookDetailPage /> },
           { path: '/books/setup', element: <BooksSetupPage /> },
           // Decks

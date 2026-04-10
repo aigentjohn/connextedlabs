@@ -150,7 +150,7 @@ export default function CircleSettingsPage() {
     return <div className="text-center py-12">Circle not found</div>;
   }
   
-  const isAdmin = profile.role === 'super' || circle.admin_ids.includes(profile.id);
+  const isAdmin = profile.role === 'super' || profile.role === 'admin' || circle.admin_ids.includes(profile.id);
   
   if (!isAdmin) {
     return (

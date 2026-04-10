@@ -96,7 +96,8 @@ export default function CircleDetailPage() {
   }
 
   const isMember = circle.member_ids.includes(profile.id);
-  const isAdmin = profile.role === 'super' || circle.admin_ids.includes(profile.id);
+  const isPlatformAdmin = profile.role === 'super' || profile.role === 'admin';
+  const isAdmin = isPlatformAdmin || circle.admin_ids.includes(profile.id);
 
   // Guest section access (for second-level nav)
   const guestSectionAccess = {
@@ -314,7 +315,7 @@ export default function CircleDetailPage() {
                         </Button>
                       </Link>
                     )}
-                    {profile?.role === 'super' && (
+                    {isPlatformAdmin && (
                       <Link to={`/platform-admin/circles/${circle.id}/edit`}>
                         <Button variant="outline" size="sm" className="w-full">
                           <Edit className="w-4 h-4 mr-2" />
@@ -333,6 +334,14 @@ export default function CircleDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
+                    {isAdmin && (
+                      <Link to={`/circles/${circle.id}/settings`}>
+                        <Button variant="default" size="sm" className="w-full">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Settings
+                        </Button>
+                      </Link>
+                    )}
                     <Button onClick={handleJoinCircle} className="w-full">
                       <UserPlus className="w-4 h-4 mr-2" />
                       {circle.access_type === 'request' ? 'Request to Join' : 'Join Circle'}

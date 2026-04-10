@@ -70,38 +70,43 @@ export function CircleAdminDashboard() {
 
   async function loadData() {
     if (!circleId) return;
-    
+
     try {
       setIsLoading(true);
-      
-      // Load circle
+
+      // Load circle (critical — fail if this errors)
       const { data: circleData, error: circleError } = await supabase
         .from('circles')
         .select('*')
         .eq('id', circleId)
         .single();
-      
+
       if (circleError) throw circleError;
       setCircle(circleData);
-      
-      // Load funnel configuration
-      const config = await getCircleFunnelConfig(circleId);
-      if (config) {
-        setEnabledStates(config.enabled_states);
+
+      // Load supporting data — failures here are non-critical
+      const [config, states, participantsData, metricsData] = await Promise.allSettled([
+        getCircleFunnelConfig(circleId),
+        getAllMemberStates(),
+        getCircleParticipants(circleId),
+        getEngagementMetrics(undefined, circleId),
+      ]);
+
+      if (config.status === 'fulfilled' && config.value) {
+        setEnabledStates(config.value.enabled_states);
       }
-      
-      // Load all states
-      const states = await getAllMemberStates();
-      setAllStates(states);
-      
-      // Load participants
-      const participantsData = await getCircleParticipants(circleId);
-      setParticipants(participantsData);
-      
-      // Load metrics
-      const metricsData = await getEngagementMetrics(undefined, circleId);
-      setMetrics(metricsData);
-      
+      if (states.status === 'fulfilled') {
+        setAllStates(states.value);
+      }
+      if (participantsData.status === 'fulfilled') {
+        setParticipants(participantsData.value);
+      } else {
+        console.warn('Could not load participants (table may not exist yet):', participantsData.reason);
+      }
+      if (metricsData.status === 'fulfilled') {
+        setMetrics(metricsData.value);
+      }
+
     } catch (error) {
       console.error('Error loading circle data:', error);
       toast.error('Failed to load circle data');

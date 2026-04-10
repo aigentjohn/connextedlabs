@@ -504,7 +504,8 @@ export default function EventCompanionDetailPage() {
                     );
                   })}
                 </div>
-              )}</>
+              )}
+              </>
               )
             </div>
           )}
