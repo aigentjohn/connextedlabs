@@ -30,7 +30,6 @@ import { SponsorsSection, CirclesSection, ContentSection } from './sidebar/Minor
 import { ActivitiesSection } from './sidebar/ActivitiesSection';
 import { CalendarEventsSection } from './sidebar/CalendarEventsSection';
 import { SetupSection } from './sidebar/SetupSection';
-import { MyTeamSection } from './sidebar/MyTeamSection';
 
 interface SidebarProps {
   currentUserId: string;
@@ -44,7 +43,6 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     user: false,
     myContent: false,
     myGrowth: false,
-    myTeam: false,
     discover: false,
     members: false,
     sponsors: false,
@@ -67,7 +65,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   const {
     circles, tables, elevators, meetings, pitches, builds,
     standups, meetups, sprints, magazines, playlists, episodes,
-    checklists, moments, allUsers, sponsors, community, events,
+    checklists, moments, allUsers, sponsors, mySponsorMemberships, community, events,
     programs, loading, documentCounts, eventCounts, reviewCounts,
   } = useSidebarData(currentUserId);
 
@@ -162,17 +160,6 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     }
   }, [location.pathname]);
 
-  // Auto-expand MY TEAM section when viewing any of its child routes
-  useEffect(() => {
-    const teamPaths = ['/sprints', '/standups', '/surveys', '/quizzes', '/assessments'];
-    const isTeamRoute = teamPaths.some((p) =>
-      location.pathname === p || location.pathname.startsWith(p + '/')
-    );
-    if (isTeamRoute) {
-      setExpandedSections((prev) => ({ ...prev, myTeam: true }));
-    }
-  }, [location.pathname]);
-
   // Auto-expand CALENDAR & EVENTS section when viewing any of its child routes
   useEffect(() => {
     const calendarPaths = ['/calendar', '/events', '/ticketed-events', '/meetings', '/meetups', '/my-sessions', '/event-companions', '/profile/venues'];
@@ -196,7 +183,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   }, [location.pathname]);
 
   const toggleSection = (key: string) => {
-    const mainSections = ['user', 'myContent', 'myGrowth', 'myTeam', 'discover', 'members', 'sponsors', 'activities', 'calendarEvents', 'circles', 'content', 'setup'];
+    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'calendarEvents', 'circles', 'content', 'setup'];
     const adminSections = ['myAdmin'];
     const containerAdminSections = ['tableAdmin', 'elevatorAdmin', 'meetingAdmin', 'pitchAdmin', 'buildAdmin', 'standupAdmin', 'meetupAdmin', 'sprintAdmin'];
 
@@ -284,12 +271,6 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             profileId={profile?.id}
           />
           <Separator className="my-1.5" />
-          <MyTeamSection
-            isExpanded={expandedSections['myTeam']}
-            onToggle={() => toggleSection('myTeam')}
-            isAdmin={isAdminOrSuper}
-          />
-          <Separator className="my-1.5" />
           <CalendarEventsSection
             isExpanded={expandedSections['calendarEvents']}
             onToggle={() => toggleSection('calendarEvents')}
@@ -314,6 +295,9 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             isExpanded={expandedSections['sponsors']}
             onToggle={() => toggleSection('sponsors')}
             sponsorCount={sponsors.length}
+            myMemberships={mySponsorMemberships}
+            isPlatformAdmin={profile?.role === 'admin' || profile?.role === 'super'}
+            allSponsors={sponsors}
           />
           <Separator className="my-1.5" />
           <CirclesSection

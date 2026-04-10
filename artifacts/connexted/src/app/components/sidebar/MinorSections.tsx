@@ -20,6 +20,9 @@ import {
   Star,
   Users2,
   MessageSquare,
+  LayoutGrid,
+  Settings,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { CONTENT_TAXONOMY } from '@/lib/taxonomy';
@@ -30,10 +33,21 @@ interface SponsorsSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   sponsorCount: number;
+  myMemberships: any[];
+  isPlatformAdmin: boolean;
+  allSponsors: any[];
 }
 
-export function SponsorsSection({ isExpanded, onToggle, sponsorCount }: SponsorsSectionProps) {
+export function SponsorsSection({
+  isExpanded, onToggle, sponsorCount, isPlatformAdmin, allSponsors, myMemberships,
+}: SponsorsSectionProps) {
   const location = useLocation();
+
+  const canManageSponsor = (sponsorId: string) => {
+    if (isPlatformAdmin) return true;
+    const membership = myMemberships.find((m: any) => m.sponsor_id === sponsorId);
+    return membership && ['owner', 'admin', 'director'].includes(membership.role);
+  };
 
   return (
     <div className="mb-1.5">
@@ -51,7 +65,9 @@ export function SponsorsSection({ isExpanded, onToggle, sponsorCount }: Sponsors
       </button>
 
       {isExpanded && (
-        <div className="ml-6 mt-0.5 space-y-0.5">
+        <div className="ml-3 mt-0.5 space-y-0.5">
+
+          {/* View All */}
           <Link
             to="/sponsors"
             className={cn(
@@ -61,8 +77,52 @@ export function SponsorsSection({ isExpanded, onToggle, sponsorCount }: Sponsors
           >
             <Star className="w-4 h-4 text-yellow-500" />
             <span>View All Sponsors</span>
-            <span className="text-xs text-gray-500">({sponsorCount})</span>
           </Link>
+
+          {/* All sponsors — visible to everyone */}
+          {allSponsors.map((s: any) => {
+            const isActive = location.pathname.startsWith(`/sponsors/${s.slug}`);
+            const canManage = canManageSponsor(s.id);
+            return (
+              <div key={s.id}>
+                <Link
+                  to={`/sponsors/${s.slug}`}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+                    isActive && 'bg-indigo-50 text-indigo-700'
+                  )}
+                >
+                  <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
+                  <span className="flex-1 truncate">{s.name}</span>
+                </Link>
+                <div className="ml-6 space-y-0.5 pb-0.5">
+                  <Link
+                    to={`/sponsors/${s.slug}/companion`}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1 text-xs rounded-lg hover:bg-gray-100 transition-colors text-gray-600',
+                      location.pathname === `/sponsors/${s.slug}/companion` && 'bg-indigo-50 text-indigo-700'
+                    )}
+                  >
+                    <LayoutGrid className="w-3 h-3" />
+                    Companion
+                  </Link>
+                  {canManage && (
+                    <Link
+                      to={`/sponsor/${s.slug}/manage`}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-1 text-xs rounded-lg hover:bg-gray-100 transition-colors text-gray-600',
+                        location.pathname === `/sponsor/${s.slug}/manage` && 'bg-indigo-50 text-indigo-700'
+                      )}
+                    >
+                      <Settings className="w-3 h-3" />
+                      Manage
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
         </div>
       )}
     </div>

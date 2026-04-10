@@ -21,6 +21,7 @@ export interface SidebarData {
   moments: any[];
   allUsers: any[];
   sponsors: any[];
+  mySponsorMemberships: any[];
   community: any | null;
   events: any[];
   programs: any[];
@@ -54,6 +55,7 @@ export function useSidebarData(currentUserId: string) {
   const [moments, setMoments] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [sponsors, setSponsors] = useState<any[]>([]);
+  const [mySponsorMemberships, setMySponsorMemberships] = useState<any[]>([]);
   const [community, setCommunity] = useState<any | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
@@ -237,6 +239,17 @@ export function useSidebarData(currentUserId: string) {
         } catch (err) {
            console.log('Error fetching sponsors:', err);
            setSponsors([]);
+        }
+
+        // Fetch user's own sponsor memberships
+        try {
+          const { data: membershipData } = await supabase
+            .from('sponsor_members')
+            .select('sponsor_id, role, sponsor:sponsors(id, name, slug, logo_url)')
+            .eq('user_id', currentUserId);
+          setMySponsorMemberships(membershipData || []);
+        } catch (err) {
+          setMySponsorMemberships([]);
         }
 
         // Fetch community info
@@ -439,6 +452,7 @@ export function useSidebarData(currentUserId: string) {
     moments,
     allUsers,
     sponsors,
+    mySponsorMemberships,
     community,
     events,
     programs,
