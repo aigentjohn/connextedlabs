@@ -80,6 +80,7 @@ export default function CompanyMemberDialog({ companyId, companyName, ownerUserI
         company_id: companyId,
         user_id: user.id,
         role: 'member',
+        invited_by: profile.id,
       });
 
       if (error) throw error;
