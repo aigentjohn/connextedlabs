@@ -27,16 +27,22 @@ import {
   CheckSquare,
   BookOpen,
   Search,
+  QrCode,
+  Users,
 } from 'lucide-react';
+import { CompanionQRCode } from './CompanionQRCode';
+import { CompanionAttendees } from './CompanionAttendees';
 
 const ITEM_TYPES = [
-  { value: 'table', label: 'Table', icon: LayoutGrid, table: 'tables', nameField: 'name', slugField: 'slug', route: '/tables' },
-  { value: 'elevator', label: 'Elevator', icon: Mic, table: 'elevators', nameField: 'name', slugField: 'slug', route: '/elevators' },
-  { value: 'pitch', label: 'Pitch', icon: Presentation, table: 'pitches', nameField: 'name', slugField: 'slug', route: '/pitches' },
-  { value: 'document', label: 'Document', icon: FileText, table: 'documents', nameField: 'title', slugField: 'id', route: '/documents' },
-  { value: 'episode', label: 'Episode', icon: Headphones, table: 'episodes', nameField: 'title', slugField: 'id', route: '/episodes' },
-  { value: 'checklist', label: 'Checklist', icon: CheckSquare, table: 'checklists', nameField: 'name', slugField: 'slug', route: '/checklists' },
-  { value: 'book', label: 'Book', icon: BookOpen, table: 'books', nameField: 'title', slugField: 'slug', route: '/books' },
+  { value: 'table',     label: 'Table',     icon: LayoutGrid,  table: 'tables',     nameField: 'name',  slugField: 'slug', route: '/tables',     builtin: false },
+  { value: 'elevator',  label: 'Elevator',  icon: Mic,         table: 'elevators',  nameField: 'name',  slugField: 'slug', route: '/elevators',  builtin: false },
+  { value: 'pitch',     label: 'Pitch',     icon: Presentation,table: 'pitches',    nameField: 'name',  slugField: 'slug', route: '/pitches',    builtin: false },
+  { value: 'document',  label: 'Document',  icon: FileText,    table: 'documents',  nameField: 'title', slugField: 'id',   route: '/documents',  builtin: false },
+  { value: 'episode',   label: 'Episode',   icon: Headphones,  table: 'episodes',   nameField: 'title', slugField: 'id',   route: '/episodes',   builtin: false },
+  { value: 'checklist', label: 'Checklist', icon: CheckSquare, table: 'checklists', nameField: 'name',  slugField: 'slug', route: '/checklists', builtin: false },
+  { value: 'book',      label: 'Book',      icon: BookOpen,    table: 'books',      nameField: 'title', slugField: 'slug', route: '/books',      builtin: false },
+  { value: 'qr_code',   label: 'QR Code',   icon: QrCode,      table: '',           nameField: '',      slugField: '',     route: '',            builtin: true  },
+  { value: 'attendees', label: 'Attendees', icon: Users,       table: '',           nameField: '',      slugField: '',     route: '',            builtin: true  },
 ] as const;
 
 interface CompanionItem {
@@ -121,6 +127,11 @@ export default function EventCompanionDetailPage() {
     const resolved: CompanionItem[] = [];
     for (const item of rawItems) {
       const typeConfig = ITEM_TYPES.find((t) => t.value === item.item_type);
+      // Built-in types don't need DB lookups
+      if (typeConfig?.builtin) {
+        resolved.push({ ...item, resolved_name: typeConfig.label });
+        continue;
+      }
       if (!typeConfig) {
         resolved.push({ ...item, resolved_name: `Unknown (${item.item_type})` });
         continue;
@@ -188,20 +199,28 @@ export default function EventCompanionDetailPage() {
   }
 
   function startAddItem(type: string) {
+    const config = ITEM_TYPES.find(t => t.value === type);
+    if (config?.builtin) {
+      // Built-in types: add immediately using companion.id as item_id
+      addItem(companion!.id, type);
+      return;
+    }
     setAddingType(type);
     setItemSearch('');
     loadAvailableItems(type);
   }
 
-  async function addItem(itemId: string) {
-    if (!id || !addingType) return;
+  async function addItem(itemId: string, typeOverride?: string) {
+    if (!id) return;
+    const type = typeOverride || addingType;
+    if (!type) return;
     const maxOrder = items.length > 0 ? Math.max(...items.map((i) => i.order_index)) + 1 : 0;
     try {
       const { data, error } = await supabase
         .from('event_companion_items')
         .insert({
           companion_id: id,
-          item_type: addingType,
+          item_type: type,
           item_id: itemId,
           order_index: maxOrder,
         })
@@ -357,6 +376,9 @@ export default function EventCompanionDetailPage() {
               <div className="flex flex-wrap gap-2">
                 {ITEM_TYPES.map((type) => {
                   const Icon = type.icon;
+                  // Hide builtin types that are already added
+                  const alreadyAdded = type.builtin && items.some(i => i.item_type === type.value);
+                  if (alreadyAdded) return null;
                   return (
                     <Button
                       key={type.value}
@@ -429,33 +451,54 @@ export default function EventCompanionDetailPage() {
           ) : (
             <div className="space-y-2">
               {items.map((item) => {
+                const typeConfig = ITEM_TYPES.find((t) => t.value === item.item_type);
                 const Icon = getItemIcon(item.item_type);
-                const typeLabel = ITEM_TYPES.find((t) => t.value === item.item_type)?.label || item.item_type;
+                const typeLabel = typeConfig?.label || item.item_type;
+                const isBuiltin = typeConfig?.builtin ?? false;
+                const isHost = companion?.created_by === profile?.id;
+
                 return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 px-3 py-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <GripVertical className="w-4 h-4 text-gray-300" />
-                    <Icon className="w-5 h-5 text-indigo-500" />
-                    <Link to={getItemRoute(item)} className="flex-1 min-w-0 group">
-                      <p className="font-medium text-sm text-gray-900 group-hover:text-indigo-600 truncate">
-                        {item.resolved_name}
-                        <ExternalLink className="w-3 h-3 inline ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </p>
-                      {item.resolved_description && (
-                        <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.resolved_description}</p>
+                  <div key={item.id} className="border rounded-lg overflow-hidden">
+                    {/* Item header */}
+                    <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 border-b">
+                      <GripVertical className="w-4 h-4 text-gray-300" />
+                      <Icon className="w-4 h-4 text-indigo-500" />
+                      <span className="flex-1 text-sm font-medium text-gray-700">{typeLabel}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-red-500 h-7 w-7 p-0"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Item body */}
+                    <div className="px-3 py-3">
+                      {isBuiltin && item.item_type === 'qr_code' && (
+                        <CompanionQRCode companionId={companion!.id} />
                       )}
-                      <Badge variant="secondary" className="text-xs mt-1">{typeLabel}</Badge>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-400 hover:text-red-500"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      {isBuiltin && item.item_type === 'attendees' && companion?.event?.id && (
+                        <CompanionAttendees
+                          eventId={companion.event.id}
+                          isHost={isHost}
+                        />
+                      )}
+                      {!isBuiltin && (
+                        <Link to={getItemRoute(item)} className="group flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-gray-900 group-hover:text-indigo-600 truncate">
+                              {item.resolved_name}
+                              <ExternalLink className="w-3 h-3 inline ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </p>
+                            {item.resolved_description && (
+                              <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{item.resolved_description}</p>
+                            )}
+                          </div>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 );
               })}
