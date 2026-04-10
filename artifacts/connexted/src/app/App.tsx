@@ -342,6 +342,7 @@ const CompanyNewsSettings = lazy(() => import('@/app/components/markets/CompanyN
 const SponsorsPage = lazy(() => import('@/app/components/SponsorsPage'));
 const SponsorDetailPage = lazy(() => import('@/app/components/SponsorDetailPage'));
 const SponsorManagePage = lazy(() => import('@/app/components/sponsor/SponsorManagePage'));
+const SponsorCompanionPage = lazy(() => import('@/app/components/sponsor/SponsorCompanionPage'));
 
 // Misc
 const AIDiscussionDemo = lazy(() => import('@/app/components/AIDiscussionDemo'));
@@ -704,6 +705,7 @@ const router = createBrowserRouter([
           { path: '/search', element: <SearchPage /> },
           { path: '/sponsors', element: <SponsorsPage /> },
           { path: '/sponsors/:slug', element: <SponsorDetailPage /> },
+          { path: '/sponsors/:slug/companion', element: <SponsorCompanionPage /> },
           { path: '/sponsor/:slug/manage', element: <SponsorManagePage /> },
           { path: '/sponsor/:slug/members', element: <SponsorManagePage /> },
           // Markets

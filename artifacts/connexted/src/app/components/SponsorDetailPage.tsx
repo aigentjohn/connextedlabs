@@ -373,14 +373,22 @@ export default function SponsorDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>From {sponsor.name}</CardTitle>
-              {canManageSponsor(sponsor.id) && (
+              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link to={`/sponsor/${sponsor.slug}/manage`}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Manage
+                  <Link to={`/sponsors/${sponsor.slug}/companion`}>
+                    <ArrowUpCircle className="w-4 h-4 mr-2" />
+                    Companion
                   </Link>
                 </Button>
-              )}
+                {canManageSponsor(sponsor.id) && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/sponsor/${sponsor.slug}/manage`}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Manage
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
