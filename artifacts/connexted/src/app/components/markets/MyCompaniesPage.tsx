@@ -11,7 +11,7 @@ import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { toast } from 'sonner';
 import { Building2, LayoutGrid, ExternalLink, Users } from 'lucide-react';
 
-interface MemberCompany {
+interface AssociatedCompany {
   id: string;
   name: string;
   slug: string;
@@ -19,12 +19,13 @@ interface MemberCompany {
   logo_url: string | null;
   industry: string | null;
   owner_user_id: string;
+  isOwner: boolean;
   companion_count: number;
 }
 
 export default function MyCompaniesPage() {
   const { profile } = useAuth();
-  const [companies, setCompanies] = useState<MemberCompany[]>([]);
+  const [companies, setCompanies] = useState<AssociatedCompany[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +37,14 @@ export default function MyCompaniesPage() {
     try {
       setLoading(true);
 
-      // Step 1: get company_ids the user is a member of
+      // Owned companies
+      const { data: owned } = await supabase
+        .from('market_companies')
+        .select('id, name, slug, tagline, logo_url, industry, owner_user_id')
+        .eq('owner_user_id', profile.id)
+        .order('name');
+
+      // Member company_ids
       const { data: memberships, error: memberError } = await supabase
         .from('company_members')
         .select('company_id')
@@ -44,43 +52,45 @@ export default function MyCompaniesPage() {
 
       if (memberError) throw memberError;
 
-      const companyIds = (memberships || []).map((m: any) => m.company_id);
+      const memberIds = (memberships || []).map((m: any) => m.company_id);
+      const ownedIds = new Set((owned || []).map((c: any) => c.id));
 
-      if (companyIds.length === 0) {
+      // Fetch member companies that are not already owned
+      const nonOwnedMemberIds = memberIds.filter((id: string) => !ownedIds.has(id));
+      let memberCompanies: any[] = [];
+      if (nonOwnedMemberIds.length > 0) {
+        const { data: memberData } = await supabase
+          .from('market_companies')
+          .select('id, name, slug, tagline, logo_url, industry, owner_user_id')
+          .in('id', nonOwnedMemberIds)
+          .order('name');
+        memberCompanies = memberData || [];
+      }
+
+      // Combine: owned first, then member
+      const allCompanies = [
+        ...(owned || []).map((c: any) => ({ ...c, isOwner: true })),
+        ...memberCompanies.map((c: any) => ({ ...c, isOwner: false })),
+      ];
+
+      if (allCompanies.length === 0) {
         setCompanies([]);
         return;
       }
 
-      // Step 2: fetch those companies directly
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('market_companies')
-        .select('id, name, slug, tagline, logo_url, industry, owner_user_id')
-        .in('id', companyIds)
-        .order('name');
-
-      if (companiesError) throw companiesError;
-
-      // Exclude companies the user owns (they belong in My Ventures)
-      const raw = (companiesData || []).filter((c: any) => c.owner_user_id !== profile.id);
-
-      if (raw.length === 0) {
-        setCompanies([]);
-        return;
-      }
-
-      // Fetch companion item counts
-      const ids = raw.map((c: any) => c.id);
+      // Companion item counts
+      const allIds = allCompanies.map(c => c.id);
       const { data: items } = await supabase
         .from('company_companion_items')
         .select('company_id')
-        .in('company_id', ids);
+        .in('company_id', allIds);
 
       const counts: Record<string, number> = {};
       (items || []).forEach((i: any) => {
         counts[i.company_id] = (counts[i.company_id] || 0) + 1;
       });
 
-      setCompanies(raw.map((c: any) => ({ ...c, companion_count: counts[c.id] || 0 })));
+      setCompanies(allCompanies.map(c => ({ ...c, companion_count: counts[c.id] || 0 })));
     } catch (err: any) {
       console.error(err);
       toast.error('Failed to load companies');
@@ -101,7 +111,7 @@ export default function MyCompaniesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Companies</h1>
-          <p className="text-gray-500 mt-1">Companies you are a team member of</p>
+          <p className="text-gray-500 mt-1">All companies you own or are a member of</p>
         </div>
         <Button variant="outline" asChild>
           <Link to="/markets/all-companies">
@@ -121,11 +131,16 @@ export default function MyCompaniesPage() {
             <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-medium text-gray-900 mb-1">No companies yet</h3>
             <p className="text-sm text-gray-500 mb-4">
-              You haven't been added as a member to any company.
+              Create a venture or ask a company owner to add you as a member.
             </p>
-            <Button variant="outline" asChild>
-              <Link to="/markets/all-companies">Browse Companies</Link>
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" asChild>
+                <Link to="/my-ventures">My Ventures</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/markets/all-companies">Browse Companies</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -143,7 +158,12 @@ export default function MyCompaniesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-gray-900 truncate">{company.name}</h3>
-                      <Badge variant="secondary" className="text-xs shrink-0">Member</Badge>
+                      <Badge
+                        variant={company.isOwner ? 'default' : 'secondary'}
+                        className={`text-xs shrink-0 ${company.isOwner ? 'bg-indigo-600 text-white' : ''}`}
+                      >
+                        {company.isOwner ? 'Owner' : 'Member'}
+                      </Badge>
                     </div>
                     {company.tagline && (
                       <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{company.tagline}</p>
