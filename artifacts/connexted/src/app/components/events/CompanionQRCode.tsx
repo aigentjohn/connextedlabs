@@ -5,16 +5,16 @@ import { Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CompanionQRCodeProps {
-  companionId: string;
+  url: string;
+  label?: string;
 }
 
-export function CompanionQRCode({ companionId }: CompanionQRCodeProps) {
+export function CompanionQRCode({ url, label }: CompanionQRCodeProps) {
   const [dataUrl, setDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
-  const url = `${window.location.origin}/event-companions/${companionId}`;
-
   useEffect(() => {
+    if (!url) return;
     QRCode.toDataURL(url, {
       width: 240,
       margin: 2,
@@ -31,11 +31,15 @@ export function CompanionQRCode({ companionId }: CompanionQRCodeProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 py-4">
+    <div className="flex flex-col items-center gap-3 py-3">
+      {label && (
+        <p className="text-sm font-medium text-gray-800">{label}</p>
+      )}
+
       {dataUrl ? (
         <img
           src={dataUrl}
-          alt="Event Companion QR Code"
+          alt={label || 'QR Code'}
           className="rounded-lg border shadow-sm"
           width={240}
           height={240}
@@ -51,10 +55,6 @@ export function CompanionQRCode({ companionId }: CompanionQRCodeProps) {
           {copied ? 'Copied' : 'Copy link'}
         </Button>
       </div>
-
-      <p className="text-xs text-gray-400 text-center max-w-xs">
-        Display this QR code at the event so attendees can check in and access companion content.
-      </p>
     </div>
   );
 }

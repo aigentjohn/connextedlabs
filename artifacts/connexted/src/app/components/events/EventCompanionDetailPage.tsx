@@ -83,6 +83,9 @@ export default function EventCompanionDetailPage() {
   const [availableItems, setAvailableItems] = useState<any[]>([]);
   const [itemSearch, setItemSearch] = useState('');
   const [loadingItems, setLoadingItems] = useState(false);
+  // QR code entry form state
+  const [qrUrl, setQrUrl] = useState('');
+  const [qrLabel, setQrLabel] = useState('');
 
   const fetchCompanion = useCallback(async () => {
     if (!id) return;
@@ -201,13 +204,48 @@ export default function EventCompanionDetailPage() {
   function startAddItem(type: string) {
     const config = ITEM_TYPES.find(t => t.value === type);
     if (config?.builtin) {
-      // Built-in types: add immediately using companion.id as item_id
-      addItem(companion!.id, type);
+      if (type === 'qr_code') {
+        // QR codes need a URL — show entry form
+        setQrUrl('');
+        setQrLabel('');
+        setAddingType('qr_code');
+      } else {
+        // Other builtins (attendees): add immediately
+        addItem(companion!.id, type);
+      }
       return;
     }
     setAddingType(type);
     setItemSearch('');
     loadAvailableItems(type);
+  }
+
+  async function addQRCodeItem() {
+    if (!id || !qrUrl.trim()) return;
+    const maxOrder = items.length > 0 ? Math.max(...items.map((i) => i.order_index)) + 1 : 0;
+    try {
+      const { data, error } = await supabase
+        .from('event_companion_items')
+        .insert({
+          companion_id: id,
+          item_type: 'qr_code',
+          item_id: id, // self-reference; actual data is in notes
+          order_index: maxOrder,
+          notes: JSON.stringify({ url: qrUrl.trim(), label: qrLabel.trim() || null }),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setAddingType(null);
+      setQrUrl('');
+      setQrLabel('');
+      const resolved = await resolveItemNames([data]);
+      setItems((prev) => [...prev, ...resolved]);
+      toast.success('QR code added');
+    } catch (err: any) {
+      toast.error('Failed to add QR code');
+    }
   }
 
   async function addItem(itemId: string, typeOverride?: string) {
@@ -376,8 +414,8 @@ export default function EventCompanionDetailPage() {
               <div className="flex flex-wrap gap-2">
                 {ITEM_TYPES.map((type) => {
                   const Icon = type.icon;
-                  // Hide builtin types that are already added
-                  const alreadyAdded = type.builtin && items.some(i => i.item_type === type.value);
+                  // Only restrict attendees to one instance
+                  const alreadyAdded = type.value === 'attendees' && items.some(i => i.item_type === 'attendees');
                   if (alreadyAdded) return null;
                   return (
                     <Button
@@ -400,10 +438,38 @@ export default function EventCompanionDetailPage() {
             <div className="mb-6 border rounded-lg p-4 bg-gray-50">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-medium">Add {typeConfig.label}</h3>
-                <Button variant="ghost" size="sm" onClick={() => { setAddingType(null); setAvailableItems([]); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setAddingType(null); setAvailableItems([]); setQrUrl(''); setQrLabel(''); }}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
+
+              {/* QR Code entry form */}
+              {addingType === 'qr_code' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">URL *</label>
+                    <Input
+                      value={qrUrl}
+                      onChange={e => setQrUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-700">Label (optional)</label>
+                    <Input
+                      value={qrLabel}
+                      onChange={e => setQrLabel(e.target.value)}
+                      placeholder="e.g. Slides, Registration, WiFi..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button size="sm" onClick={addQRCodeItem} disabled={!qrUrl.trim()}>
+                    Add QR Code
+                  </Button>
+                </div>
+              ) : (
+                <>
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -438,7 +504,8 @@ export default function EventCompanionDetailPage() {
                     );
                   })}
                 </div>
-              )}
+              )}</>
+              )
             </div>
           )}
 
@@ -463,7 +530,15 @@ export default function EventCompanionDetailPage() {
                     <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 border-b">
                       <GripVertical className="w-4 h-4 text-gray-300" />
                       <Icon className="w-4 h-4 text-indigo-500" />
-                      <span className="flex-1 text-sm font-medium text-gray-700">{typeLabel}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-700">
+                        {typeLabel}
+                        {item.item_type === 'qr_code' && (() => {
+                          try {
+                            const d = JSON.parse(item.notes || '{}');
+                            return d.label ? <span className="ml-2 font-normal text-gray-500">— {d.label}</span> : null;
+                          } catch { return null; }
+                        })()}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -476,9 +551,13 @@ export default function EventCompanionDetailPage() {
 
                     {/* Item body */}
                     <div className="px-3 py-3">
-                      {isBuiltin && item.item_type === 'qr_code' && (
-                        <CompanionQRCode companionId={companion!.id} />
-                      )}
+                      {isBuiltin && item.item_type === 'qr_code' && (() => {
+                        let qrData = { url: '', label: '' };
+                        try { qrData = JSON.parse(item.notes || '{}'); } catch {}
+                        return qrData.url
+                          ? <CompanionQRCode url={qrData.url} label={qrData.label || undefined} />
+                          : <p className="text-sm text-gray-400 py-2">No URL set for this QR code.</p>;
+                      })()}
                       {isBuiltin && item.item_type === 'attendees' && companion?.event?.id && (
                         <CompanionAttendees
                           eventId={companion.event.id}
