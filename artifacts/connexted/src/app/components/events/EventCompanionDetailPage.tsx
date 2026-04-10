@@ -444,7 +444,7 @@ export default function EventCompanionDetailPage() {
               </div>
 
               {/* QR Code entry form */}
-              {addingType === 'qr_code' ? (
+              {addingType === 'qr_code' && (
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-gray-700">URL *</label>
@@ -468,45 +468,42 @@ export default function EventCompanionDetailPage() {
                     Add QR Code
                   </Button>
                 </div>
-              ) : (
-                <>
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder={`Search ${typeConfig.label.toLowerCase()}s...`}
-                  value={itemSearch}
-                  onChange={(e) => setItemSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              {loadingItems ? (
-                <Skeleton className="h-20" />
-              ) : filteredAvailable.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No {typeConfig.label.toLowerCase()}s found</p>
-              ) : (
-                <div className="max-h-48 overflow-y-auto space-y-1">
-                  {filteredAvailable.map((item) => {
-                    const alreadyAdded = alreadyAddedIds.includes(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        disabled={alreadyAdded}
-                        onClick={() => addItem(item.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                          alreadyAdded
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'hover:bg-indigo-50 hover:text-indigo-700'
-                        }`}
-                      >
-                        {item[typeConfig.nameField]}
-                        {alreadyAdded && <span className="ml-2 text-xs">(already added)</span>}
-                      </button>
-                    );
-                  })}
+              )}
+              {addingType !== 'qr_code' && (
+                <div className="space-y-2">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder={`Search ${typeConfig.label.toLowerCase()}s...`}
+                      value={itemSearch}
+                      onChange={(e) => setItemSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {loadingItems ? (
+                    <Skeleton className="h-20" />
+                  ) : filteredAvailable.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">No {typeConfig.label.toLowerCase()}s found</p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-1">
+                      {filteredAvailable.map((item) => {
+                        const alreadyAdded = alreadyAddedIds.includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            disabled={alreadyAdded}
+                            onClick={() => addItem(item.id)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${alreadyAdded ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-700'}`}
+                          >
+                            {item[typeConfig.nameField]}
+                            {alreadyAdded && <span className="ml-2 text-xs">(already added)</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-              </>
-              )
             </div>
           )}
 
