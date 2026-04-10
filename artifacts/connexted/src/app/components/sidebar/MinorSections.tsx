@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   Settings,
   Building2,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { CONTENT_TAXONOMY } from '@/lib/taxonomy';
@@ -174,6 +175,99 @@ export function CirclesSection({ isExpanded, onToggle, circles }: CirclesSection
 
           {circles.length === 0 && (
             <div className="px-3 py-1.5 text-sm text-gray-500 italic">No circles yet</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── COMPANIES ───────────────────────────────────────────────────────────────
+
+interface CompaniesSectionProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  myCompanies: any[];
+  isPlatformAdmin: boolean;
+}
+
+export function CompaniesSection({ isExpanded, onToggle, myCompanies, isPlatformAdmin }: CompaniesSectionProps) {
+  const location = useLocation();
+
+  if (myCompanies.length === 0 && !isPlatformAdmin) return null;
+
+  return (
+    <div className="mb-1.5">
+      <button
+        onClick={onToggle}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+          isExpanded && 'bg-gray-50'
+        )}
+      >
+        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+        <Briefcase className="w-4 h-4 text-indigo-600" />
+        <span className="flex-1 text-left font-semibold text-gray-900">MY COMPANIES</span>
+        {myCompanies.length > 0 && <span className="text-xs text-gray-500">({myCompanies.length})</span>}
+      </button>
+
+      {isExpanded && (
+        <div className="ml-3 mt-0.5 space-y-0.5">
+          {/* Browse all companies */}
+          <Link
+            to="/markets/all-companies"
+            className={cn(
+              'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+              location.pathname === '/markets/all-companies' && 'bg-indigo-50 text-indigo-700'
+            )}
+          >
+            <Building2 className="w-4 h-4 text-gray-400" />
+            <span>All Companies</span>
+          </Link>
+
+          {myCompanies.map((c: any) => {
+            const isActive = location.pathname.startsWith(`/markets/companies/${c.slug}`);
+            const isOwner = c.owner_user_id !== undefined; // always true if we got it
+            return (
+              <div key={c.id}>
+                <Link
+                  to={`/markets/companies/${c.slug}`}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+                    isActive && 'bg-indigo-50 text-indigo-700'
+                  )}
+                >
+                  <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span className="flex-1 truncate">{c.name}</span>
+                </Link>
+                <div className="ml-6 space-y-0.5 pb-0.5">
+                  <Link
+                    to={`/markets/companies/${c.slug}/companion`}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1 text-xs rounded-lg hover:bg-gray-100 transition-colors text-gray-600',
+                      location.pathname === `/markets/companies/${c.slug}/companion` && 'bg-indigo-50 text-indigo-700'
+                    )}
+                  >
+                    <LayoutGrid className="w-3 h-3" />
+                    Companion
+                  </Link>
+                  <Link
+                    to={`/markets/edit-company/${c.id}`}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1 text-xs rounded-lg hover:bg-gray-100 transition-colors text-gray-600',
+                      location.pathname === `/markets/edit-company/${c.id}` && 'bg-indigo-50 text-indigo-700'
+                    )}
+                  >
+                    <Settings className="w-3 h-3" />
+                    Manage
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+
+          {myCompanies.length === 0 && (
+            <div className="px-3 py-1.5 text-sm text-gray-500 italic">No companies yet</div>
           )}
         </div>
       )}

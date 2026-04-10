@@ -20,6 +20,7 @@ import {
   Users,
   Award,
   Target,
+  LayoutGrid,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -171,6 +172,8 @@ export default function CompanyProfilePage() {
   }
 
   const isOwner = profile?.id === company.owner_user_id;
+  const isPlatformAdmin = profile?.role === 'admin' || profile?.role === 'super';
+  const canManage = isOwner || isPlatformAdmin;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -243,13 +246,19 @@ export default function CompanyProfilePage() {
                   Website
                 </Button>
               )}
-              {isOwner && (
+              <Button variant="outline" asChild>
+                <Link to={`/markets/companies/${company.slug}/companion`}>
+                  <LayoutGrid className="w-4 h-4 mr-2" />
+                  Companion
+                </Link>
+              </Button>
+              {canManage && (
                 <Button
                   variant="outline"
                   onClick={() => navigate(`/markets/edit-company/${company.id}`)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
-                  Edit
+                  Manage
                 </Button>
               )}
             </div>

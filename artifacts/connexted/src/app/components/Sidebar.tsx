@@ -26,7 +26,7 @@ import { MyContentSection } from './sidebar/MyContentSection';
 import { MyGrowthSection } from './sidebar/MyGrowthSection';
 import { DiscoverSection } from './sidebar/DiscoverSection';
 import { MembersSection } from './sidebar/MembersSection';
-import { SponsorsSection, CirclesSection, ContentSection } from './sidebar/MinorSections';
+import { SponsorsSection, CirclesSection, ContentSection, CompaniesSection } from './sidebar/MinorSections';
 import { ActivitiesSection } from './sidebar/ActivitiesSection';
 import { CalendarEventsSection } from './sidebar/CalendarEventsSection';
 import { SetupSection } from './sidebar/SetupSection';
@@ -49,6 +49,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
     activities: false,
     calendarEvents: false,
     circles: false,
+    companies: false,
     content: false,
     setup: false,
     myAdmin: false,
@@ -65,7 +66,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   const {
     circles, tables, elevators, meetings, pitches, builds,
     standups, meetups, sprints, magazines, playlists, episodes,
-    checklists, moments, allUsers, sponsors, mySponsorMemberships, community, events,
+    checklists, moments, allUsers, sponsors, mySponsorMemberships, myCompanies, community, events,
     programs, loading, documentCounts, eventCounts, reviewCounts,
   } = useSidebarData(currentUserId);
 
@@ -183,7 +184,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
   }, [location.pathname]);
 
   const toggleSection = (key: string) => {
-    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'calendarEvents', 'circles', 'content', 'setup'];
+    const mainSections = ['user', 'myContent', 'myGrowth', 'discover', 'members', 'sponsors', 'activities', 'calendarEvents', 'circles', 'companies', 'content', 'setup'];
     const adminSections = ['myAdmin'];
     const containerAdminSections = ['tableAdmin', 'elevatorAdmin', 'meetingAdmin', 'pitchAdmin', 'buildAdmin', 'standupAdmin', 'meetupAdmin', 'sprintAdmin'];
 
@@ -298,6 +299,13 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
             myMemberships={mySponsorMemberships}
             isPlatformAdmin={profile?.role === 'admin' || profile?.role === 'super'}
             allSponsors={sponsors}
+          />
+          <Separator className="my-1.5" />
+          <CompaniesSection
+            isExpanded={expandedSections['companies']}
+            onToggle={() => toggleSection('companies')}
+            myCompanies={myCompanies}
+            isPlatformAdmin={isAdminOrSuper}
           />
           <Separator className="my-1.5" />
           <CirclesSection

@@ -22,6 +22,7 @@ export interface SidebarData {
   allUsers: any[];
   sponsors: any[];
   mySponsorMemberships: any[];
+  myCompanies: any[];
   community: any | null;
   events: any[];
   programs: any[];
@@ -56,6 +57,7 @@ export function useSidebarData(currentUserId: string) {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [sponsors, setSponsors] = useState<any[]>([]);
   const [mySponsorMemberships, setMySponsorMemberships] = useState<any[]>([]);
+  const [myCompanies, setMyCompanies] = useState<any[]>([]);
   const [community, setCommunity] = useState<any | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
@@ -250,6 +252,36 @@ export function useSidebarData(currentUserId: string) {
           setMySponsorMemberships(membershipData || []);
         } catch (err) {
           setMySponsorMemberships([]);
+        }
+
+        // Fetch user's companies (owned or member of)
+        try {
+          // Companies the user owns
+          const { data: ownedCompanies } = await supabase
+            .from('market_companies')
+            .select('id, name, slug, logo_url, owner_user_id')
+            .eq('owner_user_id', currentUserId)
+            .order('name');
+
+          // Companies the user is a member of (but doesn't own)
+          const { data: memberOf } = await supabase
+            .from('company_members')
+            .select('company:market_companies(id, name, slug, logo_url, owner_user_id)')
+            .eq('user_id', currentUserId);
+
+          const memberCompanies = (memberOf || [])
+            .map((m: any) => m.company)
+            .filter(Boolean);
+
+          // Merge, deduplicate by id
+          const allIds = new Set((ownedCompanies || []).map((c: any) => c.id));
+          const combined = [
+            ...(ownedCompanies || []),
+            ...memberCompanies.filter((c: any) => !allIds.has(c.id)),
+          ];
+          setMyCompanies(combined);
+        } catch (err) {
+          setMyCompanies([]);
         }
 
         // Fetch community info
@@ -453,6 +485,7 @@ export function useSidebarData(currentUserId: string) {
     allUsers,
     sponsors,
     mySponsorMemberships,
+    myCompanies,
     community,
     events,
     programs,
