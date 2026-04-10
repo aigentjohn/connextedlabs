@@ -3,12 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { RSVPStatus, EventType, RSVPType } from './calendarHelpers';
 import { notifyEventRSVP } from '@/lib/notificationHelpers';
-import { logError } from '@/lib/error-handler';
 
 export interface EventRSVP {
   id: string;
   event_id: string;
-  user_id: string;
+  user_id: string | null;
   status: RSVPStatus;
   response_date: string;
   plus_one_count?: number;
@@ -16,6 +15,32 @@ export interface EventRSVP {
   comments?: string;
   created_at: string;
   updated_at: string;
+  // Check-in fields
+  checked_in_at?: string | null;
+  shared_fields?: string[];
+  guest_name?: string | null;
+  guest_email?: string | null;
+  guest_phone?: string | null;
+  added_by?: string | null;
+}
+
+export interface CheckedInAttendee {
+  id: string;
+  user_id: string | null;
+  checked_in_at: string;
+  shared_fields: string[];
+  guest_name?: string | null;
+  guest_email?: string | null;
+  guest_phone?: string | null;
+  user?: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    email?: string | null;
+    tagline?: string | null;
+    location?: string | null;
+    bio?: string | null;
+  };
 }
 
 /**
@@ -97,7 +122,7 @@ export async function getUserRSVP(eventId: string, userId: string): Promise<Even
     .maybeSingle();
 
   if (error) {
-    logError('Error fetching user RSVP:', error, { component: 'rsvpHelpers' });
+    console.error('Error fetching user RSVP:', error);
     return null;
   }
 
@@ -133,7 +158,7 @@ export async function updateUserRSVP(
       .single();
 
     if (error) {
-      logError('Error updating RSVP:', error, { component: 'rsvpHelpers' });
+      console.error('Error updating RSVP:', error);
       toast.error('Failed to update RSVP');
       return null;
     }
@@ -169,7 +194,7 @@ export async function updateUserRSVP(
       .single();
 
     if (error) {
-      logError('Error creating RSVP:', error, { component: 'rsvpHelpers' });
+      console.error('Error creating RSVP:', error);
       toast.error('Failed to create RSVP');
       return null;
     }
@@ -203,7 +228,7 @@ export async function getEventRSVPCounts(eventId: string): Promise<{
     .eq('event_id', eventId);
 
   if (error) {
-    logError('Error fetching RSVP counts:', error, { component: 'rsvpHelpers' });
+    console.error('Error fetching RSVP counts:', error);
     return { going: 0, maybe: 0, not_going: 0, total: 0 };
   }
 
@@ -233,7 +258,7 @@ export async function getEventRSVPs(eventId: string): Promise<EventRSVP[]> {
     .order('response_date', { ascending: false });
 
   if (error) {
-    logError('Error fetching event RSVPs:', error, { component: 'rsvpHelpers' });
+    console.error('Error fetching event RSVPs:', error);
     toast.error('Failed to load RSVPs');
     return [];
   }
@@ -259,7 +284,7 @@ export async function trackExternalRSVPClick(
     });
 
   if (error) {
-    logError('Error tracking external click:', error, { component: 'rsvpHelpers' });
+    console.error('Error tracking external click:', error);
     // Don't show error to user, this is just analytics
   }
 }
@@ -274,7 +299,7 @@ export async function getExternalClickCount(eventId: string): Promise<number> {
     .eq('event_id', eventId);
 
   if (error) {
-    logError('Error fetching external click count:', error, { component: 'rsvpHelpers' });
+    console.error('Error fetching external click count:', error);
     return 0;
   }
 
@@ -411,6 +436,121 @@ async function sendRSVPNotification(eventId: string, userId: string, status: RSV
       status as 'going' | 'maybe'
     );
   } catch (error) {
-    logError('Error sending RSVP notification:', error, { component: 'rsvpHelpers' });
+    console.error('Error sending RSVP notification:', error);
   }
+}
+
+/**
+ * Self check-in: member checks themselves in and sets contact sharing consent.
+ * Creates an RSVP record if one doesn't exist (walk-in).
+ */
+export async function checkInToEvent(
+  eventId: string,
+  userId: string,
+  sharedFields: string[]
+): Promise<EventRSVP | null> {
+  const existing = await getUserRSVP(eventId, userId);
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('event_rsvps')
+      .update({
+        checked_in_at: new Date().toISOString(),
+        shared_fields: sharedFields,
+        status: existing.status === 'no_response' ? 'going' : existing.status,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Check-in error:', error);
+      toast.error('Failed to check in');
+      return null;
+    }
+    return data;
+  } else {
+    // Walk-in: no prior RSVP
+    const { data, error } = await supabase
+      .from('event_rsvps')
+      .insert({
+        event_id: eventId,
+        user_id: userId,
+        status: 'going',
+        response_date: new Date().toISOString(),
+        checked_in_at: new Date().toISOString(),
+        shared_fields: sharedFields,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Check-in error:', error);
+      toast.error('Failed to check in');
+      return null;
+    }
+    return data;
+  }
+}
+
+/**
+ * Host/admin adds a guest (non-platform-member) to the event check-in list.
+ */
+export async function addGuestToEvent(
+  eventId: string,
+  guest: { name: string; email?: string; phone?: string },
+  addedBy: string
+): Promise<EventRSVP | null> {
+  const { data, error } = await supabase
+    .from('event_rsvps')
+    .insert({
+      event_id: eventId,
+      user_id: null,
+      status: 'going',
+      response_date: new Date().toISOString(),
+      checked_in_at: new Date().toISOString(),
+      shared_fields: [],
+      guest_name: guest.name,
+      guest_email: guest.email || null,
+      guest_phone: guest.phone || null,
+      added_by: addedBy,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Add guest error:', error);
+    toast.error('Failed to add guest');
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Get all checked-in attendees for an event, with their shared profile fields.
+ * Visible to anyone who has checked in.
+ */
+export async function getCheckedInAttendees(eventId: string): Promise<CheckedInAttendee[]> {
+  const { data, error } = await supabase
+    .from('event_rsvps')
+    .select(`
+      id,
+      user_id,
+      checked_in_at,
+      shared_fields,
+      guest_name,
+      guest_email,
+      guest_phone,
+      user:users(id, name, avatar, email, tagline, location, bio)
+    `)
+    .eq('event_id', eventId)
+    .not('checked_in_at', 'is', null)
+    .order('checked_in_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching checked-in attendees:', error);
+    return [];
+  }
+
+  return (data || []) as CheckedInAttendee[];
 }

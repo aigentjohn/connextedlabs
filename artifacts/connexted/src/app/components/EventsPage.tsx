@@ -9,13 +9,16 @@ import { Button } from '@/app/components/ui/button';
 import { Label } from '@/app/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Calendar, MapPin, Users, Clock, Search, Lock, ExternalLink, List, CalendarDays, User, Download, Plus } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Search, Lock, ExternalLink, List, CalendarDays, User, Download, Plus, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '@/app/components/shared/PageHeader';
 import CreateEventDialog from '@/app/components/calendar/CreateEventDialog';
 import { RSVPActions } from '@/app/components/calendar/RSVPActions';
 import { CalendarStatus } from '@/app/components/calendar/StatusBadge';
 import { EventAttendeesDialog } from '@/app/components/calendar/EventAttendeesDialog';
+import { EventCheckInDialog } from '@/app/components/calendar/EventCheckInDialog';
+import { EventAttendeesLive } from '@/app/components/calendar/EventAttendeesLive';
 import { downloadICS, UnifiedCalendarItem, getUserEventStatus } from '@/lib/calendarHelpers';
+import { getUserRSVP } from '@/lib/rsvpHelpers';
 import { toast } from 'sonner';
 
 // Extract EventCard as a separate component to fix React Hooks violation
@@ -31,7 +34,17 @@ interface EventCardProps {
 function EventCard({ event, users, circles, profile, canAccessContent, setRefreshKey }: EventCardProps) {
   const [reminderPreference, setReminderPreference] = useState('none');
   const [showAttendees, setShowAttendees] = useState(false);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showWhoIsHere, setShowWhoIsHere] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
   const isHost = profile.id === event.host_id;
+
+  // Check if user has already checked in
+  useEffect(() => {
+    getUserRSVP(event.id, profile.id).then(rsvp => {
+      if (rsvp?.checked_in_at) setCheckedIn(true);
+    });
+  }, [event.id, profile.id]);
   const now = new Date();
   const host = users.find(u => u.id === event.host_id);
   const eventCircles = event.circle_ids
@@ -135,6 +148,40 @@ function EventCard({ event, users, circles, profile, canAccessContent, setRefres
               </div>
             )}
 
+            {/* Check-in / Who's Here — visible for accessible non-past events */}
+            {accessible && !isPast && (
+              <div className="flex gap-2 pt-2">
+                {checkedIn ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-700 border-green-300 bg-green-50"
+                    disabled
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                    Checked In
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCheckIn(true)}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                    Check In
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowWhoIsHere(true)}
+                >
+                  <Users className="w-4 h-4 mr-1.5" />
+                  Who's Here
+                </Button>
+              </div>
+            )}
+
             {/* Attendees Dialog (host only) */}
             {isHost && showAttendees && (
               <EventAttendeesDialog
@@ -142,6 +189,27 @@ function EventCard({ event, users, circles, profile, canAccessContent, setRefres
                 eventTitle={event.title}
                 open={showAttendees}
                 onClose={() => setShowAttendees(false)}
+              />
+            )}
+
+            {/* Check-in dialog */}
+            {showCheckIn && (
+              <EventCheckInDialog
+                eventId={event.id}
+                eventTitle={event.title}
+                open={showCheckIn}
+                onClose={() => setShowCheckIn(false)}
+                onCheckedIn={() => setCheckedIn(true)}
+              />
+            )}
+
+            {/* Who's Here live list */}
+            {showWhoIsHere && (
+              <EventAttendeesLive
+                eventId={event.id}
+                eventTitle={event.title}
+                open={showWhoIsHere}
+                onClose={() => setShowWhoIsHere(false)}
               />
             )}
 
