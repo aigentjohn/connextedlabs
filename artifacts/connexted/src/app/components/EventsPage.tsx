@@ -443,7 +443,7 @@ function EventCalendarToggle({ events, circles, users, profile, canAccessContent
 }
 
 export default function EventsPage({ meetupId }: { meetupId?: string }) {
-  const { profile } = useAuth();
+  const { profile, userPermissions } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -592,11 +592,10 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
     event.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Check if user can access content
   const canAccessContent = (accessLevel?: string) => {
     if (!accessLevel || accessLevel === 'public') return true;
-    if (accessLevel === 'member' && profile.membership_tier !== 'free') return true;
-    if (accessLevel === 'premium' && profile.membership_tier === 'premium') return true;
+    if (accessLevel === 'member') return userPermissions?.permitted_types.includes('events') ?? false;
+    if (accessLevel === 'premium') return userPermissions?.permitted_types.includes('events_premium') ?? false;
     return false;
   };
 

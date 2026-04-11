@@ -15,6 +15,12 @@ interface UserProfile {
   email: string;
   role: Role;
   membership_tier: MembershipTier;
+  /**
+   * Platform feature access level (1–10). Controls which navigation items,
+   * containers, and tools the user can access. Separate from membership_tier
+   * which gates commercial content (pathways, courses, programs, companies).
+   */
+  user_class: number;
   avatar: string | null;
   tagline: string | null;
   bio: string | null;
@@ -36,7 +42,14 @@ interface ContainerPermission {
 
 interface UserClassPermissions {
   class_number: number;
+  /** Nav container items with full display metadata (icon, route, label) */
   visible_containers: ContainerPermission[];
+  /**
+   * All type codes this class can access, including content types
+   * (documents, episodes, books, blogs, reviews, decks, posts, …).
+   * Use this for content visibility checks instead of membership_tier.
+   */
+  permitted_types: string[];
 }
 
 interface AuthContextType {
@@ -178,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user class permissions
   const fetchUserPermissions = async (userProfile: UserProfile) => {
     try {
-      const userClass = (userProfile as any).user_class || 1; // Default to class 1 if not set
+      const userClass = userProfile.user_class || 1;
 
       // Step 1: get the container_type codes this class can see.
       // Two separate queries avoids relying on a PostgREST FK join between
@@ -193,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (permsError) {
         console.warn('Could not read user_class_permissions - using default navigation.', permsError.message);
         const defaultContainers = getDefaultContainers(userClass, userProfile.role);
-        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
+        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers, permitted_types: defaultContainers.map(c => c.type_code) });
         return;
       }
 
@@ -201,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!permsData || permsData.length === 0) {
         console.warn(`No permissions configured for class ${userClass} - using default navigation.`);
         const defaultContainers = getDefaultContainers(userClass, userProfile.role);
-        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
+        setUserPermissions({ class_number: userClass, visible_containers: defaultContainers, permitted_types: defaultContainers.map(c => c.type_code) });
         return;
       }
 
@@ -241,12 +254,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .filter(Boolean);
 
-      setUserPermissions({ class_number: userClass, visible_containers: containers });
+      // permitted_types is the full raw list from user_class_permissions —
+      // includes both nav container types AND content types (documents, episodes, etc.)
+      // visible_containers is the filtered subset that has nav display metadata.
+      setUserPermissions({ class_number: userClass, visible_containers: containers, permitted_types: typeCodes });
     } catch (error) {
       console.warn('Error fetching user permissions - using defaults:', error);
-      const userClass = (userProfile as any).user_class || 1;
+      const userClass = userProfile.user_class || 1;
       const defaultContainers = getDefaultContainers(userClass, userProfile.role);
-      setUserPermissions({ class_number: userClass, visible_containers: defaultContainers });
+      setUserPermissions({ class_number: userClass, visible_containers: defaultContainers, permitted_types: defaultContainers.map(c => c.type_code) });
     }
   };
 

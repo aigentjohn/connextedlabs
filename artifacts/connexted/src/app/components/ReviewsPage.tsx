@@ -38,7 +38,7 @@ interface Circle {
 }
 
 export default function ReviewsPage() {
-  const { profile } = useAuth();
+  const { profile, userPermissions } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [circles, setCircles] = useState<Circle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,11 +193,10 @@ export default function ReviewsPage() {
   // Get reviews by the current user
   const myReviews = filteredReviews.filter(review => review.author_id === profile.id);
 
-  // Check if user can access content based on membership tier
   const canAccessContent = (accessLevel?: string) => {
     if (!accessLevel || accessLevel === 'public') return true;
-    if (accessLevel === 'member' && profile.membership_tier !== 'free') return true;
-    if (accessLevel === 'premium' && profile.membership_tier === 'premium') return true;
+    if (accessLevel === 'member') return userPermissions?.permitted_types.includes('reviews') ?? false;
+    if (accessLevel === 'premium') return userPermissions?.permitted_types.includes('reviews_premium') ?? false;
     return false;
   };
 

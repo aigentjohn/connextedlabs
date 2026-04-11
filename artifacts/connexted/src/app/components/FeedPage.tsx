@@ -35,7 +35,7 @@ const safeFormatDate = (dateString: string | undefined): string => {
 };
 
 export default function FeedPage({ standupId }: { standupId?: string }) {
-  const { profile } = useAuth();
+  const { profile, userPermissions } = useAuth();
   const { circleId } = useParams();
   
   const [allPosts, setAllPosts] = useState<any[]>([]);
@@ -212,7 +212,7 @@ export default function FeedPage({ standupId }: { standupId?: string }) {
   // Check if user can access content
   const canAccess = (post: any): boolean => {
     if (!post.access_level || post.access_level === 'public') return true;
-    if (post.access_level === 'member') return profile.membership_tier !== 'free';
+    if (post.access_level === 'member') return userPermissions?.permitted_types.includes('posts') ?? false;
     return true;
   };
 

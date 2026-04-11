@@ -23,8 +23,8 @@
  * memberRequiresTier
  *   false → 'member' visibility means the user must be in member_ids
  *            (standard container behaviour)
- *   true  → 'member' visibility means the user's membership_tier must
- *            be non-free (content / program behaviour)
+ *   true  → 'member' visibility means the content type must be in
+ *            the user's permitted_types (from user_class_permissions)
  *
  * NAMING RULES (do not change)
  * ─────────────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@
  * - `pricing_type: 'members-only'` is intentionally kept as-is (enrollment cost, not visibility)
  */
 
-import type { Role, MembershipTier } from '@/lib/constants/roles';
+import type { Role } from '@/lib/constants/roles';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,19 @@ export interface AccessRecord {
 export interface AccessProfile {
   id: string;
   role: Role;
-  membership_tier: MembershipTier;
+  /**
+   * Platform feature access level (1–10).
+   * Stored on the user record; drives which nav items and containers are visible.
+   */
+  user_class: number;
+  /**
+   * All type codes this user's class can access, loaded from user_class_permissions.
+   * Covers both container types (tables, meetings, …) and content types
+   * (documents, episodes, books, …).
+   * Populated from userPermissions.permitted_types in auth-context.
+   * Use this for content visibility checks — do NOT use membership_tier.
+   */
+  permitted_types: string[];
 }
 
 // ─── Per-type rule config ─────────────────────────────────────────────────────
@@ -58,7 +70,13 @@ export interface AccessProfile {
 interface VisibilityRule {
   /** Does 'unlisted' show up in list/browse pages? (always viewable via direct URL) */
   unlistedPassesListFilter: boolean;
-  /** Does 'member' check membership_tier instead of member_ids? */
+  /**
+   * Does 'member' visibility check user_class instead of member_ids?
+   *   false → container behaviour: user must be in member_ids
+   *   true  → content behaviour: user must have user_class >= 3
+   * (membership_tier is NOT used here — it is reserved for commercial content
+   * gating: pathways, courses, programs, companies, markets.)
+   */
   memberRequiresTier: boolean;
 }
 
@@ -83,9 +101,6 @@ export const VISIBILITY_RULES: Record<string, VisibilityRule> = {
   checklists: { unlistedPassesListFilter: true,  memberRequiresTier: false },
   prompts:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
   circles:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  surveys:     { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  quizzes:     { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  assessments: { unlistedPassesListFilter: true,  memberRequiresTier: false },
 
   // ── Containers where 'unlisted' should NOT appear in browse lists ──
   // (e.g. builds/pitches are typically shared by direct link)
@@ -143,7 +158,9 @@ export function canViewContainer(
 
     case 'member':
       if (rule.memberRequiresTier) {
-        return profile.membership_tier !== 'free';
+        // Content types: check user_class_permissions — is this content type
+        // in the list of types the user's class can access?
+        return profile.permitted_types.includes(containerType);
       }
       return isMember;
 
@@ -195,7 +212,7 @@ export function filterByVisibility<T extends AccessRecord>(
 
       case 'member':
         if (rule.memberRequiresTier) {
-          return profile.membership_tier !== 'free';
+          return profile.permitted_types.includes(containerType);
         }
         return isMember;
 
