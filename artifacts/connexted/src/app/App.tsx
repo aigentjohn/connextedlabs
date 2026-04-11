@@ -340,6 +340,7 @@ const CompanyNewsSettings = lazy(() => import('@/app/components/markets/CompanyN
 const CompanyCompanionPage = lazy(() => import('@/app/components/markets/CompanyCompanionPage'));
 const MyCompaniesPage = lazy(() => import('@/app/components/markets/MyCompaniesPage'));
 const CompanyCompanionsPage = lazy(() => import('@/app/components/markets/CompanyCompanionsPage'));
+const MemberMatchesPage = lazy(() => import('@/app/components/MemberMatchesPage'));
 
 // Sponsors
 const SponsorsPage = lazy(() => import('@/app/components/SponsorsPage'));
@@ -722,6 +723,7 @@ const router = createBrowserRouter([
           { path: '/my-ventures', element: <MyVenturesPage /> },
           { path: '/my-companies', element: <MyCompaniesPage /> },
           { path: '/company-companions', element: <CompanyCompanionsPage /> },
+          { path: '/member-matches', element: <MemberMatchesPage /> },
           { path: '/markets/create-company', element: <CreateCompanyPage /> },
           { path: '/markets/create-offering', element: <CreateOfferingPage /> },
           { path: '/markets/edit-company/:id', element: <EditCompanyPage /> },
