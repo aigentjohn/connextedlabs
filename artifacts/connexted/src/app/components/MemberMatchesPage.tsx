@@ -459,68 +459,71 @@ export default function MemberMatchesPage() {
         </div>
       </div>
 
-      {/* Matched members */}
-      <div className="space-y-3">
+      {/* Matched members — Friends-style card grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {MOCK_MEMBERS.map((member) => (
-          <Card key={member.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-5">
-              <div className="flex items-start gap-4">
-                {/* Avatar + score */}
-                <div className="flex flex-col items-center gap-1 shrink-0">
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={member.avatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-blue-600 text-white font-semibold">
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+          <div
+            key={member.id}
+            className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg hover:border-indigo-300 transition-all"
+          >
+            <div className="flex flex-col items-center text-center">
 
-                {/* Main content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                      <p className="text-sm text-gray-500">{member.tagline}</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="shrink-0">
-                      <Handshake className="w-3.5 h-3.5 mr-1.5" />
-                      Connect
-                    </Button>
-                  </div>
-
-                  {/* Score bar */}
-                  <div className="mt-2 mb-3">
-                    <ScoreBar score={member.score} />
-                  </div>
-
-                  {/* Professional context */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="w-3 h-3" />
-                      {member.job_title} · {member.company}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Star className="w-3 h-3" />
-                      {member.years_experience} yrs experience
-                    </span>
-                    {member.credentials.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <GraduationCap className="w-3 h-3" />
-                        {member.credentials.join(', ')}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Match reasons */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {member.matchReasons.map((reason, i) => (
-                      <ReasonChip key={i} reason={reason} />
-                    ))}
-                  </div>
+              {/* Avatar */}
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold mb-4 relative">
+                {member.avatar ? (
+                  <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  member.name.split(' ').map(n => n[0]).join('')
+                )}
+                {/* Score badge */}
+                <div className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full flex items-center justify-center border-2 border-white text-xs font-bold text-white
+                  ${member.score >= 85 ? 'bg-emerald-500' : member.score >= 70 ? 'bg-blue-500' : 'bg-amber-500'}`}>
+                  {member.score}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Name + tagline */}
+              <Link to={`/users/${member.id}`} className="font-semibold text-gray-900 hover:text-indigo-600 mb-0.5">
+                {member.name}
+              </Link>
+              <p className="text-sm text-gray-500 mb-1">{member.tagline}</p>
+              <p className="text-xs text-gray-400 mb-3">{member.job_title} · {member.company}</p>
+
+              {/* Credentials */}
+              {member.credentials.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1 mb-3">
+                  {member.credentials.map(c => (
+                    <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Score bar */}
+              <div className="w-full mb-3">
+                <ScoreBar score={member.score} />
+              </div>
+
+              {/* Match reasons */}
+              <div className="flex flex-wrap justify-center gap-1 mb-4">
+                {member.matchReasons.map((reason, i) => (
+                  <ReasonChip key={i} reason={reason} />
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 w-full">
+                <Link
+                  to={`/users/${member.id}`}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium text-center"
+                >
+                  View Profile
+                </Link>
+                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                  <Handshake className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
