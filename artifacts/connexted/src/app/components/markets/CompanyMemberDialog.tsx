@@ -30,12 +30,16 @@ interface Props {
 export default function CompanyMemberDialog({ companyId, companyName, ownerUserId, open, onOpenChange }: Props) {
   const { profile } = useAuth();
   const [members, setMembers] = useState<CompanyMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    if (open && companyId) loadMembers();
+    if (open && companyId) {
+      loadMembers();
+    } else if (!open) {
+      setLoading(false);
+    }
   }, [open, companyId]);
 
   async function loadMembers() {
