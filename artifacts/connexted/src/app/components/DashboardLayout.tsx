@@ -20,7 +20,7 @@ import {
 } from '@/app/components/ui/popover';
 import { Bell, User, LogOut, Menu, X, Shield, Search, CreditCard, FileText, AlertCircle, Sparkles, UserCheck, ArrowLeft, Home, ChevronDown, Zap, MessageSquare, GraduationCap, FolderKanban, Briefcase, Activity, UserCircle, Users, Newspaper, Calendar, Store, BookOpen, Layers, PenTool, Hash, Star, Rss, type LucideIcon } from 'lucide-react';
 // REMOVED: import * as Icons from 'lucide-react';  — was pulling all ~1000 icons into the initial bundle
-import { useAuth, forceSignOut } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { getNotificationCount } from '@/lib/notifications';
@@ -106,12 +106,33 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
   const { profile, userPermissions, error: authError, isImpersonating, originalAdminProfile, stopImpersonation } = useAuth();
   const currentUser = profile;
 
-  // Fetch notifications
+  // Fetch notifications + subscribe to realtime updates
   useEffect(() => {
-    if (currentUser) {
-      fetchNotifications();
-    }
-  }, [currentUser]);
+    if (!currentUser?.id) return;
+
+    fetchNotifications();
+
+    // Realtime: refresh bell count when a new notification arrives for this user
+    const channel = supabase
+      .channel(`notifications:${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`,
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
 
   const fetchNotifications = async () => {
     if (!currentUser?.id) return;
@@ -241,7 +262,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
             <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
               Retry
             </Button>
-            <Button variant="ghost" size="sm" className="text-red-600" onClick={forceSignOut}>
+            <Button variant="ghost" size="sm" className="text-red-600" onClick={onLogout}>
               Sign out
             </Button>
           </div>

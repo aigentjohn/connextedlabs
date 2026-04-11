@@ -1,17 +1,26 @@
 // Notification types for the platform
 
 export type NotificationType =
-  // Existing types (preserve backwards compatibility)
+  // Social interactions (align with notificationHelpers.ts)
+  | 'like'
+  | 'comment'
+  | 'comment_reply'
+  | 'mention'
+  | 'follow'
+  | 'share'
+  | 'thread_reply'
+  | 'document_comment'
+
+  // Legacy aliases (preserve backwards compatibility)
   | 'post.created'
   | 'post.liked'
   | 'comment.created'
-  | 'mention'
   | 'connection.request'
   | 'connection.accepted'
   | 'event.reminder'
   | 'system.announcement'
-  
-  // NEW: Container state changes
+
+  // Container state changes
   | 'container.state_changed'
   | 'container.paused'
   | 'container.activated'
@@ -195,6 +204,24 @@ export interface NotificationData {
 // Helper to generate notification titles
 export function getNotificationTitle(type: NotificationType, data: any): string {
   switch (type) {
+    // Social interactions
+    case 'like':
+      return `${data.actor_name} liked your ${data.content_type || 'post'}`;
+    case 'comment':
+      return `${data.actor_name} commented on your ${data.content_type || 'post'}`;
+    case 'comment_reply':
+      return `${data.actor_name} replied to your comment`;
+    case 'mention':
+      return `${data.actor_name} mentioned you`;
+    case 'follow':
+      return `${data.actor_name} started following you`;
+    case 'share':
+      return `${data.actor_name} shared your ${data.content_type || 'post'}`;
+    case 'thread_reply':
+      return `${data.actor_name} replied to "${data.thread_title}"`;
+    case 'document_comment':
+      return `${data.actor_name} commented on "${data.document_title}"`;
+
     // Container states
     case 'container.state_changed':
       return `${data.container_name} is now ${data.new_state}`;
@@ -247,6 +274,24 @@ export function getNotificationTitle(type: NotificationType, data: any): string 
 // Helper to generate notification messages
 export function getNotificationMessage(type: NotificationType, data: any): string {
   switch (type) {
+    // Social interactions
+    case 'like':
+      return data.content_preview ? `"${data.content_preview.substring(0, 80)}..."` : '';
+    case 'comment':
+      return data.comment_preview || '';
+    case 'comment_reply':
+      return data.comment_preview || '';
+    case 'mention':
+      return data.content_preview ? `"${data.content_preview.substring(0, 80)}..."` : '';
+    case 'follow':
+      return data.actor_tagline || '';
+    case 'share':
+      return data.content_preview ? `"${data.content_preview.substring(0, 80)}..."` : '';
+    case 'thread_reply':
+      return data.reply_preview || '';
+    case 'document_comment':
+      return data.comment_preview || '';
+
     // Container states
     case 'container.state_changed':
       return data.reason || `The container state changed from ${data.old_state} to ${data.new_state}`;
@@ -299,6 +344,20 @@ export function getNotificationMessage(type: NotificationType, data: any): strin
 // Helper to get notification link
 export function getNotificationLink(type: NotificationType, data: any): string {
   switch (type) {
+    // Social interactions
+    case 'like':
+    case 'comment':
+    case 'comment_reply':
+    case 'mention':
+    case 'share':
+      return data.link_url || (data.content_id ? `/feed?post=${data.content_id}` : '#');
+    case 'follow':
+      return data.actor_id ? `/users/${data.actor_id}` : '#';
+    case 'thread_reply':
+      return data.thread_id ? `/forums/thread/${data.thread_id}` : '#';
+    case 'document_comment':
+      return data.document_id ? `/documents/${data.document_id}` : '#';
+
     case 'membership.invited':
       return `/${data.container_type}s/${data.container_id}/accept-invite`;
     
