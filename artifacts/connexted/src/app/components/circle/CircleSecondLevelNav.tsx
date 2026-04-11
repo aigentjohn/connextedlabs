@@ -1,9 +1,9 @@
 import { Button } from '@/app/components/ui/button';
-import { MessageSquare, MessageCircle, Calendar, Users, Sparkles } from 'lucide-react';
+import { MessageSquare, MessageCircle, Calendar, Users, Sparkles, Layers } from 'lucide-react';
 
 interface CircleSecondLevelNavProps {
-  activeSection: 'feed' | 'forum' | 'events' | 'members' | 'prompts';
-  onSectionChange: (section: 'feed' | 'forum' | 'events' | 'members' | 'prompts') => void;
+  activeSection: 'feed' | 'forum' | 'events' | 'members' | 'prompts' | 'resources';
+  onSectionChange: (section: 'feed' | 'forum' | 'events' | 'members' | 'prompts' | 'resources') => void;
   isAdmin: boolean;
   isMember: boolean;
   circleId: string;
@@ -29,6 +29,7 @@ export function CircleSecondLevelNav({
     { id: 'forum' as const, label: 'Forum', icon: MessageCircle, guestAccessKey: 'forum' },
     { id: 'events' as const, label: 'Events', icon: Calendar, guestAccessKey: 'calendar' },
     { id: 'prompts' as const, label: 'Prompts', icon: Sparkles, guestAccessKey: null }, // Members only
+    { id: 'resources' as const, label: 'Resources', icon: Layers, guestAccessKey: null }, // Members only
     { id: 'members' as const, label: 'Members', icon: Users, guestAccessKey: 'members' },
   ];
 

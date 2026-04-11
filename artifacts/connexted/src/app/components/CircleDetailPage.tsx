@@ -18,6 +18,7 @@ import CircleForum from '@/app/components/circle/CircleForum';
 import CircleCalendar from '@/app/components/circle/CircleCalendar';
 import CircleMembers from '@/app/components/circle/CircleMembers';
 import CirclePrompts from '@/app/components/circle/CirclePrompts';
+import CircleResources from '@/app/components/circle/CircleResources';
 import { QRCodeDialog } from '@/app/components/shared/QRCodeGenerator';
 import { ShareIconButton } from '@/app/components/shared/ShareButton';
 
@@ -44,7 +45,7 @@ interface Circle {
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<'feed' | 'forum' | 'events' | 'members' | 'prompts'>('feed');
+  const [activeSection, setActiveSection] = useState<'feed' | 'forum' | 'events' | 'members' | 'prompts' | 'resources'>('feed');
   const [circle, setCircle] = useState<Circle | null>(null);
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -397,6 +398,13 @@ export default function CircleDetailPage() {
             {activeSection === 'prompts' && (
               <div className="mt-6">
                 <CirclePrompts circleId={circle.id} isAdmin={isAdmin} isMember={isMember} />
+              </div>
+            )}
+
+            {/* Resources Section */}
+            {activeSection === 'resources' && (
+              <div className="mt-6">
+                <CircleResources circleId={circle.id} isAdmin={isAdmin} isMember={isMember} />
               </div>
             )}
           </>
