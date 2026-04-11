@@ -18,7 +18,6 @@ import {
   Zap,
   Briefcase,
   Compass,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -68,9 +67,6 @@ export function MyGrowthSection({ isExpanded, onToggle, profileId }: MyGrowthSec
           </GrowthLink>
           <GrowthLink to="/profile/badges" icon={Award} pathname={location.pathname}>
             My Badges
-          </GrowthLink>
-          <GrowthLink to="/member-matches" icon={Sparkles} pathname={location.pathname}>
-            Member Matches
           </GrowthLink>
 
           {/* Active Profile */}

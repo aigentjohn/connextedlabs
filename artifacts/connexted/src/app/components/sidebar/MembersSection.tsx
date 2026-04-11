@@ -36,7 +36,7 @@ export function MembersSection({ isExpanded, onToggle, userCount }: MembersSecti
     { to: '/members/following', icon: UserPlus, label: 'Following', color: 'text-blue-500' },
     { to: '/members/followers', icon: UserCircle, label: 'Followers', color: 'text-purple-500' },
     { to: '/members/active', icon: Activity, label: 'Active Members', color: 'text-orange-500' },
-    { to: '/members/affinity', icon: Zap, label: 'Affinity', color: 'text-yellow-500', suffix: '(recommended)' },
+    { to: '/member-matches', icon: Zap, label: 'Member Matches', color: 'text-yellow-500', suffix: '(recommended)' },
   ];
 
   return (
