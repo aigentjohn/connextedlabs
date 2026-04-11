@@ -19,31 +19,12 @@ import {
   Save,
   X,
   ExternalLink,
-  LayoutGrid,
-  Mic,
-  Presentation,
   FileText,
-  Headphones,
-  CheckSquare,
-  BookOpen,
   Search,
-  QrCode,
-  Users,
 } from 'lucide-react';
 import { CompanionQRCode } from './CompanionQRCode';
 import { CompanionAttendees } from './CompanionAttendees';
-
-const ITEM_TYPES = [
-  { value: 'table',     label: 'Table',     icon: LayoutGrid,  table: 'tables',     nameField: 'name',  slugField: 'slug', route: '/tables',     builtin: false },
-  { value: 'elevator',  label: 'Elevator',  icon: Mic,         table: 'elevators',  nameField: 'name',  slugField: 'slug', route: '/elevators',  builtin: false },
-  { value: 'pitch',     label: 'Pitch',     icon: Presentation,table: 'pitches',    nameField: 'name',  slugField: 'slug', route: '/pitches',    builtin: false },
-  { value: 'document',  label: 'Document',  icon: FileText,    table: 'documents',  nameField: 'title', slugField: 'id',   route: '/documents',  builtin: false },
-  { value: 'episode',   label: 'Episode',   icon: Headphones,  table: 'episodes',   nameField: 'title', slugField: 'id',   route: '/episodes',   builtin: false },
-  { value: 'checklist', label: 'Checklist', icon: CheckSquare, table: 'checklists', nameField: 'name',  slugField: 'slug', route: '/checklists', builtin: false },
-  { value: 'book',      label: 'Book',      icon: BookOpen,    table: 'books',      nameField: 'title', slugField: 'slug', route: '/books',      builtin: false },
-  { value: 'qr_code',   label: 'QR Code',   icon: QrCode,      table: '',           nameField: '',      slugField: '',     route: '',            builtin: true  },
-  { value: 'attendees', label: 'Attendees', icon: Users,       table: '',           nameField: '',      slugField: '',     route: '',            builtin: true  },
-] as const;
+import { getTypesForContext, getCompanionItemType } from '@/lib/companion-types';
 
 interface CompanionItem {
   id: string;
@@ -129,7 +110,7 @@ export default function EventCompanionDetailPage() {
   async function resolveItemNames(rawItems: CompanionItem[]): Promise<CompanionItem[]> {
     const resolved: CompanionItem[] = [];
     for (const item of rawItems) {
-      const typeConfig = ITEM_TYPES.find((t) => t.value === item.item_type);
+      const typeConfig = getCompanionItemType(item.item_type);
       // Built-in types don't need DB lookups
       if (typeConfig?.builtin) {
         resolved.push({ ...item, resolved_name: typeConfig.label });
@@ -184,7 +165,7 @@ export default function EventCompanionDetailPage() {
   }
 
   async function loadAvailableItems(type: string) {
-    const config = ITEM_TYPES.find((t) => t.value === type);
+    const config = getCompanionItemType(type);
     if (!config) return;
     setLoadingItems(true);
     try {
@@ -202,7 +183,7 @@ export default function EventCompanionDetailPage() {
   }
 
   function startAddItem(type: string) {
-    const config = ITEM_TYPES.find(t => t.value === type);
+    const config = getCompanionItemType(type);
     if (config?.builtin) {
       if (type === 'qr_code') {
         // QR codes need a URL — show entry form
@@ -288,13 +269,13 @@ export default function EventCompanionDetailPage() {
   }
 
   function getItemRoute(item: CompanionItem) {
-    const config = ITEM_TYPES.find((t) => t.value === item.item_type);
+    const config = getCompanionItemType(item.item_type);
     if (!config) return '#';
     return `${config.route}/${item.resolved_slug || item.item_id}`;
   }
 
   function getItemIcon(type: string) {
-    const config = ITEM_TYPES.find((t) => t.value === type);
+    const config = getCompanionItemType(type);
     return config?.icon || FileText;
   }
 
@@ -319,7 +300,7 @@ export default function EventCompanionDetailPage() {
     );
   }
 
-  const typeConfig = addingType ? ITEM_TYPES.find((t) => t.value === addingType) : null;
+  const typeConfig = addingType ? getCompanionItemType(addingType) : null;
   const filteredAvailable = availableItems.filter((item) => {
     if (!itemSearch) return true;
     const nameField = typeConfig?.nameField || 'name';
@@ -412,7 +393,7 @@ export default function EventCompanionDetailPage() {
             <CardTitle>Companion Items ({items.length})</CardTitle>
             {!addingType && (
               <div className="flex flex-wrap gap-2">
-                {ITEM_TYPES.map((type) => {
+                {getTypesForContext('event').map((type) => {
                   const Icon = type.icon;
                   // Only restrict attendees to one instance
                   const alreadyAdded = type.value === 'attendees' && items.some(i => i.item_type === 'attendees');
@@ -516,7 +497,7 @@ export default function EventCompanionDetailPage() {
           ) : (
             <div className="space-y-2">
               {items.map((item) => {
-                const typeConfig = ITEM_TYPES.find((t) => t.value === item.item_type);
+                const typeConfig = getCompanionItemType(item.item_type);
                 const Icon = getItemIcon(item.item_type);
                 const typeLabel = typeConfig?.label || item.item_type;
                 const isBuiltin = typeConfig?.builtin ?? false;

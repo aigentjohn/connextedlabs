@@ -11,22 +11,9 @@ import { Skeleton } from '@/app/components/ui/skeleton';
 import { CompanionQRCode } from '@/app/components/events/CompanionQRCode';
 import { toast } from 'sonner';
 import {
-  Building2, Crown, Globe, ExternalLink, Settings,
-  Mic, Presentation, FileText, Headphones,
-  CheckSquare, BookOpen, QrCode, ArrowLeft,
+  Building2, Crown, Globe, ExternalLink, Settings, ArrowLeft, FileText,
 } from 'lucide-react';
-
-// ── Item type config (mirrors SponsorManagePage) ───────────────────────────
-
-const ITEM_TYPES = [
-  { value: 'elevator',  label: 'Elevator',  icon: Mic,          table: 'elevators',  nameField: 'name',  slugField: 'slug', route: '/elevators'  },
-  { value: 'pitch',     label: 'Pitch',     icon: Presentation, table: 'pitches',    nameField: 'name',  slugField: 'slug', route: '/pitches'    },
-  { value: 'document',  label: 'Document',  icon: FileText,     table: 'documents',  nameField: 'title', slugField: 'id',   route: '/documents'  },
-  { value: 'checklist', label: 'Checklist', icon: CheckSquare,  table: 'checklists', nameField: 'name',  slugField: 'slug', route: '/checklists' },
-  { value: 'episode',   label: 'Episode',   icon: Headphones,   table: 'episodes',   nameField: 'title', slugField: 'id',   route: '/episodes'   },
-  { value: 'book',      label: 'Book',      icon: BookOpen,     table: 'books',      nameField: 'title', slugField: 'slug', route: '/books'      },
-  { value: 'qr_code',   label: 'QR Code',   icon: QrCode,       table: '',           nameField: '',      slugField: '',     route: ''            },
-] as const;
+import { getTypesForContext, getCompanionItemType } from '@/lib/companion-types';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -103,7 +90,7 @@ export default function SponsorCompanionPage() {
   async function resolveNames(rawItems: any[]): Promise<CompanionItem[]> {
     const resolved: CompanionItem[] = [];
     for (const item of rawItems) {
-      const config = ITEM_TYPES.find(t => t.value === item.item_type);
+      const config = getCompanionItemType(item.item_type);
       if (!config || item.item_type === 'qr_code') {
         resolved.push(item);
         continue;
@@ -249,7 +236,7 @@ export default function SponsorCompanionPage() {
             From {sponsor.name}
           </h2>
           {contentItems.map(item => {
-            const config = ITEM_TYPES.find(t => t.value === item.item_type);
+            const config = getCompanionItemType(item.item_type);
             const Icon = config?.icon || FileText;
             const route = config?.route;
             const href = route ? `${route}/${item.resolved_slug || item.item_id}` : null;

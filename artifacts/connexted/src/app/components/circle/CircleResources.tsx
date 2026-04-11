@@ -25,7 +25,7 @@ import {
   Layers,
   Search,
 } from 'lucide-react';
-import { COMPANION_ITEM_TYPES, getCompanionItemType, RESOLVABLE_ITEM_TYPES } from '@/lib/companion-types';
+import { getTypesForContext, getCompanionItemType, RESOLVABLE_ITEM_TYPES } from '@/lib/companion-types';
 import { CompanionQRCode } from '@/app/components/events/CompanionQRCode';
 
 interface CircleResourceItem {
@@ -279,7 +279,7 @@ export default function CircleResources({ circleId, isAdmin, isMember }: CircleR
                   <SelectValue placeholder="Select type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {COMPANION_ITEM_TYPES.map(type => {
+                  {getTypesForContext('circle').map(type => {
                     const Icon = type.icon;
                     return (
                       <SelectItem key={type.value} value={type.value}>
