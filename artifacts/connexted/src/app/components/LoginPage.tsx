@@ -213,15 +213,8 @@ export default function LoginPage() {
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
 
-                    <div className="text-center text-xs text-gray-600">
-                      Don't have an account?{' '}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('signup')}
-                        className="text-indigo-600 hover:text-indigo-700 font-medium"
-                      >
-                        Sign Up
-                      </button>
+                    <div className="text-center text-xs text-gray-500">
+                      Registration is by invitation only.
                     </div>
                   </form>
                 ) : (
@@ -241,122 +234,53 @@ export default function LoginPage() {
               </CardContent>
             </Card>
 
-            {/* 2. Create Account Card */}
-            <Card className="border-2 border-green-200 hover:border-green-300 hover:shadow-lg transition-all">
-              <CardHeader className="text-center pb-3">
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-green-600" />
-                </div>
-                <CardTitle className="text-lg">New to CONNEXTED?</CardTitle>
-                <CardDescription className="text-xs">
-                  Create your free account
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activeTab === 'signup' ? (
-                  <form onSubmit={handleSignUp} className="space-y-3">
+            {/* 2. Create Account Card — Coming Soon */}
+            <div className="relative">
+              <Card className="border-2 border-green-200 opacity-50 pointer-events-none select-none">
+                <CardHeader className="text-center pb-3">
+                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3">
+                    <Users className="w-6 h-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-lg">New to CONNEXTED?</CardTitle>
+                  <CardDescription className="text-xs">
+                    Create your free account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-name" className="text-sm">Full Name</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="Your name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        disabled={isLoading}
-                      />
+                      <Label className="text-sm">Full Name</Label>
+                      <Input type="text" placeholder="Your name" disabled />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-sm">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={isLoading}
-                      />
+                      <Label className="text-sm">Email</Label>
+                      <Input type="email" placeholder="your@email.com" disabled />
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="signup-password" className="text-sm">Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Create password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          disabled={isLoading}
-                          className="pr-10"
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
-                          onClick={() => setShowPassword(!showPassword)}
-                          tabIndex={-1}
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500">Minimum 6 characters</p>
+                      <Label className="text-sm">Password</Label>
+                      <Input type="password" placeholder="Create password" disabled />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm-password" className="text-sm">Confirm Password</Label>
-                      <Input
-                        id="signup-confirm-password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Confirm password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        disabled={isLoading}
-                        minLength={6}
-                      />
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-green-600 hover:bg-green-700" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Creating account...' : 'Create Account'}
+                    <Button className="w-full bg-green-600" disabled>
+                      Create Account
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
-
-                    <div className="text-center text-xs text-gray-600">
-                      Already have an account?{' '}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('signin')}
-                        className="text-green-600 hover:text-green-700 font-medium"
-                      >
-                        Sign In
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-gray-600 mb-4">
-                      Ready to join the community?
-                    </p>
-                    <Button
-                      onClick={() => setActiveTab('signup')}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Create Account
-                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Coming Soon overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-lg bg-white/70 backdrop-blur-[2px]">
+                <div className="bg-gradient-to-r from-green-600 to-emerald-500 text-white text-xs font-bold uppercase tracking-widest px-4 py-1 rounded-full mb-3 shadow">
+                  Coming Soon
+                </div>
+                <p className="text-sm font-semibold text-gray-800 text-center px-6">
+                  Self-registration is not yet open.
+                </p>
+                <p className="text-xs text-gray-500 text-center px-8 mt-1">
+                  Membership is currently by invitation only.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Magic Link Option */}
