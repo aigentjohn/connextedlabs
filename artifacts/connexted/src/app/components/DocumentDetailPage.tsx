@@ -851,7 +851,7 @@ export default function DocumentDetailPage() {
               </div>
             </div>
 
-            {/* Access Level */}
+            {/* Visibility */}
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2">Visibility:</h3>
               <div className="flex items-center gap-2">

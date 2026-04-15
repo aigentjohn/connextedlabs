@@ -57,18 +57,19 @@ async function adminFetch(path: string, options: RequestInit = {}): Promise<Resp
   });
 }
 
-// User class definitions for reference
-const USER_CLASSES = [
-  { level: 1, name: 'Guest', description: 'Minimal access' },
-  { level: 2, name: 'Basic', description: 'Basic features' },
-  { level: 3, name: 'Member', description: 'Standard member (default)' },
-  { level: 4, name: 'Plus', description: 'Enhanced access' },
-  { level: 5, name: 'Advanced', description: 'Advanced features' },
-  { level: 6, name: 'Pro', description: 'Professional tier' },
-  { level: 7, name: 'Premium', description: 'Full community access' },
-  { level: 8, name: 'Enterprise', description: 'Enterprise level' },
-  { level: 9, name: 'Executive', description: 'Executive access' },
-  { level: 10, name: 'Unlimited', description: 'Complete access' },
+// User class definitions — loaded from DB in fetchData(), used for tabs and display names.
+// Fallback values match the defaults in UserClassManagement.tsx initializeDefaultClasses().
+const USER_CLASS_FALLBACKS: { level: number; name: string }[] = [
+  { level: 1,  name: 'Visitor' },
+  { level: 2,  name: 'Guest' },
+  { level: 3,  name: 'Basic User' },
+  { level: 4,  name: 'Attender' },
+  { level: 5,  name: 'Regular User' },
+  { level: 6,  name: 'Regular User Plus' },
+  { level: 7,  name: 'Power User' },
+  { level: 8,  name: 'Circle Leader' },
+  { level: 9,  name: 'Circle Leader Plus' },
+  { level: 10, name: 'Platform Admin' },
 ];
 
 // Role hierarchy definitions
@@ -134,6 +135,7 @@ export default function UserManagement() {
   const [posts, setPosts] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userClassDefs, setUserClassDefs] = useState<{ level: number; name: string }[]>(USER_CLASS_FALLBACKS);
   const [importing, setImporting] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deletionPreview, setDeletionPreview] = useState<any>(null);
@@ -149,6 +151,15 @@ export default function UserManagement() {
 
   const fetchData = async () => {
     try {
+      // Load user class definitions from DB so tabs/labels match what admins configured
+      const { data: classData } = await supabase
+        .from('user_classes')
+        .select('class_number, display_name')
+        .order('class_number', { ascending: true });
+      if (classData && classData.length > 0) {
+        setUserClassDefs(classData.map((c: any) => ({ level: c.class_number, name: c.display_name })));
+      }
+
       const [usersData, circlesData, tablesData, elevatorsData, meetingsData, pitchesData, postsData, documentsData] = await Promise.all([
         supabase.from('users').select('*'),
         supabase.from('circles').select('*'),
@@ -296,7 +307,7 @@ export default function UserManagement() {
 
       // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, user_class: newClass } : u));
-      const className = USER_CLASSES.find(c => c.level === newClass)?.name || `Class ${newClass}`;
+      const className = userClassDefs.find(c => c.level === newClass)?.name || `Class ${newClass}`;
       toast.success(`User class updated to ${className}`);
     } catch (error) {
       console.error('Error updating user class:', error);
@@ -323,7 +334,7 @@ export default function UserManagement() {
   };
 
   const getUserClassName = (userClass: number) => {
-    const classInfo = USER_CLASSES.find(c => c.level === userClass);
+    const classInfo = userClassDefs.find(c => c.level === userClass);
     return classInfo ? classInfo.name : `Class ${userClass}`;
   };
 
@@ -1059,7 +1070,7 @@ export default function UserManagement() {
       <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setUserClassFilter(value === 'all' ? 'all' : parseInt(value))}>
         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
           <TabsTrigger value="all">All Users ({users.length})</TabsTrigger>
-          {USER_CLASSES.map(cls => {
+          {userClassDefs.map(cls => {
             const count = users.filter(u => (u.user_class || 3) === cls.level).length;
             return (
               <TabsTrigger key={cls.level} value={cls.level.toString()}>

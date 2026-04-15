@@ -178,21 +178,21 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
 
   return (
     <div className="space-y-6">
-      {/* Current Tier Overview */}
+      {/* Current Class Overview */}
       <Card className="border-2 border-indigo-200 bg-indigo-50/30">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-indigo-600" />
-                Your Current Membership
+                Your Access Level
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                You're on the <strong className="capitalize">{profile.membership_tier}</strong> plan (Class {(profile as any).user_class || 1})
+                You are <strong>{userClassInfo?.display_name ?? `Class ${profile.user_class || 1}`}</strong> — this controls how many circles and containers you can create and join.
               </p>
             </div>
-            <Badge className="text-base px-4 py-2 bg-indigo-600 capitalize">
-              {profile.membership_tier}
+            <Badge className="text-base px-4 py-2 bg-indigo-600">
+              Class {profile.user_class || 1}
             </Badge>
           </div>
         </CardHeader>
@@ -210,7 +210,7 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
             </div>
             <div>
               <p className="font-medium text-gray-900">Have upgrade tickets?</p>
-              <p className="text-sm text-gray-500">Go to My Tickets to redeem them and apply your membership upgrade.</p>
+              <p className="text-sm text-gray-500">Go to My Tickets to redeem them and apply your user class upgrade.</p>
             </div>
           </div>
           <Link to="/my-tickets">
@@ -257,20 +257,20 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
         </Card>
       )}
 
-      {/* Tier Comparison */}
+      {/* Class Comparison */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
-            Compare Membership Tiers
+            Compare User Classes
           </CardTitle>
           <p className="text-sm text-gray-600 mt-1">
-            Choose the tier that best fits your needs
+            See what each user class unlocks in terms of circles and containers
           </p>
         </CardHeader>
         <CardContent>
-          <TierComparisonGrid 
-            currentClass={(profile as any).user_class || 1}
+          <TierComparisonGrid
+            currentClass={profile.user_class || 1}
           />
         </CardContent>
       </Card>
@@ -279,8 +279,7 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
       <Alert className="border-blue-200 bg-blue-50">
         <Info className="w-4 h-4 text-blue-600" />
         <AlertDescription className="text-sm text-blue-800">
-          <strong>Note:</strong> Membership tier changes are processed manually. Contact support to upgrade or downgrade your membership.
-          The tier comparison shows what's available at each level.
+          <strong>Note:</strong> User class upgrades are applied via tickets. Use a ticket from My Tickets to move to a higher class, or contact support for assistance.
         </AlertDescription>
       </Alert>
     </div>
@@ -414,119 +413,71 @@ function UsageBreakdown({ usage, limits }: { usage: UsageData; limits: any }) {
 }
 
 function TierComparisonGrid({ currentClass }: { currentClass: number }) {
-  // Only show advertised tiers (classes 3, 4, 5, 7, 8)
-  // Class 1: Visitor, Class 2: Guest (no profiles, not advertised)
-  // Class 6: Regular User Plus (not advertised)
-  // Class 9: Circle Leader Plus (not advertised)
-  // Class 10: Platform Admin (not advertised)
-  const tiers = [
-    {
-      name: 'Basic User',
-      class: 3,
-      features: {
-        adminCircles: 0,
-        adminContainers: 5,
-        memberContainers: 15,
-      },
-      description: 'Essential membership',
-      highlighted: currentClass === 3,
-    },
-    {
-      name: 'Attender',
-      class: 4,
-      features: {
-        adminCircles: 1,
-        adminContainers: 10,
-        memberContainers: 25,
-      },
-      description: 'Active participation',
-      highlighted: currentClass === 4,
-    },
-    {
-      name: 'Regular User',
-      class: 5,
-      features: {
-        adminCircles: 2,
-        adminContainers: 15,
-        memberContainers: 40,
-      },
-      description: 'Full community member',
-      highlighted: currentClass === 5,
-      popular: true,
-    },
-    {
-      name: 'Power User',
-      class: 7,
-      features: {
-        adminCircles: 3,
-        adminContainers: 25,
-        memberContainers: 60,
-      },
-      description: 'Advanced capabilities',
-      highlighted: currentClass === 7,
-    },
-    {
-      name: 'Circle Leader',
-      class: 8,
-      features: {
-        adminCircles: 5,
-        adminContainers: 40,
-        memberContainers: 80,
-      },
-      description: 'Lead your own circles',
-      highlighted: currentClass === 8,
-    },
-  ];
+  const [allClasses, setAllClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('user_classes')
+      .select('class_number, display_name, description, max_admin_circles, max_admin_containers, max_member_containers')
+      .order('class_number', { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          // Show classes 3–9 as the advertised range; skip 1–2 (Visitor/Guest) and 10 (Platform Admin)
+          setAllClasses(data.filter((c: any) => c.class_number >= 3 && c.class_number <= 9));
+        }
+      });
+  }, []);
+
+  if (allClasses.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-      {tiers.map((tier) => (
-        <Card
-          key={tier.class}
-          className={cn(
-            'relative',
-            tier.highlighted && 'border-2 border-indigo-500 shadow-lg',
-            tier.popular && 'border-2 border-purple-500'
-          )}
-        >
-          {tier.popular && (
-            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600">
-              Most Popular
-            </Badge>
-          )}
-          {tier.highlighted && (
-            <Badge className="absolute -top-3 right-4 bg-indigo-600">
-              Current
-            </Badge>
-          )}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {allClasses.map((uc: any) => {
+        const isCurrentClass = uc.class_number === currentClass;
+        return (
+          <Card
+            key={uc.class_number}
+            className={cn(
+              'relative',
+              isCurrentClass && 'border-2 border-indigo-500 shadow-lg',
+            )}
+          >
+            {isCurrentClass && (
+              <Badge className="absolute -top-3 right-4 bg-indigo-600">
+                Current
+              </Badge>
+            )}
 
-          <CardHeader>
-            <CardTitle className="text-xl">{tier.name}</CardTitle>
-            <div className="text-sm text-gray-600 mt-1">Class {tier.class}</div>
-            <p className="text-sm text-gray-600 mt-2">{tier.description}</p>
-          </CardHeader>
+            <CardHeader>
+              <CardTitle className="text-lg">{uc.display_name}</CardTitle>
+              <div className="text-xs text-gray-500 mt-0.5">Class {uc.class_number}</div>
+              {uc.description && (
+                <p className="text-sm text-gray-600 mt-1">{uc.description}</p>
+              )}
+            </CardHeader>
 
-          <CardContent>
-            <div className="space-y-3 mb-4">
-              <FeatureItem
-                icon={Users}
-                label="Admin Circles"
-                value={tier.features.adminCircles}
-              />
-              <FeatureItem
-                icon={Shield}
-                label="Admin Containers"
-                value={tier.features.adminContainers}
-              />
-              <FeatureItem
-                icon={UserCheck}
-                label="Member Containers"
-                value={tier.features.memberContainers}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            <CardContent>
+              <div className="space-y-3">
+                <FeatureItem
+                  icon={Users}
+                  label="Admin Circles"
+                  value={uc.max_admin_circles}
+                />
+                <FeatureItem
+                  icon={Shield}
+                  label="Admin Containers"
+                  value={uc.max_admin_containers}
+                />
+                <FeatureItem
+                  icon={UserCheck}
+                  label="Member Containers"
+                  value={uc.max_member_containers}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

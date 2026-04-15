@@ -166,16 +166,18 @@ export function SetupSection({
           )}
 
           {/* Course Admin */}
-          <Link
-            to="/platform-admin/courses"
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
-              location.pathname.startsWith('/platform-admin/courses') && 'bg-purple-50 text-purple-700'
-            )}
-          >
-            <GraduationCap className="w-4 h-4 text-purple-600" />
-            <span className="flex-1">Course Admin</span>
-          </Link>
+          {hasRole('admin') && (
+            <Link
+              to="/platform-admin/courses"
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition-colors',
+                location.pathname.startsWith('/platform-admin/courses') && 'bg-purple-50 text-purple-700'
+              )}
+            >
+              <GraduationCap className="w-4 h-4 text-purple-600" />
+              <span className="flex-1">Course Admin</span>
+            </Link>
+          )}
 
           {/* Pathways Admin */}
           {hasRole('admin') && (

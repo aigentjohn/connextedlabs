@@ -229,12 +229,12 @@ export default function BulkEnrichDialog({
             />
           </div>
 
-          {/* Access Level */}
+          {/* Visibility */}
           <div>
-            <Label htmlFor="access_level">Access Level</Label>
+            <Label htmlFor="access_level">Visibility</Label>
             <Select value={accessLevel} onValueChange={setAccessLevel}>
               <SelectTrigger>
-                <SelectValue placeholder="Select access level..." />
+                <SelectValue placeholder="Select visibility..." />
               </SelectTrigger>
               <SelectContent>
                 {ACCESS_LEVELS.map((level) => (

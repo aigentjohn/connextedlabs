@@ -11,6 +11,7 @@ import {
   Video,
   Calendar,
   Layers,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -55,6 +56,7 @@ export function CalendarEventsSection({
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">
           <SideLink to="/calendar" icon={Calendar} pathname={location.pathname}>My Calendar</SideLink>
+          <SideLink to="/my-calendar-admin" icon={Settings} pathname={location.pathname} match="startsWith">Calendar Admin</SideLink>
           <SideLink to="/events" icon={CalendarCheck} pathname={location.pathname} count={eventCount} match="startsWith">Open Events</SideLink>
           <SideLink to="/ticketed-events" icon={Ticket} pathname={location.pathname} match="startsWith">Ticketed Events</SideLink>
           <SideLink to="/meetings" icon={Video} pathname={location.pathname} count={meetingCount} match="startsWith">Meetings</SideLink>

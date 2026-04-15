@@ -46,19 +46,28 @@ export default function CoursesManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isPlatformAdmin = profile?.role === 'super' || profile?.role === 'admin';
+
   useEffect(() => {
-    if (!profile || profile.role !== 'super') return;
+    if (!profile) return;
     fetchCourses();
   }, [profile]);
 
   const fetchCourses = async () => {
+    if (!profile) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('courses')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (!isPlatformAdmin) {
+        // Instructors see only courses they own
+        query = query.or(`instructor_id.eq.${profile.id},created_by.eq.${profile.id}`);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setCourses(data || []);
     } catch (error) {
@@ -69,7 +78,7 @@ export default function CoursesManagement() {
     }
   };
 
-  if (!profile || profile.role !== 'super') {
+  if (!profile) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">You don't have admin access</p>
@@ -142,7 +151,9 @@ export default function CoursesManagement() {
         <div>
           <h1 className="text-3xl mb-2">Courses Management</h1>
           <p className="text-gray-600">
-            View, manage, and delete all platform courses
+            {isPlatformAdmin
+              ? 'View, manage, and delete all platform courses'
+              : 'Manage your courses'}
           </p>
         </div>
         <Link to="/courses/create">
@@ -261,32 +272,34 @@ export default function CoursesManagement() {
                       <Settings className="w-4 h-4" />
                     </Button>
                   </Link>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Course</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{course.title}"? This will permanently delete
-                          the course and all its content, enrollments, and student progress. This action
-                          cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteCourse(course.id, course.title)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Delete Course
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {isPlatformAdmin && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{course.title}"? This will permanently delete
+                            the course and all its content, enrollments, and student progress. This action
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteCourse(course.id, course.title)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Course
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

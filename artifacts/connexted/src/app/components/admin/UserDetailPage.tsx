@@ -111,6 +111,9 @@ export default function UserDetailPage() {
   const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [roleHistory, setRoleHistory] = useState<RoleHistory[]>([]);
   
+  // User class definitions loaded from DB
+  const [userClassDefs, setUserClassDefs] = useState<any[]>([]);
+
   // Dialogs
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
@@ -147,7 +150,15 @@ export default function UserDetailPage() {
       setEditedTagline(userData.tagline || '');
       setEditedLocation(userData.location || '');
       setEditedMembershipTier(userData.membership_tier || 'free');
+      setEditedUserClass(userData.user_class || 1);
       setStatusHistory(userData.status_history || []);
+
+      // Load user class definitions from DB (for display names in dropdowns)
+      const { data: classData } = await supabase
+        .from('user_classes')
+        .select('class_number, display_name, description')
+        .order('class_number', { ascending: true });
+      if (classData && classData.length > 0) setUserClassDefs(classData);
       setRoleHistory(userData.role_history || []);
 
       // Fetch all containers to determine subscriptions and admin roles
@@ -455,7 +466,7 @@ export default function UserDetailPage() {
                   </div>
                   <div className="flex items-center">
                     <Crown className="w-4 h-4 mr-1" />
-                    Tier: {user.membership_tier || 'free'}
+                    Class {user.user_class || 1}
                   </div>
                 </div>
 
@@ -582,19 +593,19 @@ export default function UserDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="membership_tier">Membership Tier</Label>
+                    <Label htmlFor="membership_tier">Billing Tier</Label>
                     <Select value={editedMembershipTier} onValueChange={setEditedMembershipTier}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="bronze">Bronze</SelectItem>
-                        <SelectItem value="silver">Silver</SelectItem>
-                        <SelectItem value="gold">Gold</SelectItem>
-                        <SelectItem value="platinum">Platinum</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="unlimited">Unlimited</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-500">Controls pathway/course/program access only — not platform features</p>
                   </div>
 
                   <div className="flex gap-2 pt-4">
@@ -636,7 +647,7 @@ export default function UserDetailPage() {
                     <span className="font-medium">{user.location || 'Not set'}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
-                    <span className="text-gray-600">Membership Tier:</span>
+                    <span className="text-gray-600">Billing Tier:</span>
                     <Badge variant="outline">{user.membership_tier || 'free'}</Badge>
                   </div>
                   <div className="flex justify-between py-2 border-b">
@@ -708,37 +719,31 @@ export default function UserDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5" />
-                User Class (Permission Level)
+                Access Level
               </CardTitle>
               <CardDescription>
-                Controls which containers/features this user can ACCESS - separate from billing tier
+                User class (1–10) and its display name — controls circles, containers, and content access. Independent of billing tier.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <p className="text-sm text-blue-900 mb-2">
-                  <strong>Note:</strong> User Class determines navigation/feature access, while Billing Tier (above) determines what they pay.
-                </p>
-              </div>
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium">Current Class: {user.user_class || 3}</p>
-                  <p className="text-sm text-gray-600">
-                    {user.user_class === 1 && 'Guest - Minimal access'}
-                    {user.user_class === 2 && 'Basic - Basic features'}
-                    {user.user_class === 3 && 'Member - Standard member (default)'}
-                    {user.user_class === 4 && 'Plus - Enhanced access'}
-                    {user.user_class === 5 && 'Advanced - Advanced features'}
-                    {user.user_class === 6 && 'Pro - Professional tier'}
-                    {user.user_class === 7 && 'Premium - Full community access'}
-                    {user.user_class === 8 && 'Enterprise - Enterprise level'}
-                    {user.user_class === 9 && 'Executive - Executive access'}
-                    {user.user_class === 10 && 'Unlimited - Complete access'}
-                    {!user.user_class && 'Member - Standard member (default)'}
-                  </p>
+                  {(() => {
+                    const currentDef = userClassDefs.find(c => c.class_number === (user.user_class || 1));
+                    return (
+                      <>
+                        <p className="font-medium">
+                          {currentDef ? currentDef.display_name : `Class ${user.user_class || 1}`}
+                        </p>
+                        {currentDef?.description && (
+                          <p className="text-sm text-gray-600">{currentDef.description}</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
-                <Select 
-                  value={(user.user_class || 3).toString()} 
+                <Select
+                  value={(user.user_class || 1).toString()}
                   onValueChange={async (value) => {
                     try {
                       const { error } = await supabase
@@ -746,7 +751,8 @@ export default function UserDetailPage() {
                         .update({ user_class: parseInt(value) })
                         .eq('id', userId);
                       if (error) throw error;
-                      toast.success('User class updated');
+                      const def = userClassDefs.find(c => c.class_number === parseInt(value));
+                      toast.success(`User class updated to ${def?.display_name ?? `Class ${value}`}`);
                       fetchUserDetails();
                     } catch (error) {
                       console.error('Error updating user class:', error);
@@ -754,26 +760,28 @@ export default function UserDetailPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-56">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 - Guest</SelectItem>
-                    <SelectItem value="2">2 - Basic</SelectItem>
-                    <SelectItem value="3">3 - Member (default)</SelectItem>
-                    <SelectItem value="4">4 - Plus</SelectItem>
-                    <SelectItem value="5">5 - Advanced</SelectItem>
-                    <SelectItem value="6">6 - Pro</SelectItem>
-                    <SelectItem value="7">7 - Premium</SelectItem>
-                    <SelectItem value="8">8 - Enterprise</SelectItem>
-                    <SelectItem value="9">9 - Executive</SelectItem>
-                    <SelectItem value="10">10 - Unlimited</SelectItem>
+                    {userClassDefs.length > 0
+                      ? userClassDefs.map((uc: any) => (
+                          <SelectItem key={uc.class_number} value={uc.class_number.toString()}>
+                            {uc.class_number} — {uc.display_name}
+                          </SelectItem>
+                        ))
+                      : Array.from({ length: 10 }, (_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>
+                            Class {i + 1}
+                          </SelectItem>
+                        ))
+                    }
                   </SelectContent>
                 </Select>
               </div>
-              <div className="mt-4 text-sm text-gray-600">
-                <p className="mb-2"><strong>Billing Tier:</strong> <Badge className="ml-2">{user.membership_tier || 'free'}</Badge></p>
-                <p className="text-xs text-gray-500">💡 Example: A user can be Class 7 (Premium access) on a "free" billing tier if sponsored</p>
+              <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                <p className="mb-1"><strong>Billing Tier:</strong> <Badge variant="outline" className="ml-2">{user.membership_tier || 'free'}</Badge></p>
+                <p className="text-xs text-gray-500 mt-1">User class upgrades are applied via tickets. Billing tier controls pathway/course/program access only.</p>
               </div>
             </CardContent>
           </Card>

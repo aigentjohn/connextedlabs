@@ -8,10 +8,11 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import { Calendar, MapPin, Users, Clock, Search, Trash2, Download, Edit, Eye } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Search, Trash2, Download, Edit, Eye, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import CreateEventDialog from '@/app/components/calendar/CreateEventDialog';
+import BulkImportManager, { BulkImportConfig } from '@/app/components/admin/BulkImportManager';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -125,6 +126,76 @@ export default function EventsManagement() {
     }
   };
 
+  const handleBulkImport = async (records: any[]): Promise<{ success: number; failed: number; errors: string[] }> => {
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const record of records) {
+      try {
+        const tags = record.tags
+          ? String(record.tags).split(',').map((t: string) => t.trim()).filter(Boolean)
+          : [];
+
+        const { error } = await supabase.from('events').insert({
+          title: record.title,
+          description: record.description || '',
+          start_time: record.start_time,
+          end_time: record.end_time || null,
+          location: record.location || null,
+          external_link: record.external_link || null,
+          access_level: record.access_level || 'public',
+          tags,
+          host_id: profile!.id,
+          attendee_ids: [],
+          circle_ids: [],
+        });
+
+        if (error) throw error;
+        success++;
+      } catch (err: any) {
+        failed++;
+        errors.push(`"${record.title || 'Unknown'}": ${err.message}`);
+      }
+    }
+
+    if (success > 0) {
+      // Refresh event list
+      const { data } = await supabase.from('events').select('*').order('start_time', { ascending: false });
+      if (data) setEvents(data);
+    }
+
+    return { success, failed, errors };
+  };
+
+  const eventImportConfig: BulkImportConfig = {
+    entityName: 'Events',
+    entityNameSingular: 'Event',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text', required: true, description: 'Event title' },
+      { key: 'description', label: 'Description', type: 'text', required: false, description: 'Event description' },
+      { key: 'start_time', label: 'Start Time', type: 'text', required: true, description: 'ISO datetime e.g. 2026-05-01T09:00:00' },
+      { key: 'end_time', label: 'End Time', type: 'text', required: false, description: 'ISO datetime e.g. 2026-05-01T11:00:00' },
+      { key: 'location', label: 'Location', type: 'text', required: false, description: 'Physical address or venue name' },
+      { key: 'external_link', label: 'External Link', type: 'text', required: false, description: 'Online meeting URL or event page' },
+      { key: 'access_level', label: 'Visibility', type: 'select', required: false, options: ['public', 'member', 'unlisted', 'private'], defaultValue: 'public', description: 'Who can see this event' },
+      { key: 'tags', label: 'Tags', type: 'text', required: false, description: 'Comma-separated tags e.g. workshop,networking' },
+    ],
+    onImport: handleBulkImport,
+    validateRecord: (record) => {
+      if (!record.title) return 'Title is required';
+      if (!record.start_time) return 'Start time is required';
+      const start = new Date(record.start_time);
+      if (isNaN(start.getTime())) return `Invalid start_time: "${record.start_time}" — use ISO format e.g. 2026-05-01T09:00:00`;
+      if (record.end_time) {
+        const end = new Date(record.end_time);
+        if (isNaN(end.getTime())) return `Invalid end_time: "${record.end_time}" — use ISO format`;
+        if (end <= start) return 'End time must be after start time';
+      }
+      return null;
+    },
+  };
+
   const getHostName = (hostId: string) => {
     const host = users.find(u => u.id === hostId);
     return host ? host.name : 'Unknown';
@@ -193,6 +264,10 @@ export default function EventsManagement() {
           <Button onClick={exportToJSON} variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Export JSON
+          </Button>
+          <Button onClick={() => document.getElementById('event-import-section')?.scrollIntoView({ behavior: 'smooth' })} variant="outline">
+            <Upload className="w-4 h-4 mr-2" />
+            Import Events
           </Button>
         </div>
       </div>
@@ -363,6 +438,11 @@ export default function EventsManagement() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Import Events */}
+      <div id="event-import-section">
+        <BulkImportManager config={eventImportConfig} />
+      </div>
 
       {/* Edit Event Dialog */}
       {editingEvent && (

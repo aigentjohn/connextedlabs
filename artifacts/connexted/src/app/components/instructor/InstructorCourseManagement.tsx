@@ -399,7 +399,7 @@ export default function InstructorCourseManagement() {
               )}
 
               <div>
-                <Label htmlFor="access_level">Access Level</Label>
+                <Label htmlFor="access_level">Visibility</Label>
                 <select
                   id="access_level"
                   value={formData.access_level || 'public'}

@@ -421,9 +421,9 @@ export default function AddDocumentForm() {
               {errors.url && <p className="text-sm text-red-500">{errors.url}</p>}
             </div>
 
-            {/* Access Level */}
+            {/* Visibility */}
             <div className="space-y-2">
-              <Label>Access Level *</Label>
+              <Label>Visibility *</Label>
               <div className="space-y-2">
                 {ACCESS_LEVELS.map((level) => (
                   <label

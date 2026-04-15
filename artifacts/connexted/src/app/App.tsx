@@ -162,6 +162,8 @@ const FollowersPage = lazy(() => import('@/app/components/FollowersPage'));
 const FollowingPage = lazy(() => import('@/app/components/FollowingPage'));
 const VenuesPage = lazy(() => import('@/app/components/VenuesPage'));
 const CalendarPage = lazy(() => import('@/app/components/CalendarPage'));
+const MyCalendarAdminPage = lazy(() => import('@/app/components/calendar/MyCalendarAdminPage'));
+const EventAdminDetailPage = lazy(() => import('@/app/components/calendar/EventAdminDetailPage'));
 const UserProfilePage = lazy(() => import('@/app/components/UserProfilePage'));
 const MomentsPage = lazy(() => import('@/app/components/MomentsPage'));
 const MomentsSettingsPage = lazy(() => import('@/app/components/MomentsSettingsPage'));
@@ -579,6 +581,8 @@ const router = createBrowserRouter([
           { path: '/profile/following', element: <FollowingPage /> },
           { path: '/profile/venues', element: <VenuesPage /> },
           { path: '/calendar', element: <CalendarPage /> },
+          { path: '/my-calendar-admin', element: <MyCalendarAdminPage /> },
+          { path: '/calendar-admin/:eventId', element: <EventAdminDetailPage /> },
           { path: '/discovery', element: <DiscoveryPage /> },
           { path: '/explore', element: <ExplorePage /> },
           { path: '/pricing', element: <PricingPage /> },

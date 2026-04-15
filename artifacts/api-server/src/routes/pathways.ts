@@ -104,12 +104,23 @@ function buildStepRows(steps: StepInput[], pathwayId: string) {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-router.get('/pathways', requireAuth, async (_req, res) => {
+router.get('/pathways', requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
+    const isAdmin = authReq.isAdmin === true;
+
+    // Platform admins see all pathways; others see only what they created.
+    const query = supabaseAdmin
       .from('pathways')
       .select('*, pathway_steps(*)')
       .order('created_at', { ascending: false });
+
+    if (!isAdmin) {
+      query.eq('created_by', userId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
 
     const pathways = (data as PathwayRow[] ?? []).map((p) => ({
