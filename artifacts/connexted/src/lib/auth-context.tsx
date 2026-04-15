@@ -72,6 +72,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * forceSignOut — bypasses the Supabase Web Lock entirely.
+ *
+ * Supabase JS v2 holds a Web Lock during token refresh. Both
+ * supabase.auth.signOut() and onAuthStateChange(INITIAL_SESSION) wait for that
+ * same lock. If the refresh hangs, the app freezes and signOut() also hangs.
+ *
+ * This function avoids all of that: it directly removes the sb-* localStorage
+ * keys (no lock needed) and hard-redirects to /. Safe to call from anywhere.
+ */
+export function forceSignOut(): void {
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+  } catch (_) {
+    // localStorage unavailable (SSR, private browsing restrictions, etc.)
+  }
+  window.location.replace('/');
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -285,14 +306,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // and sign out to clear the bad token rather than hanging forever.
     const loadingTimeout = setTimeout(() => {
       if (!mounted) return;
-      setLoading((prev) => {
-        if (prev) {
-          // Still loading after 10s — clear bad token and unblock the UI
-          console.warn('Auth loading timed out after 10s — clearing session');
-          supabase.auth.signOut().catch(() => {});
-        }
-        return false;
-      });
+      // Still loading after 10s — the token refresh is hung on a Web Lock.
+      // supabase.auth.signOut() also needs that lock so it would hang too.
+      // forceSignOut() bypasses the lock: wipes sb-* localStorage directly
+      // and reloads to /, breaking the cycle without waiting for anything.
+      console.warn('Auth loading timed out after 10s — force-clearing session');
+      forceSignOut();
     }, 10_000);
 
     // Use onAuthStateChange as the SOLE source of session truth.
