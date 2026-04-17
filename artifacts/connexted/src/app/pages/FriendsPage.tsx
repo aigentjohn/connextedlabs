@@ -222,8 +222,9 @@ export default function FriendsPage() {
                     View Profile
                   </Link>
                   <Link
-                    to={`/messages/${friend.id}`}
+                    to={`/members/friends/${friend.id}/companion`}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    title="Open shared companion"
                   >
                     <MessageCircle className="w-4 h-4" />
                   </Link>

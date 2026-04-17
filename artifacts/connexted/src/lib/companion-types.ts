@@ -1,7 +1,7 @@
 /**
  * Shared companion item type registry
  *
- * All companion surfaces (circle, company, sponsor, event) import from here.
+ * All companion surfaces (circle, company, sponsor, event, friend) import from here.
  * Adding a new platform content type means one entry; every companion that
  * lists it in `contexts` picks it up automatically.
  *
@@ -12,6 +12,7 @@
  *   company  — business profile / thought leadership
  *   sponsor  — event sponsor showcase (focused, transactional)
  *   event    — live-event logistics (action-oriented, unique builtins)
+ *   friend   — 1:1 shared space between two mutual friends
  *
  * Use `getTypesForContext('circle')` to get the filtered list for a surface.
  */
@@ -32,7 +33,7 @@ import {
   Users,
 } from 'lucide-react';
 
-export type CompanionContext = 'circle' | 'company' | 'sponsor' | 'event';
+export type CompanionContext = 'circle' | 'company' | 'sponsor' | 'event' | 'friend';
 
 export interface CompanionItemType {
   value: string;
@@ -72,7 +73,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'name',
     slugField: 'slug',
     route: '/elevators',
-    contexts: ['circle', 'company', 'sponsor', 'event'],
+    contexts: ['circle', 'company', 'sponsor', 'event', 'friend'],
     guestVisible: true,
   },
   {
@@ -83,7 +84,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'name',
     slugField: 'slug',
     route: '/pitches',
-    contexts: ['circle', 'company', 'sponsor', 'event'],
+    contexts: ['circle', 'company', 'sponsor', 'event', 'friend'],
     guestVisible: true,
   },
   {
@@ -94,7 +95,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'title',
     slugField: 'id',
     route: '/documents',
-    contexts: ['circle', 'company', 'sponsor', 'event'],
+    contexts: ['circle', 'company', 'sponsor', 'event', 'friend'],
     guestVisible: false,
   },
   {
@@ -105,7 +106,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: '',
     slugField: '',
     route: '',
-    contexts: ['circle', 'company', 'sponsor', 'event'],
+    contexts: ['circle', 'company', 'sponsor', 'event', 'friend'],
     guestVisible: true,
     builtin: true,
   },
@@ -123,7 +124,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'title',
     slugField: 'id',
     route: '/episodes',
-    contexts: ['circle', 'company', 'sponsor'],
+    contexts: ['circle', 'company', 'sponsor', 'friend'],
     guestVisible: true,
   },
   {
@@ -134,7 +135,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'title',
     slugField: 'slug',
     route: '/books',
-    contexts: ['circle', 'company', 'sponsor'],
+    contexts: ['circle', 'company', 'sponsor', 'friend'],
     guestVisible: true,
   },
   {
@@ -145,7 +146,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'title',
     slugField: 'slug',
     route: '/blogs',
-    contexts: ['circle', 'company', 'sponsor'],
+    contexts: ['circle', 'company', 'sponsor', 'friend'],
     guestVisible: true,
   },
 
@@ -164,7 +165,7 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'name',
     slugField: 'slug',
     route: '/playlists',
-    contexts: ['circle', 'company'],
+    contexts: ['circle', 'company', 'friend'],
     guestVisible: true,
   },
 
