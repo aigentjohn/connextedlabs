@@ -216,6 +216,16 @@ export default function MyDocumentsPage() {
                         <Edit className="w-4 h-4" />
                       </Button>
                     </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedDocument(doc);
+                        setShareDialogOpen(true);
+                      }}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
