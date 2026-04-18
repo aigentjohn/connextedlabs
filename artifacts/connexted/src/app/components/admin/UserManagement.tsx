@@ -1428,14 +1428,11 @@ export default function UserManagement() {
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
-                                {USER_CLASSES.map(cls => (
+                                {userClassDefs.map(cls => (
                                   <SelectItem key={cls.level} value={cls.level.toString()}>
-                                    <div className="flex items-center gap-2">
-                                      <Badge className={`text-xs ${getUserClassColor(cls.level)}`}>
-                                        {cls.name}
-                                      </Badge>
-                                      <span className="text-xs text-gray-500">- {cls.description}</span>
-                                    </div>
+                                    <Badge className={`text-xs ${getUserClassColor(cls.level)}`}>
+                                      {cls.name}
+                                    </Badge>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1501,7 +1498,7 @@ export default function UserManagement() {
                             <span className="text-gray-600">Activity: </span>
                             <span className="font-medium">{userActivity.posts} posts, {userActivity.documents} docs</span>
                           </div>
-                          {user.badges.length > 0 && (
+                          {(user.badges?.length ?? 0) > 0 && (
                             <div>
                               <span className="text-gray-600">Badges: </span>
                               <span className="font-medium">{user.badges.length}</span>
