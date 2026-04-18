@@ -1,267 +1,242 @@
-import { useState, useEffect } from 'react';
+/**
+ * MyContentPage — unified My Favorites
+ *
+ * Shows every item the user has favorited across all 20+ content
+ * and container types, grouped into two sections with type filters.
+ * Unfavoriting an item removes it from the list immediately.
+ */
+
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Separator } from '@/app/components/ui/separator';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { 
-  Users,
-  Table as TableIcon,
-  TrendingUp,
-  Video,
-  Presentation,
-  Hammer,
-  MessageSquare,
-  Users2,
-  ExternalLink,
-  Lock,
-  Star,
-  Calendar,
-  CalendarClock,
+import { Button } from '@/app/components/ui/button';
+import {
+  Star, BookOpen, FileText, Video, Layers, ListVideo,
+  GraduationCap, Rocket, BookCopy, Library, CheckSquare,
+  Users, Table as TableIcon, TrendingUp, Presentation,
+  Hammer, MessageSquare, Users2, CalendarClock, ExternalLink,
+  Bookmark,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { toast } from 'sonner';
-import FavoriteButton from '@/app/components/shared/FavoriteButton';
-import ContainerCard from '@/app/components/shared/ContainerCard';
-import { ContainerType } from '@/lib/container-types';
+
+// ── Type registry ──────────────────────────────────────────────────────────
+
+interface FavType {
+  contentType: string;   // matches content_favorites.content_type
+  table: string;         // Supabase table name
+  label: string;
+  pluralLabel: string;
+  titleField: string;    // column for display name
+  slugField?: string;    // if route uses slug instead of id
+  route: string;         // base path — item linked as route/slug or route/id
+  icon: React.ElementType;
+  group: 'content' | 'container';
+}
+
+const FAV_TYPES: FavType[] = [
+  // ── Content ──
+  { contentType: 'episode',   table: 'episodes',   label: 'Episode',   pluralLabel: 'Episodes',   titleField: 'title', route: '/episodes',   icon: Video,          group: 'content' },
+  { contentType: 'book',      table: 'books',      label: 'Book',      pluralLabel: 'Books',      titleField: 'title', route: '/books',      icon: BookOpen,       group: 'content' },
+  { contentType: 'document',  table: 'documents',  label: 'Document',  pluralLabel: 'Documents',  titleField: 'title', route: '/documents',  icon: FileText,       group: 'content' },
+  { contentType: 'playlist',  table: 'playlists',  label: 'Playlist',  pluralLabel: 'Playlists',  titleField: 'name',  slugField: 'slug', route: '/playlists',  icon: ListVideo,      group: 'content' },
+  { contentType: 'deck',      table: 'decks',      label: 'Deck',      pluralLabel: 'Decks',      titleField: 'title', route: '/decks',      icon: Layers,         group: 'content' },
+  { contentType: 'course',    table: 'courses',    label: 'Course',    pluralLabel: 'Courses',    titleField: 'title', slugField: 'slug', route: '/courses',    icon: GraduationCap,  group: 'content' },
+  { contentType: 'program',   table: 'programs',   label: 'Program',   pluralLabel: 'Programs',   titleField: 'name',  slugField: 'slug', route: '/programs',   icon: Rocket,         group: 'content' },
+  { contentType: 'magazine',  table: 'magazines',  label: 'Magazine',  pluralLabel: 'Magazines',  titleField: 'name',  route: '/magazines',  icon: BookCopy,       group: 'content' },
+  { contentType: 'blog',      table: 'blogs',      label: 'Blog',      pluralLabel: 'Blogs',      titleField: 'title', slugField: 'slug', route: '/blogs',      icon: FileText,       group: 'content' },
+  // ── Containers ──
+  { contentType: 'circle',    table: 'circles',    label: 'Circle',    pluralLabel: 'Circles',    titleField: 'name',  route: '/circles',    icon: Users,          group: 'container' },
+  { contentType: 'table',     table: 'tables',     label: 'Table',     pluralLabel: 'Tables',     titleField: 'name',  slugField: 'slug', route: '/tables',     icon: TableIcon,      group: 'container' },
+  { contentType: 'elevator',  table: 'elevators',  label: 'Elevator',  pluralLabel: 'Elevators',  titleField: 'name',  slugField: 'slug', route: '/elevators',  icon: TrendingUp,     group: 'container' },
+  { contentType: 'meeting',   table: 'meetings',   label: 'Meeting',   pluralLabel: 'Meetings',   titleField: 'name',  slugField: 'slug', route: '/meetings',   icon: Video,          group: 'container' },
+  { contentType: 'pitch',     table: 'pitches',    label: 'Pitch',     pluralLabel: 'Pitches',    titleField: 'name',  slugField: 'slug', route: '/pitches',    icon: Presentation,   group: 'container' },
+  { contentType: 'build',     table: 'builds',     label: 'Build',     pluralLabel: 'Builds',     titleField: 'name',  slugField: 'slug', route: '/builds',     icon: Hammer,         group: 'container' },
+  { contentType: 'standup',   table: 'standups',   label: 'Standup',   pluralLabel: 'Standups',   titleField: 'name',  slugField: 'slug', route: '/standups',   icon: MessageSquare,  group: 'container' },
+  { contentType: 'meetup',    table: 'meetups',    label: 'Meetup',    pluralLabel: 'Meetups',    titleField: 'name',  slugField: 'slug', route: '/meetups',    icon: Users2,         group: 'container' },
+  { contentType: 'sprint',    table: 'sprints',    label: 'Sprint',    pluralLabel: 'Sprints',    titleField: 'name',  slugField: 'slug', route: '/sprints',    icon: CalendarClock,  group: 'container' },
+  { contentType: 'library',   table: 'libraries',  label: 'Library',   pluralLabel: 'Libraries',  titleField: 'name',  route: '/libraries',  icon: Library,        group: 'container' },
+  { contentType: 'checklist', table: 'checklists', label: 'Checklist', pluralLabel: 'Checklists', titleField: 'name',  route: '/checklists', icon: CheckSquare,    group: 'container' },
+];
+
+const TYPE_MAP = new Map(FAV_TYPES.map(t => [t.contentType, t]));
+
+interface FavItem {
+  id: string;
+  title: string;
+  description?: string;
+  contentType: string;
+  href: string;
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
 
 export default function MyContentPage() {
   const { profile } = useAuth();
-  const [circles, setCircles] = useState<any[]>([]);
-  const [tables, setTables] = useState<any[]>([]);
-  const [elevators, setElevators] = useState<any[]>([]);
-  const [meetings, setMeetings] = useState<any[]>([]);
-  const [pitches, setPitches] = useState<any[]>([]);
-  const [builds, setBuilds] = useState<any[]>([]);
-  const [standups, setStandups] = useState<any[]>([]);
-  const [meetups, setMeetups] = useState<any[]>([]);
-  const [sprints, setSprints] = useState<any[]>([]);
+  const [items, setItems] = useState<FavItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (profile) {
-      fetchContent();
-    }
-  }, [profile]);
-
-  const fetchContent = async () => {
+  const loadFavorites = useCallback(async () => {
     if (!profile?.id) return;
-
     try {
       setLoading(true);
 
-      // Fetch all favorites from content_favorites table for current user
-      const { data: favoritesData, error: favoritesError } = await supabase
+      // 1. Fetch all favorite records for this user
+      const { data: favRows, error } = await supabase
         .from('content_favorites')
         .select('content_id, content_type')
         .eq('user_id', profile.id);
+      if (error) throw error;
 
-      if (favoritesError) throw favoritesError;
-
-      // Group favorite IDs by content type
-      const favoritesByType = (favoritesData || []).reduce((acc, fav) => {
-        if (!acc[fav.content_type]) acc[fav.content_type] = [];
-        acc[fav.content_type].push(fav.content_id);
-        return acc;
-      }, {} as Record<string, string[]>);
-
-      // Fetch all container types where user has favorited them
-      const fetchContainerType = async (type: string, ids: string[]) => {
-        if (!ids || ids.length === 0) return [];
-        const { data } = await supabase
-          .from(type)
-          .select('*')
-          .in('id', ids);
-        return (data || []).map(item => ({ ...item, is_favorited: true }));
-      };
-
-      const [
-        circlesData,
-        tablesData,
-        elevatorsData,
-        meetingsData,
-        pitchesData,
-        buildsData,
-        standupsData,
-        meetupsData,
-        sprintsData,
-      ] = await Promise.all([
-        fetchContainerType('circles', favoritesByType['circles'] || []),
-        fetchContainerType('tables', favoritesByType['tables'] || []),
-        fetchContainerType('elevators', favoritesByType['elevators'] || []),
-        fetchContainerType('meetings', favoritesByType['meetings'] || []),
-        fetchContainerType('pitches', favoritesByType['pitches'] || []),
-        fetchContainerType('builds', favoritesByType['builds'] || []),
-        fetchContainerType('standups', favoritesByType['standups'] || []),
-        fetchContainerType('meetups', favoritesByType['meetups'] || []),
-        fetchContainerType('sprints', favoritesByType['sprints'] || []),
-      ]);
-
-      setCircles(circlesData);
-      setTables(tablesData);
-      setElevators(elevatorsData);
-      setMeetings(meetingsData);
-      setPitches(pitchesData);
-      setBuilds(buildsData);
-      setStandups(standupsData);
-      setMeetups(meetupsData);
-      setSprints(sprintsData);
-      
-      // Initialize selected types with all types that have favorites (only if not already set)
-      if (selectedTypes.size === 0) {
-        const typesWithData = [];
-        if (circlesData && circlesData.length > 0) typesWithData.push('circles');
-        if (tablesData && tablesData.length > 0) typesWithData.push('tables');
-        if (elevatorsData && elevatorsData.length > 0) typesWithData.push('elevators');
-        if (meetingsData && meetingsData.length > 0) typesWithData.push('meetings');
-        if (pitchesData && pitchesData.length > 0) typesWithData.push('pitches');
-        if (buildsData && buildsData.length > 0) typesWithData.push('builds');
-        if (standupsData && standupsData.length > 0) typesWithData.push('standups');
-        if (meetupsData && meetupsData.length > 0) typesWithData.push('meetups');
-        if (sprintsData && sprintsData.length > 0) typesWithData.push('sprints');
-        
-        if (typesWithData.length > 0) {
-          setSelectedTypes(new Set(typesWithData));
-        }
+      if (!favRows || favRows.length === 0) {
+        setItems([]);
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching favorited content:', error);
-      toast.error('Failed to load favorited content');
+
+      // 2. Group IDs by content_type
+      const byType: Record<string, string[]> = {};
+      for (const row of favRows) {
+        if (!byType[row.content_type]) byType[row.content_type] = [];
+        byType[row.content_type].push(row.content_id);
+      }
+
+      // 3. For each known type that has favorites, fetch item details
+      const fetches = Object.entries(byType).map(async ([contentType, ids]) => {
+        const cfg = TYPE_MAP.get(contentType);
+        if (!cfg) return [];
+        const fields = cfg.slugField
+          ? `id, ${cfg.titleField}, description, ${cfg.slugField}`
+          : `id, ${cfg.titleField}, description`;
+        const { data } = await supabase.from(cfg.table).select(fields).in('id', ids);
+        return (data || []).map((row: any): FavItem => {
+          const slug = cfg.slugField ? row[cfg.slugField] : null;
+          return {
+            id: row.id,
+            title: row[cfg.titleField] || 'Untitled',
+            description: row.description || undefined,
+            contentType,
+            href: `${cfg.route}/${slug || row.id}`,
+          };
+        });
+      });
+
+      const results = await Promise.allSettled(fetches);
+      const allItems: FavItem[] = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      setItems(allItems);
+
+      // Initialise filters to show all types that have results
+      const presentTypes = new Set(allItems.map(i => i.contentType));
+      setActiveFilters(presentTypes);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load favorites');
     } finally {
       setLoading(false);
     }
+  }, [profile?.id]);
+
+  useEffect(() => { loadFavorites(); }, [loadFavorites]);
+
+  const unfavorite = async (item: FavItem) => {
+    if (!profile?.id) return;
+    setRemovingId(item.id);
+    try {
+      const { error } = await supabase
+        .from('content_favorites')
+        .delete()
+        .eq('user_id', profile.id)
+        .eq('content_type', item.contentType)
+        .eq('content_id', item.id);
+      if (error) throw error;
+      setItems(prev => prev.filter(i => i.id !== item.id));
+      toast.success('Removed from favorites');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to remove favorite');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const toggleFilter = (contentType: string) => {
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      next.has(contentType) ? next.delete(contentType) : next.add(contentType);
+      return next;
+    });
+  };
+
+  const toggleAll = (typesPresent: FavType[]) => {
+    const presentTypes = typesPresent.map(t => t.contentType);
+    setActiveFilters(prev =>
+      prev.size === presentTypes.length
+        ? new Set()
+        : new Set(presentTypes)
+    );
   };
 
   if (!profile) return null;
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Loading content...</p>
-      </div>
+      <div className="text-center py-16 text-gray-500">Loading favorites...</div>
     );
   }
 
-  const totalContent = circles.length + tables.length + elevators.length + 
-                       meetings.length + pitches.length + builds.length + 
-                       standups.length + meetups.length + sprints.length;
+  // Build filtered display list
+  const filtered = items.filter(i => activeFilters.has(i.contentType));
 
-  // Container type configuration
-  const containerTypes = [
-    {
-      type: 'circles' as ContainerType,
-      name: 'Circles',
-      icon: Users,
-      items: circles,
-      color: 'indigo',
-      path: (item: any) => `/circles/${item.id}`,
-    },
-    {
-      type: 'tables' as ContainerType,
-      name: 'Tables',
-      icon: TableIcon,
-      items: tables,
-      color: 'blue',
-      path: (item: any) => `/tables/${item.slug}`,
-    },
-    {
-      type: 'elevators' as ContainerType,
-      name: 'Elevators',
-      icon: TrendingUp,
-      items: elevators,
-      color: 'green',
-      path: (item: any) => `/elevators/${item.slug}`,
-    },
-    {
-      type: 'meetings' as ContainerType,
-      name: 'Meetings',
-      icon: Video,
-      items: meetings,
-      color: 'purple',
-      path: (item: any) => `/meetings/${item.slug}`,
-    },
-    {
-      type: 'pitches' as ContainerType,
-      name: 'Pitches',
-      icon: Presentation,
-      items: pitches,
-      color: 'orange',
-      path: (item: any) => `/pitches/${item.slug}`,
-    },
-    {
-      type: 'builds' as ContainerType,
-      name: 'Builds',
-      icon: Hammer,
-      items: builds,
-      color: 'yellow',
-      path: (item: any) => `/builds/${item.slug}`,
-    },
-    {
-      type: 'standups' as ContainerType,
-      name: 'Standups',
-      icon: MessageSquare,
-      items: standups,
-      color: 'pink',
-      path: (item: any) => `/standups/${item.slug}`,
-    },
-    {
-      type: 'meetups' as ContainerType,
-      name: 'Meetups',
-      icon: Users2,
-      items: meetups,
-      color: 'cyan',
-      path: (item: any) => `/meetups/${item.slug}`,
-    },
-    {
-      type: 'sprints' as ContainerType,
-      name: 'Sprints',
-      icon: CalendarClock,
-      items: sprints,
-      color: 'indigo',
-      path: (item: any) => `/sprints/${item.slug}`,
-    },
-  ];
+  // Which types actually have items
+  const typesPresent = FAV_TYPES.filter(t => items.some(i => i.contentType === t.contentType));
+  const contentTypesPresent = typesPresent.filter(t => t.group === 'content');
+  const containerTypesPresent = typesPresent.filter(t => t.group === 'container');
 
-  // Filter container types that have at least one favorite
-  const typesWithFavorites = containerTypes.filter(ct => ct.items.length > 0);
+  const filteredContent = filtered.filter(i => TYPE_MAP.get(i.contentType)?.group === 'content');
+  const filteredContainers = filtered.filter(i => TYPE_MAP.get(i.contentType)?.group === 'container');
 
-  const toggleType = (type: string) => {
-    const newSelected = new Set(selectedTypes);
-    if (newSelected.has(type)) {
-      newSelected.delete(type);
-    } else {
-      newSelected.add(type);
-    }
-    setSelectedTypes(newSelected);
-  };
-
-  const toggleAll = () => {
-    if (selectedTypes.size === typesWithFavorites.length) {
-      setSelectedTypes(new Set());
-    } else {
-      setSelectedTypes(new Set(typesWithFavorites.map(ct => ct.type)));
-    }
-  };
-
-  // Filter container types based on selection
-  const filteredContainerTypes = containerTypes.filter(ct => 
-    ct.items.length > 0 && selectedTypes.has(ct.type)
-  );
-
-  const getAccessLevelBadge = (accessLevel?: string) => {
-    if (!accessLevel || accessLevel === 'public') {
-      return <Badge variant="secondary" className="text-xs">Public</Badge>;
-    }
-    if (accessLevel === 'member') {
-      return <Badge variant="default" className="text-xs bg-indigo-600">Member</Badge>;
-    }
-    if (accessLevel === 'premium') {
-      return <Badge variant="default" className="text-xs bg-yellow-600">Premium</Badge>;
-    }
-    return null;
+  const renderItem = (item: FavItem) => {
+    const cfg = TYPE_MAP.get(item.contentType);
+    if (!cfg) return null;
+    const Icon = cfg.icon;
+    return (
+      <Card key={item.id} className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
+              <Icon className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-400 uppercase tracking-wide">{cfg.label}</span>
+              <p className="text-sm font-semibold text-gray-900 mt-0.5 truncate">{item.title}</p>
+              {item.description && (
+                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={item.href}><ExternalLink className="w-4 h-4" /></Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => unfavorite(item)}
+                disabled={removingId === item.id}
+                className="text-yellow-500 hover:text-gray-400"
+                title="Remove from favorites"
+              >
+                <Bookmark className="w-4 h-4 fill-current" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -269,161 +244,105 @@ export default function MyContentPage() {
       <Breadcrumbs items={[{ label: 'My Favorites' }]} />
 
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-          <h1 className="text-3xl">My Favorites</h1>
+      <div className="flex items-center gap-3">
+        <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {items.length} saved item{items.length !== 1 ? 's' : ''} across {typesPresent.length} type{typesPresent.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <p className="text-gray-600">
-          Your favorited containers for quick access
-        </p>
       </div>
 
-      {/* Summary Card with Filters */}
-      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{totalContent}</h2>
-              <p className="text-gray-600 mt-1">Favorited Containers</p>
+      {/* Filters */}
+      {typesPresent.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50/40">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-gray-700">Filter by type</p>
+              <button
+                onClick={() => toggleAll(typesPresent)}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                {activeFilters.size === typesPresent.length ? 'Deselect All' : 'Select All'}
+              </button>
             </div>
-            <div className="text-right text-sm text-gray-600 space-y-1">
-              {typesWithFavorites.map(ct => (
-                <div key={ct.type}>{ct.items.length} {ct.name}</div>
-              ))}
-            </div>
-          </div>
-
-          {/* Filter Checkboxes */}
-          {typesWithFavorites.length > 0 && (
-            <div className="pt-4 border-t border-yellow-300">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-gray-700">Filter by type:</p>
-                <button
-                  onClick={toggleAll}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  {selectedTypes.size === typesWithFavorites.length ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {typesWithFavorites.map((containerType) => {
-                  const Icon = containerType.icon;
-                  const isChecked = selectedTypes.has(containerType.type);
-                  
-                  return (
-                    <label
-                      key={containerType.type}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all ${
-                        isChecked 
-                          ? 'bg-white border-indigo-500 shadow-sm' 
-                          : 'bg-white/50 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={() => toggleType(containerType.type)}
-                      />
-                      <Icon className={`w-4 h-4 ${isChecked ? 'text-indigo-600' : 'text-gray-500'}`} />
-                      <span className={`text-sm font-medium ${isChecked ? 'text-gray-900' : 'text-gray-600'}`}>
-                        {containerType.name}
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {containerType.items.length}
-                      </Badge>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Container Type Sections */}
-      {filteredContainerTypes.map((containerType) => {
-        if (containerType.items.length === 0) return null;
-
-        const Icon = containerType.icon;
-
-        return (
-          <div key={containerType.type}>
-            <div className="flex items-center gap-2 mb-4">
-              <Icon className={`w-6 h-6 text-${containerType.color}-600`} />
-              <h2 className="text-2xl font-semibold">{containerType.name}</h2>
-              <Badge variant="secondary">{containerType.items.length}</Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {containerType.items.map((item: any) => {
-                // Handler to update favorites when changed
-                const handleFavoriteUpdate = (id: string, isFavorited: boolean) => {
-                  // If unfavorited, remove from the list
-                  if (!isFavorited) {
-                    const updateState = (setState: React.Dispatch<React.SetStateAction<any[]>>) => {
-                      setState(prev => prev.filter(i => i.id !== id));
-                    };
-                    
-                    switch (containerType.type) {
-                      case 'circles': updateState(setCircles); break;
-                      case 'tables': updateState(setTables); break;
-                      case 'elevators': updateState(setElevators); break;
-                      case 'meetings': updateState(setMeetings); break;
-                      case 'pitches': updateState(setPitches); break;
-                      case 'builds': updateState(setBuilds); break;
-                      case 'standups': updateState(setStandups); break;
-                      case 'meetups': updateState(setMeetups); break;
-                      case 'sprints': updateState(setSprints); break;
-                    }
-                  }
-                };
-
+            <div className="flex flex-wrap gap-2">
+              {typesPresent.map(t => {
+                const Icon = t.icon;
+                const count = items.filter(i => i.contentType === t.contentType).length;
+                const active = activeFilters.has(t.contentType);
                 return (
-                  <ContainerCard
-                    key={item.id}
-                    id={item.id}
-                    type={containerType.type}
-                    name={item.name}
-                    description={item.description || ''}
-                    link={containerType.path(item)}
-                    visibility={item.access_level || item.visibility || 'public'}
-                    memberCount={item.member_ids?.length || 0}
-                    tags={item.tags || []}
-                    isFavorited={item.is_favorited}
-                    showJoinButton={false}
-                    onFavoriteUpdate={handleFavoriteUpdate}
-                  />
+                  <button
+                    key={t.contentType}
+                    onClick={() => toggleFilter(t.contentType)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
+                      ${active
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {t.pluralLabel}
+                    <span className={`ml-0.5 ${active ? 'opacity-80' : 'text-gray-400'}`}>({count})</span>
+                  </button>
                 );
               })}
             </div>
-          </div>
-        );
-      })}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Empty State */}
-      {totalContent === 0 && (
-        <Card className="p-12 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <Star className="w-16 h-16 text-gray-400" />
-            <div>
-              <h3 className="text-xl font-semibold mb-2">No Favorites Yet</h3>
-              <p className="text-gray-600 mb-6">
-                You haven't favorited any containers yet. Click the star icon on any Circle, Table, Build, or other container to add it here for quick access.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Link to="/circles">
-                  <Badge className="cursor-pointer hover:bg-indigo-700 px-4 py-2 text-sm">
-                    Explore Circles
-                  </Badge>
-                </Link>
-                <Link to="/builds">
-                  <Badge variant="secondary" className="cursor-pointer hover:bg-gray-300 px-4 py-2 text-sm">
-                    Browse Builds
-                  </Badge>
-                </Link>
-              </div>
-            </div>
+      {/* Content section */}
+      {filteredContent.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-1">
+            Content — {filteredContent.length} item{filteredContent.length !== 1 ? 's' : ''}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredContent.map(renderItem)}
           </div>
+        </div>
+      )}
+
+      {/* Containers section */}
+      {filteredContainers.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-1">
+            Containers — {filteredContainers.length} item{filteredContainers.length !== 1 ? 's' : ''}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredContainers.map(renderItem)}
+          </div>
+        </div>
+      )}
+
+      {/* Empty — no favorites at all */}
+      {items.length === 0 && (
+        <Card className="py-16 text-center">
+          <CardContent>
+            <Star className="w-14 h-14 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No favorites yet</h3>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">
+              Tap the bookmark icon on any episode, book, circle, document, or other content to save it here for quick access.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="default" size="sm" asChild>
+                <Link to="/explore">Explore</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/circles">Browse Circles</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All active filters deselected but have items */}
+      {items.length > 0 && filtered.length === 0 && (
+        <Card className="py-12 text-center">
+          <CardContent>
+            <p className="text-sm text-gray-500">All filters are deselected. Choose a type above to see results.</p>
+          </CardContent>
         </Card>
       )}
     </div>

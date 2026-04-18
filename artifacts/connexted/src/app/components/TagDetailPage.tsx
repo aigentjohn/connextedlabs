@@ -10,7 +10,7 @@ import {
   FileText, MessageSquare, Calendar, BookOpen, ThumbsUp, Hash, Filter,
   ArrowLeft, Users, Hammer, Table, TrendingUp, Presentation,
   CalendarClock, Handshake, Image as ImageIcon, BookCopy, Library,
-  CheckSquare, Sparkles, ListVideo, Video, Rocket
+  CheckSquare, Sparkles, ListVideo, Video, Rocket, Star,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { format } from 'date-fns';
@@ -139,6 +139,8 @@ export default function TagDetailPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<TaggedContent[]>([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const defaultFilters = Object.fromEntries(ALL_TYPES.map(t => [t, true])) as ContentTypeFilter;
   const [contentTypeFilters, setContentTypeFilters] = useState<ContentTypeFilter>(defaultFilters);
@@ -148,8 +150,43 @@ export default function TagDetailPage() {
   useEffect(() => {
     if (profile && decodedTag) {
       fetchTaggedContent();
+      checkFollowStatus();
     }
   }, [profile, decodedTag]);
+
+  const checkFollowStatus = async () => {
+    if (!profile || !decodedTag) return;
+    const { data } = await supabase
+      .from('tag_followers')
+      .select('id')
+      .eq('user_id', profile.id)
+      .eq('tag', decodedTag.toLowerCase())
+      .maybeSingle();
+    setIsFollowing(!!data);
+  };
+
+  const toggleFollow = async () => {
+    if (!profile) return;
+    setFollowLoading(true);
+    try {
+      const normalized = decodedTag.toLowerCase();
+      if (isFollowing) {
+        await supabase.from('tag_followers').delete()
+          .eq('user_id', profile.id).eq('tag', normalized);
+        setIsFollowing(false);
+        toast.success(`Unfollowed #${decodedTag}`);
+      } else {
+        await supabase.from('tag_followers').insert({ user_id: profile.id, tag: normalized });
+        setIsFollowing(true);
+        toast.success(`Following #${decodedTag}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update follow');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const fetchTaggedContent = async () => {
     try {
@@ -231,7 +268,7 @@ export default function TagDetailPage() {
       ]} />
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           <Link to="/discovery">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -248,6 +285,18 @@ export default function TagDetailPage() {
             </p>
           </div>
         </div>
+        {profile && (
+          <Button
+            variant={isFollowing ? 'outline' : 'default'}
+            size="sm"
+            onClick={toggleFollow}
+            disabled={followLoading}
+            className="shrink-0"
+          >
+            <Star className={`w-4 h-4 mr-1.5 ${isFollowing ? 'fill-current text-yellow-500' : ''}`} />
+            {isFollowing ? 'Following' : 'Follow'}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

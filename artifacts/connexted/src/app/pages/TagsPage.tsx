@@ -4,9 +4,11 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import { Search, Hash, Lightbulb, Wrench, ChevronRight, TrendingUp } from 'lucide-react';
+import { Search, Hash, Lightbulb, Wrench, ChevronRight, TrendingUp, Star } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
 interface TagItem {
@@ -26,15 +28,56 @@ interface GroupedTags {
 }
 
 export default function TagsPage() {
+  const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [tags, setTags] = useState<GroupedTags>({ what: [], how: [], status: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'popular' | 'what' | 'how'>('popular');
+  const [followedTags, setFollowedTags] = useState<Set<string>>(new Set());
+  const [togglingTag, setTogglingTag] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTags();
   }, []);
+
+  useEffect(() => {
+    if (profile) fetchFollowedTags();
+  }, [profile?.id]);
+
+  const fetchFollowedTags = async () => {
+    if (!profile) return;
+    const { data } = await supabase
+      .from('tag_followers')
+      .select('tag')
+      .eq('user_id', profile.id);
+    setFollowedTags(new Set((data || []).map((r: any) => r.tag.toLowerCase())));
+  };
+
+  const toggleFollow = async (e: React.MouseEvent, tagText: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!profile) { toast.error('Sign in to follow tags'); return; }
+    const normalized = tagText.toLowerCase();
+    setTogglingTag(normalized);
+    try {
+      if (followedTags.has(normalized)) {
+        await supabase.from('tag_followers').delete()
+          .eq('user_id', profile.id).eq('tag', normalized);
+        setFollowedTags(prev => { const n = new Set(prev); n.delete(normalized); return n; });
+        toast.success(`Unfollowed #${tagText}`);
+      } else {
+        await supabase.from('tag_followers').insert({ user_id: profile.id, tag: normalized });
+        setFollowedTags(prev => new Set([...prev, normalized]));
+        toast.success(`Following #${tagText}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update follow');
+    } finally {
+      setTogglingTag(null);
+    }
+  };
 
   const fetchTags = async () => {
     try {
@@ -107,6 +150,9 @@ export default function TagsPage() {
 
   const renderTagCard = (tag: TagItem) => {
     const colors = getTypeColor(tag.type);
+    const normalized = tag.tag.toLowerCase();
+    const isFollowed = followedTags.has(normalized);
+    const isToggling = togglingTag === normalized;
 
     return (
       <div key={tag.id} className="relative group">
@@ -116,10 +162,7 @@ export default function TagsPage() {
               <div className="flex items-start gap-3">
                 <div
                   className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-lg border-2"
-                  style={{
-                    backgroundColor: colors.bg,
-                    borderColor: colors.border,
-                  }}
+                  style={{ backgroundColor: colors.bg, borderColor: colors.border }}
                 >
                   <Hash className="w-6 h-6" style={{ color: colors.text }} />
                 </div>
@@ -128,28 +171,33 @@ export default function TagsPage() {
                     <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
                       {tag.tag}
                     </h3>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      {profile && (
+                        <button
+                          onClick={(e) => toggleFollow(e, tag.tag)}
+                          disabled={isToggling}
+                          className={`p-1 rounded-full transition-colors ${
+                            isFollowed
+                              ? 'text-yellow-500 hover:text-yellow-600'
+                              : 'text-gray-300 hover:text-yellow-400'
+                          }`}
+                          title={isFollowed ? 'Unfollow tag' : 'Follow tag'}
+                        >
+                          <Star className={`w-4 h-4 ${isFollowed ? 'fill-current' : ''}`} />
+                        </button>
+                      )}
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    </div>
                   </div>
                   {tag.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {tag.description}
-                    </p>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{tag.description}</p>
                   )}
                   <div className="flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className="text-xs"
-                      style={{
-                        borderColor: colors.border,
-                        color: colors.text,
-                      }}
-                    >
+                    <Badge variant="outline" className="text-xs" style={{ borderColor: colors.border, color: colors.text }}>
                       {getTypeLabel(tag.type)}
                     </Badge>
                     {tag.category && (
-                      <span className="text-xs text-gray-500 capitalize">
-                        {tag.category}
-                      </span>
+                      <span className="text-xs text-gray-500 capitalize">{tag.category}</span>
                     )}
                     {tag.usage_count > 0 && (
                       <span className="text-xs text-gray-500 flex items-center gap-1">
