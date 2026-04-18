@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { toast } from 'sonner';
-import { ArrowLeft, PlayCircle, X } from 'lucide-react';
+import { ArrowLeft, PlayCircle } from 'lucide-react';
 import { useProgramContext } from '@/hooks/useProgramContext';
 import { useAuth } from '@/lib/auth-context';
 import { useContentAuth } from '@/lib/content-auth';
@@ -14,21 +14,23 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Badge } from '@/app/components/ui/badge';
+import { TopicSelector } from '@/app/components/unified/TopicSelector';
+import { TagSelector } from '@/app/components/unified/TagSelector';
 
 export default function CreatePlaylistPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { userId, ownerFields } = useContentAuth();
   const { context: programContext, clearContext } = useProgramContext();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'member' | 'unlisted' | 'private'>('public');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   if (!profile) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -37,28 +39,15 @@ export default function CreatePlaylistPage() {
     );
   }
 
-  const generateSlug = (text: string) => {
-    return text
+  const generateSlug = (text: string) =>
+    text
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-  };
-
-  const handleAddTag = () => {
-    const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!profile) {
       toast.error('Unable to create playlist');
       return;
@@ -79,27 +68,23 @@ export default function CreatePlaylistPage() {
         description: description.trim(),
         slug,
         visibility,
-        tags,
+        tags: tags.length > 0 ? tags : null,
+        topic_ids: selectedTopicIds.length > 0 ? selectedTopicIds : null,
         cover_image: coverImage || null,
         ...ownerFields('playlists'),
-        admin_ids: [userId],  // INSERT policy requires auth.uid() = ANY(admin_ids)
-        member_ids: [userId], // Creator is automatically a member
+        admin_ids: [userId],   // INSERT policy requires auth.uid() = ANY(admin_ids)
+        member_ids: [userId],  // Creator is automatically a member
         ...(programContext && {
           program_id: programContext.program_id,
           program_journey_id: programContext.program_journey_id,
         }),
       };
 
-      const { error } = await supabase
-        .from('playlists')
-        .insert([playlistData]);
+      const { error } = await supabase.from('playlists').insert([playlistData]);
 
       if (error) throw error;
 
-      // Clear program context after successful creation
-      if (programContext) {
-        clearContext();
-      }
+      if (programContext) clearContext();
 
       toast.success('Playlist created successfully!');
       navigate(`/playlists/${slug}`);
@@ -119,9 +104,9 @@ export default function CreatePlaylistPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <Breadcrumbs items={[
         { label: 'Playlists', path: '/playlists' },
-        { label: 'Create Playlist' }
+        { label: 'Create Playlist' },
       ]} />
-      
+
       {/* Header */}
       <div>
         <Button asChild variant="ghost" className="mb-4">
@@ -144,20 +129,21 @@ export default function CreatePlaylistPage() {
 
       {/* Program Context Banner */}
       {programContext && (
-        <ProgramContextBanner 
-          context={programContext} 
+        <ProgramContextBanner
+          context={programContext}
           onClear={clearContext}
         />
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info */}
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="name">Playlist Name *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="name">Playlist Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
                 value={name}
@@ -167,7 +153,7 @@ export default function CreatePlaylistPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -178,7 +164,7 @@ export default function CreatePlaylistPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="coverImage">Cover Image URL</Label>
               <Input
                 id="coverImage"
@@ -189,53 +175,57 @@ export default function CreatePlaylistPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="visibility">Visibility</Label>
               <Select value={visibility} onValueChange={(value: any) => setVisibility(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">Public - Anyone can view</SelectItem>
-                  <SelectItem value="member">Members Only - Members can view</SelectItem>
-                  <SelectItem value="unlisted">Unlisted - Only shared link can view</SelectItem>
-                  <SelectItem value="private">Private - Only you can view</SelectItem>
+                  <SelectItem value="public">Public — Anyone can view</SelectItem>
+                  <SelectItem value="member">Members Only — Members can view</SelectItem>
+                  <SelectItem value="unlisted">Unlisted — Only via shared link</SelectItem>
+                  <SelectItem value="private">Private — Only you can view</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
 
-            <div>
-              <Label>Tags</Label>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Add a tag..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddTag();
-                    }
-                  }}
-                />
-                <Button type="button" onClick={handleAddTag} variant="outline">
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="hover:text-red-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
+        {/* Topics & Discovery */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Topics & Discovery</CardTitle>
+            <CardDescription>Help the right audience find this playlist</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Topics</Label>
+              <p className="text-sm text-muted-foreground">
+                Select up to 5 topics to help your target audience discover this playlist
+              </p>
+              <TopicSelector
+                value={selectedTopicIds}
+                onChange={setSelectedTopicIds}
+                maxTopics={5}
+                placeholder="Select topics for this playlist..."
+                showSuggestions={true}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tags (optional)</Label>
+              <TagSelector
+                value={tags}
+                onChange={setTags}
+                placeholder="Add tags..."
+                title={name}
+                description={description}
+                maxTags={10}
+              />
+              <p className="text-xs text-gray-500">
+                Topics are primary for discovery. Tags are optional for additional categorization.
+              </p>
             </div>
           </CardContent>
         </Card>

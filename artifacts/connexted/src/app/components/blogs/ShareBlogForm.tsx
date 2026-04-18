@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { Badge } from '@/app/components/ui/badge';
 import { Switch } from '@/app/components/ui/switch';
 import { TopicSelector } from '@/app/components/unified/TopicSelector';
+import { TagSelector } from '@/app/components/unified/TagSelector';
 import { ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -32,6 +33,7 @@ export default function ShareBlogForm() {
   });
   
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
 
@@ -115,6 +117,7 @@ export default function ShareBlogForm() {
         reading_time_minutes: formData.reading_time_minutes ? parseInt(formData.reading_time_minutes) : null,
         featured_image_url: formData.featured_image_url || null,
         visibility: formData.visibility,
+        tags,
         status,
       };
 
@@ -149,7 +152,7 @@ export default function ShareBlogForm() {
       }
 
       toast.success(status === 'published' ? 'Blog published!' : 'Blog saved as draft');
-      navigate('/my-blogs');
+      navigate(status === 'published' ? `/blogs/${blog.id}` : '/blogs');
 
     } catch (error: any) {
       console.error('Error sharing blog:', error);
@@ -283,6 +286,22 @@ export default function ShareBlogForm() {
               onChange={setSelectedTopicIds}
               maxTopics={5}
             />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label>Tags (optional)</Label>
+            <TagSelector
+              value={tags}
+              onChange={setTags}
+              placeholder="Add tags..."
+              title={formData.title}
+              description={formData.blog_summary}
+              maxTags={10}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tags help your blog appear in search and rankings
+            </p>
           </div>
 
           {/* Optional Fields */}

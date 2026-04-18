@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select';
+import { TopicSelector } from '@/app/components/unified/TopicSelector';
+import { TagSelector } from '@/app/components/unified/TagSelector';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Video, ArrowLeft, Save, Globe, Lock, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,7 +52,8 @@ export default function CreateEpisodePage() {
   const [isPublished, setIsPublished] = useState(true);
 
   // Discovery
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,11 +78,6 @@ export default function CreateEpisodePage() {
 
     setSaving(true);
     try {
-      const tagsArray = tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-
       const slug = slugify(title);
 
       const payload = {
@@ -92,7 +90,7 @@ export default function CreateEpisodePage() {
         duration: duration !== '' ? Number(duration) : null,
         visibility,
         is_published: isPublished,
-        tags: tagsArray.length > 0 ? tagsArray : null,
+        tags: tags.length > 0 ? tags : null,
         slug,
         ...ownerFields('episodes'),   // { author_id: userId }
       };
@@ -104,6 +102,21 @@ export default function CreateEpisodePage() {
         .single();
 
       if (error) throw error;
+
+      // Save topics via topic_links
+      if (selectedTopicIds.length > 0 && data?.id) {
+        const { error: topicError } = await supabase
+          .from('topic_links')
+          .insert(
+            selectedTopicIds.map((topicId) => ({
+              topic_id: topicId,
+              entity_type: 'episode',
+              entity_id: data.id,
+              added_by: userId,
+            }))
+          );
+        if (topicError) console.error('Error saving topics:', topicError);
+      }
 
       toast.success('Episode created successfully!');
       navigate(`/episodes/${data.slug || data.id}`);
@@ -176,16 +189,45 @@ export default function CreateEpisodePage() {
                   rows={4}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Topics & Discovery */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Topics & Discovery</CardTitle>
+              <CardDescription>Help the right audience find this episode</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>
+                  Topics <span className="text-red-500">*</span>
+                </Label>
+                <TopicSelector
+                  value={selectedTopicIds}
+                  onChange={setSelectedTopicIds}
+                  maxTopics={5}
+                  placeholder="Select topics for this episode..."
+                  showSuggestions={true}
+                />
+                <p className="text-xs text-gray-500">
+                  Select up to 5 topics that describe who this episode is for
+                </p>
+              </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tags">Tags</Label>
-                <Input
-                  id="tags"
-                  placeholder="goal-setting, productivity, mindset (comma separated)"
+                <Label>Tags (optional)</Label>
+                <TagSelector
                   value={tags}
-                  onChange={(e) => setTags(e.target.value)}
+                  onChange={setTags}
+                  placeholder="Add tags..."
+                  title={title}
+                  description={description}
+                  maxTags={10}
                 />
-                <p className="text-xs text-gray-500">Separate tags with commas</p>
+                <p className="text-xs text-gray-500">
+                  Tags help this episode appear in search and rankings
+                </p>
               </div>
             </CardContent>
           </Card>

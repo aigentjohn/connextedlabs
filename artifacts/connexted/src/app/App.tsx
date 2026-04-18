@@ -229,10 +229,8 @@ const TagsPage = lazy(() => import('@/app/pages/TagsPage'));
 const EpisodesPage = lazy(() => import('@/app/components/EpisodesPage'));
 const CreateEpisodePage = lazy(() => import('@/app/components/CreateEpisodePage'));
 const EpisodeDetailPage = lazy(() => import('@/app/components/EpisodeDetailPage'));
-const EpisodeSettingsPage = lazy(() => import('@/app/components/EpisodeSettingsPage'));
 const PlaylistsPage = lazy(() => import('@/app/components/PlaylistsPage'));
 const PlaylistDetailPage = lazy(() => import('@/app/components/PlaylistDetailPage'));
-const PlaylistSettingsPage = lazy(() => import('@/app/components/PlaylistSettingsPage'));
 const CreatePlaylistPage = lazy(() => import('@/app/components/CreatePlaylistPage'));
 
 // Blogs & Magazines
@@ -242,7 +240,6 @@ const ShareBlogForm = lazy(() => import('@/app/components/blogs/ShareBlogForm'))
 const MagazinesPage = lazy(() => import('@/app/components/MagazinesPage'));
 const CreateMagazineForm = lazy(() => import('@/app/components/magazines/CreateMagazineForm'));
 const MagazineDetailPage = lazy(() => import('@/app/components/magazines/MagazineDetailPage'));
-const MagazineSettingsPage = lazy(() => import('@/app/components/magazines/MagazineSettingsPage'));
 
 // Courses
 const CoursesPage = lazy(() => import('@/app/components/CoursesPage'));
@@ -611,7 +608,6 @@ const router = createBrowserRouter([
           { path: '/magazines', element: <MagazinesPage /> },
           { path: '/magazines/create', element: <CreateMagazineForm /> },
           { path: '/magazines/:id', element: <MagazineDetailPage /> },
-          { path: '/magazines/:id/settings', element: <MagazineSettingsPage /> },
           { path: '/forums', element: <ForumsPage /> },
           { path: '/forums/:threadId', element: <ThreadDetailPage /> },
           { path: '/ai-demo', element: <AIDiscussionDemo /> },
@@ -626,9 +622,7 @@ const router = createBrowserRouter([
           { path: '/playlists', element: <PlaylistsPage /> },
           { path: '/playlists/create', element: <CreatePlaylistPage /> },
           { path: '/playlists/:slug', element: <PlaylistDetailPage /> },
-          { path: '/playlists/:slug/settings', element: <PlaylistSettingsPage /> },
           { path: '/episodes/:id', element: <EpisodeDetailPage /> },
-          { path: '/episodes/:id/settings', element: <EpisodeSettingsPage /> },
           { path: '/documents', element: <DocumentsPage /> },
           { path: '/documents/new', element: <AddDocumentForm /> },
           { path: '/documents/:id', element: <DocumentDetailPage /> },
