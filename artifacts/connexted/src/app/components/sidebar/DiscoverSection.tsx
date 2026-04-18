@@ -21,9 +21,7 @@ import {
   Hash,
   Star,
   TrendingUp,
-  Users,
-  UserCheck,
-  Heart,
+  Rss,
   Trophy,
   Library,
   HelpCircle,
@@ -78,14 +76,8 @@ export function DiscoverSection({
           <DiscoverLink to="/rankings" icon={TrendingUp} pathname={location.pathname}>
             Rankings
           </DiscoverLink>
-          <DiscoverLink to="/discovery/following" icon={Users} pathname={location.pathname} match="startsWith">
-            Following Feed
-          </DiscoverLink>
-          <DiscoverLink to="/discovery/followers" icon={UserCheck} pathname={location.pathname} match="startsWith">
-            Followers Feed
-          </DiscoverLink>
-          <DiscoverLink to="/discovery/friends" icon={Heart} pathname={location.pathname} match="startsWith">
-            Friends Feed
+          <DiscoverLink to="/discovery/feed" icon={Rss} pathname={location.pathname} match="startsWith">
+            My Feed
           </DiscoverLink>
           <DiscoverLink to="/discovery/most-liked" icon={Trophy} pathname={location.pathname} match="startsWith">
             Most Liked

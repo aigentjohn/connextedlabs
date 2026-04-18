@@ -173,6 +173,7 @@ const AddPortfolioItemPage = lazy(() => import('@/app/components/AddPortfolioIte
 
 // Discovery & Navigation
 const DiscoveryPage = lazy(() => import('@/app/components/DiscoveryPage'));
+const DiscoveryFeedPage = lazy(() => import('@/app/pages/DiscoveryFeedPage'));
 const DiscoveryFollowingPage = lazy(() => import('@/app/pages/DiscoveryFollowingPage'));
 const DiscoveryFollowersPage = lazy(() => import('@/app/pages/DiscoveryFollowersPage'));
 const DiscoveryFriendsPage = lazy(() => import('@/app/pages/DiscoveryFriendsPage'));
@@ -590,6 +591,8 @@ const router = createBrowserRouter([
           { path: '/my-calendar-admin', element: <MyCalendarAdminPage /> },
           { path: '/calendar-admin/:eventId', element: <EventAdminDetailPage /> },
           { path: '/discovery', element: <DiscoveryPage /> },
+          { path: '/discovery/feed', element: <DiscoveryFeedPage /> },
+          // Legacy routes — kept so existing bookmarks/links still work
           { path: '/discovery/following', element: <DiscoveryFollowingPage /> },
           { path: '/discovery/followers', element: <DiscoveryFollowersPage /> },
           { path: '/discovery/friends', element: <DiscoveryFriendsPage /> },
