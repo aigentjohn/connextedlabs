@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { Badge } from '@/app/components/ui/badge';
 import { Card, CardContent } from '@/app/components/ui/card';
-import { ExternalLink, Eye, MousePointerClick, Calendar, Clock } from 'lucide-react';
+import { ExternalLink, Calendar, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Topic {
@@ -22,8 +22,6 @@ interface Blog {
   published_date: string | null;
   reading_time_minutes: number | null;
   featured_image_url: string | null;
-  view_count: number;
-  click_count: number;
   created_at: string;
   user?: {
     name: string;
@@ -105,54 +103,40 @@ export function BlogCard({ blog, showAuthor = true }: BlogCardProps) {
         <div className="border-t pt-4 mt-4" />
 
         {/* Metadata Footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-4">
-            {/* Author */}
-            {showAuthor && blog.user && (
-              <div className="flex items-center gap-2">
-                {blog.user.avatar ? (
-                  <img
-                    src={blog.user.avatar}
-                    alt={blog.user.name}
-                    className="w-5 h-5 rounded-full"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                    {blog.user.name.charAt(0)}
-                  </div>
-                )}
-                <span className="font-medium">{blog.user.name}</span>
-              </div>
-            )}
-
-            {/* Published Date */}
-            {blog.published_date && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{formatDistanceToNow(new Date(blog.published_date), { addSuffix: true })}</span>
-              </div>
-            )}
-
-            {/* Reading Time */}
-            {blog.reading_time_minutes && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{blog.reading_time_minutes} min read</span>
-              </div>
-            )}
-          </div>
-
-          {/* Engagement */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              <span>{blog.view_count}</span>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          {/* Author */}
+          {showAuthor && blog.user && (
+            <div className="flex items-center gap-2">
+              {blog.user.avatar ? (
+                <img
+                  src={blog.user.avatar}
+                  alt={blog.user.name}
+                  className="w-5 h-5 rounded-full"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                  {blog.user.name.charAt(0)}
+                </div>
+              )}
+              <span className="font-medium">{blog.user.name}</span>
             </div>
+          )}
+
+          {/* Published Date */}
+          {blog.published_date && (
             <div className="flex items-center gap-1">
-              <MousePointerClick className="h-3 w-3" />
-              <span>{blog.click_count}</span>
+              <Calendar className="h-3 w-3" />
+              <span>{formatDistanceToNow(new Date(blog.published_date), { addSuffix: true })}</span>
             </div>
-          </div>
+          )}
+
+          {/* Reading Time */}
+          {blog.reading_time_minutes && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{blog.reading_time_minutes} min read</span>
+            </div>
+          )}
         </div>
 
         {/* Domain */}
