@@ -21,7 +21,7 @@ import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import { TagSelector } from '@/app/components/unified/TagSelector';
 import { TopicSelector } from '@/app/components/unified/TopicSelector';
 import {
-  ExternalLink, Eye, MousePointerClick, Calendar, Clock, Tag,
+  ExternalLink, Calendar, Clock, Tag,
   FileText, AlertCircle, Loader2, Maximize2, Minimize2,
   Newspaper, Save, Trash2, Globe, Lock, Users, MessageSquare,
   Heart, Share2, Settings
@@ -131,9 +131,6 @@ export default function BlogDetailPage() {
       setAllowReactions(blogData.allow_reactions ?? true);
       setAllowSharing(blogData.allow_sharing ?? true);
       setTags(blogData.tags || []);
-
-      // Increment view count
-      await supabase.from('blogs').update({ view_count: (blogData.view_count || 0) + 1 }).eq('id', id);
 
       // Fetch topics
       const { data: topicLinksData } = await supabase
@@ -412,28 +409,6 @@ export default function BlogDetailPage() {
               </Card>
             )}
 
-            {/* Stats */}
-            <Card>
-              <CardHeader><CardTitle>Engagement</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">{blog.view_count || 0}</div>
-                      <div className="text-sm text-muted-foreground">Views</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MousePointerClick className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">{blog.click_count || 0}</div>
-                      <div className="text-sm text-muted-foreground">Click-throughs</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* ── Read tab ──────────────────────────────────────────────── */}
