@@ -9,7 +9,7 @@ import { PageHeader } from '@/app/components/shared/PageHeader';
 import {
   TrendingUp, Hash, Tag, Search, Crown, Medal,
   FileText, MessageSquare, Calendar, BookOpen, Users,
-  Hammer, Lightbulb, Headphones, Presentation, ChevronRight,
+  Hammer, Lightbulb, Headphones, Presentation, ChevronRight, BookCopy,
 } from 'lucide-react';
 
 interface TagRank {
@@ -32,9 +32,24 @@ interface TopicRank {
 
 const TAG_TABLES = [
   { table: 'documents',     label: 'Documents',  icon: FileText },
+  { table: 'episodes',      label: 'Episodes',   icon: Headphones },
+  { table: 'books',         label: 'Books',      icon: BookOpen },
+  { table: 'decks',         label: 'Decks',      icon: Presentation },
+  { table: 'courses',       label: 'Courses',    icon: BookOpen },
+  { table: 'forum_threads', label: 'Threads',    icon: MessageSquare },
+  { table: 'blogs',         label: 'Blogs',      icon: FileText },
+  { table: 'programs',      label: 'Programs',   icon: Users },
   { table: 'tables',        label: 'Tables',     icon: Presentation },
   { table: 'pitches',       label: 'Pitches',    icon: Lightbulb },
-  { table: 'episodes',      label: 'Episodes',   icon: Headphones },
+  { table: 'circles',       label: 'Circles',    icon: Users },
+  { table: 'builds',        label: 'Builds',     icon: Hammer },
+  { table: 'standups',      label: 'Standups',   icon: MessageSquare },
+  { table: 'sprints',       label: 'Sprints',    icon: Calendar },
+  { table: 'meetups',       label: 'Meetups',    icon: Calendar },
+  { table: 'playlists',     label: 'Playlists',  icon: Headphones },
+  { table: 'magazines',     label: 'Magazines',  icon: FileText },
+  { table: 'libraries',     label: 'Libraries',  icon: BookOpen },
+  { table: 'checklists',    label: 'Checklists', icon: FileText },
 ];
 
 function getRankIcon(index: number) {

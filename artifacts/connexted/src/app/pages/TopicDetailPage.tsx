@@ -4,11 +4,11 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import { 
-  Users, Target, Sparkles, UserPlus, FileText, 
+import {
+  Users, Target, Sparkles, UserPlus, FileText,
   BookOpen, Layers, File, CheckSquare, Calendar,
   MessageCircle, Eye, Heart, Star, GraduationCap, Rocket,
-  Video, ListVideo, BookCopy
+  Video, ListVideo, BookCopy, Hammer, Presentation,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
@@ -55,6 +55,11 @@ export default function TopicDetailPage() {
   const [episodes, setEpisodes] = useState<ContentItem[]>([]);
   const [playlists, setPlaylists] = useState<ContentItem[]>([]);
   const [magazines, setMagazines] = useState<ContentItem[]>([]);
+  const [circles, setCircles] = useState<ContentItem[]>([]);
+  const [builds, setBuilds] = useState<ContentItem[]>([]);
+  const [pitches, setPitches] = useState<ContentItem[]>([]);
+  const [blogs, setBlogs] = useState<ContentItem[]>([]);
+  const [checklists, setChecklists] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -83,6 +88,11 @@ export default function TopicDetailPage() {
       setEpisodes([]);
       setPlaylists([]);
       setMagazines([]);
+      setCircles([]);
+      setBuilds([]);
+      setPitches([]);
+      setBlogs([]);
+      setChecklists([]);
 
       // Fetch topic details
       const topicResponse = await fetch(
@@ -124,6 +134,11 @@ export default function TopicDetailPage() {
           fetchEpisodes(contentIds.episode || []),
           fetchPlaylists(contentIds.playlist || []),
           fetchMagazines(contentIds.magazine || []),
+          fetchCircles(contentIds.circle || []),
+          fetchBuilds(contentIds.build || []),
+          fetchPitches(contentIds.pitch || []),
+          fetchBlogs(contentIds.blog || []),
+          fetchChecklists(contentIds.checklist || []),
         ]);
       }
     } catch (error) {
@@ -377,6 +392,69 @@ export default function TopicDetailPage() {
     }
   };
 
+  const fetchCircles = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase.from('circles').select('id, name, description, created_at').in('id', ids);
+    if (error) { console.error('Error fetching circles:', error); return; }
+    setCircles(data?.map(c => ({ id: c.id, title: c.name, description: c.description, created_at: c.created_at })) || []);
+  };
+
+  const fetchBuilds = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase.from('builds').select('id, name, description, created_at, created_by').in('id', ids);
+    if (error) { console.error('Error fetching builds:', error); return; }
+    const creatorIds = [...new Set(data?.map(b => b.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setBuilds(data?.map(b => ({ id: b.id, title: b.name, description: b.description, created_at: b.created_at, author: map.get(b.created_by) })) || []);
+    } else {
+      setBuilds(data?.map(b => ({ id: b.id, title: b.name, description: b.description, created_at: b.created_at })) || []);
+    }
+  };
+
+  const fetchPitches = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase.from('pitches').select('id, name, description, created_at, created_by').in('id', ids);
+    if (error) { console.error('Error fetching pitches:', error); return; }
+    const creatorIds = [...new Set(data?.map(p => p.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setPitches(data?.map(p => ({ id: p.id, title: p.name, description: p.description, created_at: p.created_at, author: map.get(p.created_by) })) || []);
+    } else {
+      setPitches(data?.map(p => ({ id: p.id, title: p.name, description: p.description, created_at: p.created_at })) || []);
+    }
+  };
+
+  const fetchBlogs = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase.from('blogs').select('id, title, description, created_at, author_id').in('id', ids);
+    if (error) { console.error('Error fetching blogs:', error); return; }
+    const authorIds = [...new Set(data?.map(b => b.author_id).filter(Boolean))] as string[];
+    if (authorIds.length > 0) {
+      const { data: authors } = await supabase.from('users').select('id, name, avatar').in('id', authorIds);
+      const map = new Map(authors?.map(a => [a.id, a]) || []);
+      setBlogs(data?.map(b => ({ id: b.id, title: b.title, description: b.description, created_at: b.created_at, author: map.get(b.author_id) })) || []);
+    } else {
+      setBlogs(data?.map(b => ({ id: b.id, title: b.title, description: b.description, created_at: b.created_at })) || []);
+    }
+  };
+
+  const fetchChecklists = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data, error } = await supabase.from('checklists').select('id, name, description, created_at, created_by').in('id', ids);
+    if (error) { console.error('Error fetching checklists:', error); return; }
+    const creatorIds = [...new Set(data?.map(c => c.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase.from('users').select('id, name, avatar').in('id', creatorIds);
+      const map = new Map(creators?.map(c => [c.id, c]) || []);
+      setChecklists(data?.map(c => ({ id: c.id, title: c.name, description: c.description, created_at: c.created_at, author: map.get(c.created_by) })) || []);
+    } else {
+      setChecklists(data?.map(c => ({ id: c.id, title: c.name, description: c.description, created_at: c.created_at })) || []);
+    }
+  };
+
   const checkFollowStatus = async () => {
     if (!profile || !topic) return;
 
@@ -454,22 +532,32 @@ export default function TopicDetailPage() {
     }
   };
 
-  const renderContentItem = (item: ContentItem, type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine') => {
-    const Icon = type === 'book' ? BookOpen : 
-                 type === 'deck' ? Layers : 
-                 type === 'course' ? GraduationCap : 
+  const renderContentItem = (item: ContentItem, type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine' | 'circle' | 'build' | 'pitch' | 'blog' | 'checklist') => {
+    const Icon = type === 'book' ? BookOpen :
+                 type === 'deck' ? Layers :
+                 type === 'course' ? GraduationCap :
                  type === 'program' ? Rocket :
                  type === 'episode' ? Video :
                  type === 'playlist' ? ListVideo :
-                 type === 'magazine' ? BookCopy : File;
-    
-    const basePath = type === 'book' ? '/books' : 
-                     type === 'deck' ? '/decks' : 
-                     type === 'course' ? '/courses' : 
+                 type === 'magazine' ? BookCopy :
+                 type === 'circle' ? Users :
+                 type === 'build' ? Hammer :
+                 type === 'pitch' ? Presentation :
+                 type === 'blog' ? FileText :
+                 type === 'checklist' ? CheckSquare : File;
+
+    const basePath = type === 'book' ? '/books' :
+                     type === 'deck' ? '/decks' :
+                     type === 'course' ? '/courses' :
                      type === 'program' ? '/programs' :
                      type === 'episode' ? '/episodes' :
                      type === 'playlist' ? '/playlists' :
-                     type === 'magazine' ? '/magazines' : '/documents';
+                     type === 'magazine' ? '/magazines' :
+                     type === 'circle' ? '/circles' :
+                     type === 'build' ? '/builds' :
+                     type === 'pitch' ? '/pitches' :
+                     type === 'blog' ? '/blogs' :
+                     type === 'checklist' ? '/checklists' : '/documents';
 
     return (
       <Link key={item.id} to={`${basePath}/${item.id}`}>
@@ -539,8 +627,8 @@ export default function TopicDetailPage() {
     );
   }
 
-  const totalContent = books.length + decks.length + documents.length + courses.length + programs.length + episodes.length + playlists.length + magazines.length;
-  const allContent = [...books, ...decks, ...documents, ...courses, ...programs, ...episodes, ...playlists, ...magazines].sort((a, b) => 
+  const totalContent = books.length + decks.length + documents.length + courses.length + programs.length + episodes.length + playlists.length + magazines.length + circles.length + builds.length + pitches.length + blogs.length + checklists.length;
+  const allContent = [...books, ...decks, ...documents, ...courses, ...programs, ...episodes, ...playlists, ...magazines, ...circles, ...builds, ...pitches, ...blogs, ...checklists].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -682,19 +770,54 @@ export default function TopicDetailPage() {
                 Magazines ({magazines.length})
               </TabsTrigger>
             )}
+            {circles.length > 0 && (
+              <TabsTrigger value="circles">
+                <Users className="w-4 h-4 mr-1" />
+                Circles ({circles.length})
+              </TabsTrigger>
+            )}
+            {builds.length > 0 && (
+              <TabsTrigger value="builds">
+                <Hammer className="w-4 h-4 mr-1" />
+                Builds ({builds.length})
+              </TabsTrigger>
+            )}
+            {pitches.length > 0 && (
+              <TabsTrigger value="pitches">
+                <Presentation className="w-4 h-4 mr-1" />
+                Pitches ({pitches.length})
+              </TabsTrigger>
+            )}
+            {blogs.length > 0 && (
+              <TabsTrigger value="blogs">
+                <FileText className="w-4 h-4 mr-1" />
+                Blogs ({blogs.length})
+              </TabsTrigger>
+            )}
+            {checklists.length > 0 && (
+              <TabsTrigger value="checklists">
+                <CheckSquare className="w-4 h-4 mr-1" />
+                Checklists ({checklists.length})
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
         <TabsContent value="all" className="mt-6 space-y-3">
           {allContent.map((item) => {
-            const type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine' =
+            const type: 'book' | 'deck' | 'document' | 'course' | 'program' | 'episode' | 'playlist' | 'magazine' | 'circle' | 'build' | 'pitch' | 'blog' | 'checklist' =
               books.some(b => b.id === item.id) ? 'book' :
-              decks.some(d => d.id === item.id) ? 'deck' : 
+              decks.some(d => d.id === item.id) ? 'deck' :
               courses.some(c => c.id === item.id) ? 'course' :
               programs.some(p => p.id === item.id) ? 'program' :
               episodes.some(e => e.id === item.id) ? 'episode' :
               playlists.some(p => p.id === item.id) ? 'playlist' :
-              magazines.some(m => m.id === item.id) ? 'magazine' : 'document';
+              magazines.some(m => m.id === item.id) ? 'magazine' :
+              circles.some(c => c.id === item.id) ? 'circle' :
+              builds.some(b => b.id === item.id) ? 'build' :
+              pitches.some(p => p.id === item.id) ? 'pitch' :
+              blogs.some(b => b.id === item.id) ? 'blog' :
+              checklists.some(c => c.id === item.id) ? 'checklist' : 'document';
             return renderContentItem(item, type);
           })}
           {allContent.length === 0 && (
@@ -786,11 +909,42 @@ export default function TopicDetailPage() {
         <TabsContent value="magazines" className="mt-6 space-y-3">
           {magazines.map(mag => renderContentItem(mag, 'magazine'))}
           {magazines.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center text-gray-500">
-                No magazines for this topic yet
-              </CardContent>
-            </Card>
+            <Card><CardContent className="py-12 text-center text-gray-500">No magazines for this topic yet</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="circles" className="mt-6 space-y-3">
+          {circles.map(c => renderContentItem(c, 'circle'))}
+          {circles.length === 0 && (
+            <Card><CardContent className="py-12 text-center text-gray-500">No circles for this topic yet</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="builds" className="mt-6 space-y-3">
+          {builds.map(b => renderContentItem(b, 'build'))}
+          {builds.length === 0 && (
+            <Card><CardContent className="py-12 text-center text-gray-500">No builds for this topic yet</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pitches" className="mt-6 space-y-3">
+          {pitches.map(p => renderContentItem(p, 'pitch'))}
+          {pitches.length === 0 && (
+            <Card><CardContent className="py-12 text-center text-gray-500">No pitches for this topic yet</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="blogs" className="mt-6 space-y-3">
+          {blogs.map(b => renderContentItem(b, 'blog'))}
+          {blogs.length === 0 && (
+            <Card><CardContent className="py-12 text-center text-gray-500">No blogs for this topic yet</CardContent></Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="checklists" className="mt-6 space-y-3">
+          {checklists.map(c => renderContentItem(c, 'checklist'))}
+          {checklists.length === 0 && (
+            <Card><CardContent className="py-12 text-center text-gray-500">No checklists for this topic yet</CardContent></Card>
           )}
         </TabsContent>
       </Tabs>

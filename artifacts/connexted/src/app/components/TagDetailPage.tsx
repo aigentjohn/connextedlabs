@@ -81,10 +81,28 @@ interface TableQuery {
 }
 
 const TABLE_QUERIES: TableQuery[] = [
-  { table: 'documents',     type: 'document',  select: 'id, title, description, created_at, author_id, circle_ids, tags',        titleField: 'title', descField: 'description' },
-  { table: 'tables',        type: 'table',     select: 'id, name, description, created_at, created_by, tags, slug',              titleField: 'name',  descField: 'description' },
-  { table: 'pitches',       type: 'pitch',     select: 'id, name, description, created_at, created_by, tags',                    titleField: 'name',  descField: 'description' },
-  { table: 'episodes',      type: 'episode',   select: 'id, title, description, created_at, created_by, tags',                   titleField: 'title', descField: 'description' },
+  // Content
+  { table: 'documents',     type: 'document',  select: 'id, title, description, created_at, author_id, circle_ids, tags',   titleField: 'title', descField: 'description' },
+  { table: 'episodes',      type: 'episode',   select: 'id, title, description, created_at, created_by, tags',              titleField: 'title', descField: 'description' },
+  { table: 'books',         type: 'book',      select: 'id, title, description, created_at, created_by, tags',              titleField: 'title', descField: 'description' },
+  { table: 'decks',         type: 'deck',      select: 'id, title, description, created_at, created_by, tags',              titleField: 'title', descField: 'description' },
+  { table: 'courses',       type: 'course',    select: 'id, title, description, created_at, instructor_id, tags',           titleField: 'title', descField: 'description' },
+  { table: 'forum_threads', type: 'thread',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
+  { table: 'reviews',       type: 'review',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
+  { table: 'blogs',         type: 'post',      select: 'id, title, description, created_at, author_id, tags',               titleField: 'title', descField: 'description' },
+  { table: 'programs',      type: 'program',   select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  // Containers
+  { table: 'tables',        type: 'table',     select: 'id, name, description, created_at, created_by, tags, slug',         titleField: 'name',  descField: 'description' },
+  { table: 'pitches',       type: 'pitch',     select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'circles',       type: 'circle',    select: 'id, name, description, created_at, tags',                           titleField: 'name',  descField: 'description' },
+  { table: 'builds',        type: 'build',     select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'standups',      type: 'standup',   select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'sprints',       type: 'sprint',    select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'meetups',       type: 'meetup',    select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'playlists',     type: 'playlist',  select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'magazines',     type: 'magazine',  select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'libraries',     type: 'library',   select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
+  { table: 'checklists',    type: 'checklist', select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
 ];
 
 const getContentLink = (item: TaggedContent): string => {
