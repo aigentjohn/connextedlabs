@@ -72,7 +72,6 @@ export const NAV_ITEMS_CONFIG: NavItemConfig[] = [
   // ── Premium tier (class 7+) ───────────────────────────────────
   { type_code: 'standups',   display_name: 'Standups',   icon_name: 'MessageSquare', route_path: '/standups',   sort_order: 9,    min_class: 7  },
   { type_code: 'sprints',    display_name: 'Sprints',    icon_name: 'Zap',           route_path: '/sprints',    sort_order: 13,   min_class: 7  },
-  { type_code: 'prompts',    display_name: 'Prompts',    icon_name: 'Sparkles',      route_path: '/prompts',    sort_order: 13.5, min_class: 7  },
 
   // ── Unlimited tier (class 10+) ────────────────────────────────
   { type_code: 'elevators',  display_name: 'Elevators',  icon_name: 'TrendingUp',    route_path: '/elevators',  sort_order: 5,    min_class: 10 },

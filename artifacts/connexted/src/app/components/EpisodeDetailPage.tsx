@@ -22,7 +22,7 @@ import { VideoPlayer } from '@/app/components/coaching/VideoPlayer';
 import { TagSelector } from '@/app/components/unified/TagSelector';
 import { TopicSelector } from '@/app/components/unified/TopicSelector';
 import {
-  Video, Eye, Clock, User, Tag, PlayCircle, Target, Users, Lightbulb,
+  Video, Clock, User, Tag, PlayCircle, Target, Users, Lightbulb,
   Save, Trash2, Globe, Lock, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -56,6 +56,9 @@ export default function EpisodeDetailPage() {
   const [isPublished, setIsPublished] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowReactions, setAllowReactions] = useState(true);
+  const [allowSharing, setAllowSharing] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -91,6 +94,9 @@ export default function EpisodeDetailPage() {
       setVisibility(ep.visibility || 'public');
       setIsPublished(ep.is_published ?? true);
       setTags(ep.tags || []);
+      setAllowComments(ep.allow_comments ?? true);
+      setAllowReactions(ep.allow_reactions ?? true);
+      setAllowSharing(ep.allow_sharing ?? true);
 
       const episodeId = ep.id;
 
@@ -101,7 +107,7 @@ export default function EpisodeDetailPage() {
       }
 
       // Playlists
-      const { data: playlistsData } = await supabase.from('playlists').select('id, name, slug').contains('episode_ids', [episodeId]);
+      const { data: playlistsData } = await supabase.from('playlists').select('id, name, slug, description, cover_image').contains('episode_ids', [episodeId]);
       if (playlistsData) setPlaylists(playlistsData);
 
       // Topics
@@ -160,7 +166,9 @@ export default function EpisodeDetailPage() {
           duration_minutes: durationMinutes || null,
           video_platform: videoPlatform, video_id: videoId || null,
           category, visibility, is_published: isPublished,
-          tags, updated_at: new Date().toISOString(),
+          tags, allow_comments: allowComments,
+          allow_reactions: allowReactions, allow_sharing: allowSharing,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', episode.id)
         .select('id');
@@ -249,7 +257,6 @@ export default function EpisodeDetailPage() {
         )}
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
           <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{formatDuration(episode.duration)}</span>
-          <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{episode.views || 0} views</span>
           {episode.category && <Badge variant="secondary">{episode.category}</Badge>}
         </div>
         {episode.tags && episode.tags.length > 0 && (
@@ -409,20 +416,26 @@ export default function EpisodeDetailPage() {
           {playlists.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <Video className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                <PlayCircle className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                 <p className="text-gray-600">This episode hasn't been added to any playlists yet.</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {playlists.map(playlist => (
                 <Link key={playlist.id} to={`/playlists/${playlist.slug || playlist.id}`}>
-                  <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-                        <PlayCircle className="w-5 h-5 text-red-600" />
+                  <Card className="hover:shadow-md transition-shadow h-full">
+                    <CardContent className="p-4 flex gap-4">
+                      {playlist.cover_image
+                        ? <img src={playlist.cover_image} alt={playlist.name} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                        : <div className="w-16 h-16 rounded-lg bg-red-100 flex items-center justify-center shrink-0"><PlayCircle className="w-6 h-6 text-red-500" /></div>
+                      }
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{playlist.name}</p>
+                        {playlist.description && (
+                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
+                        )}
                       </div>
-                      <span className="font-medium text-gray-900">{playlist.name}</span>
                     </CardContent>
                   </Card>
                 </Link>
@@ -537,6 +550,26 @@ export default function EpisodeDetailPage() {
                   </div>
                   <Switch checked={isPublished} onCheckedChange={setIsPublished} />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Social Features */}
+            <Card>
+              <CardHeader><CardTitle>Social Features</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { label: 'Allow Comments',  desc: 'Let viewers comment on this episode', val: allowComments,  set: setAllowComments  },
+                  { label: 'Allow Reactions', desc: 'Let viewers like and react',           val: allowReactions, set: setAllowReactions },
+                  { label: 'Allow Sharing',   desc: 'Let viewers share this episode',       val: allowSharing,   set: setAllowSharing   },
+                ].map(({ label, desc, val, set }) => (
+                  <div key={label} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{label}</p>
+                      <p className="text-sm text-gray-500">{desc}</p>
+                    </div>
+                    <Switch checked={val} onCheckedChange={set} />
+                  </div>
+                ))}
               </CardContent>
             </Card>
 

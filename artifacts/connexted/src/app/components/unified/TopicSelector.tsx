@@ -2,14 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Users, Target, Sparkles, TrendingUp } from 'lucide-react';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/app/components/ui/popover';
 
 interface Topic {
   id: string;
@@ -45,7 +39,6 @@ export function TopicSelector({
   placeholder = "Select topics...",
   showSuggestions = true
 }: TopicSelectorProps) {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [allTopics, setAllTopics] = useState<GroupedTopics>({ audience: [], purpose: [], theme: [] });
   const [trendingTopics, setTrendingTopics] = useState<Topic[]>([]);
@@ -224,13 +217,13 @@ export function TopicSelector({
       {selectedTopics.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedTopics.map(topic => (
-            <Badge 
+            <Badge
               key={topic.id}
               className="pl-2 pr-1.5 py-1.5 flex items-center gap-2"
-              style={{ 
+              style={{
                 backgroundColor: topic.color ? `${topic.color}15` : '#EEF2FF',
                 borderColor: topic.color || '#3B82F6',
-                color: topic.color || '#3B82F6'
+                color: topic.color || '#3B82F6',
               }}
             >
               <span className="text-base">{topic.icon || '🏷️'}</span>
@@ -247,111 +240,85 @@ export function TopicSelector({
         </div>
       )}
 
-      {/* Topic Selector */}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-            disabled={maxTopics ? value.length >= maxTopics : false}
-            type="button"
-          >
-            {value.length === 0 ? (
-              placeholder
-            ) : (
-              `${value.length} ${value.length === 1 ? 'topic' : 'topics'} selected`
-            )}
+      {/* Inline topic browser */}
+      {(maxTopics ? value.length < maxTopics : true) && (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <div className="flex items-center gap-2 mb-2">
+            <Input
+              placeholder="Search topics..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9"
+            />
             {maxTopics && (
-              <span className="ml-auto text-xs text-gray-500">
+              <span className="text-xs text-gray-500 whitespace-nowrap">
                 {value.length}/{maxTopics}
               </span>
             )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[500px] p-0" align="start">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-            <div className="p-3 border-b">
-              <Input
-                placeholder="Search topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9"
-              />
-            </div>
+          </div>
 
-            <TabsList className="grid w-full grid-cols-4 p-2">
-              <TabsTrigger value="trending" className="flex items-center gap-1 text-xs">
-                <TrendingUp className="w-3 h-3" />
-                <span className="hidden sm:inline">Trending</span>
-              </TabsTrigger>
-              <TabsTrigger value="audience" className="flex items-center gap-1 text-xs">
-                <Users className="w-3 h-3" />
-                <span className="hidden sm:inline">WHO</span>
-              </TabsTrigger>
-              <TabsTrigger value="purpose" className="flex items-center gap-1 text-xs">
-                <Target className="w-3 h-3" />
-                <span className="hidden sm:inline">WHY</span>
-              </TabsTrigger>
-              <TabsTrigger value="theme" className="flex items-center gap-1 text-xs">
-                <Sparkles className="w-3 h-3" />
-                <span className="hidden sm:inline">Theme</span>
-              </TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="trending" className="flex items-center gap-1 text-xs">
+              <TrendingUp className="w-3 h-3" />
+              <span className="hidden sm:inline">Trending</span>
+            </TabsTrigger>
+            <TabsTrigger value="audience" className="flex items-center gap-1 text-xs">
+              <Users className="w-3 h-3" />
+              <span className="hidden sm:inline">WHO</span>
+            </TabsTrigger>
+            <TabsTrigger value="purpose" className="flex items-center gap-1 text-xs">
+              <Target className="w-3 h-3" />
+              <span className="hidden sm:inline">WHY</span>
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="flex items-center gap-1 text-xs">
+              <Sparkles className="w-3 h-3" />
+              <span className="hidden sm:inline">Theme</span>
+            </TabsTrigger>
+          </TabsList>
 
-            <div className="max-h-[400px] overflow-y-auto p-3">
-              <TabsContent value="trending" className="mt-0 space-y-2">
-                <p className="text-xs text-gray-600 mb-3">
-                  Most popular topics on the platform:
-                </p>
-                {getFilteredTopics(trendingTopics).map(topic => 
-                  renderTopicButton(topic, value.includes(topic.id))
-                )}
-                {getFilteredTopics(trendingTopics).length === 0 && (
-                  <p className="text-sm text-gray-500 py-4 text-center">No trending topics found</p>
-                )}
-              </TabsContent>
+          <div className="max-h-[400px] overflow-y-auto mt-2">
+            <TabsContent value="trending" className="mt-0 space-y-2">
+              <p className="text-xs text-gray-600 mb-3">Most popular topics on the platform:</p>
+              {getFilteredTopics(trendingTopics).map(topic =>
+                renderTopicButton(topic, value.includes(topic.id))
+              )}
+              {getFilteredTopics(trendingTopics).length === 0 && (
+                <p className="text-sm text-gray-500 py-4 text-center">No trending topics found</p>
+              )}
+            </TabsContent>
 
-              <TabsContent value="audience" className="mt-0 space-y-2">
-                <p className="text-xs text-gray-600 mb-3">
-                  <strong>WHO</strong> is this content for? (Audience/Identity)
-                </p>
-                {getFilteredTopics(allTopics.audience).map(topic => 
-                  renderTopicButton(topic, value.includes(topic.id))
-                )}
-                {getFilteredTopics(allTopics.audience).length === 0 && (
-                  <p className="text-sm text-gray-500 py-4 text-center">No audience topics found</p>
-                )}
-              </TabsContent>
+            <TabsContent value="audience" className="mt-0 space-y-2">
+              <p className="text-xs text-gray-600 mb-3"><strong>WHO</strong> is this content for? (Audience/Identity)</p>
+              {getFilteredTopics(allTopics.audience).map(topic =>
+                renderTopicButton(topic, value.includes(topic.id))
+              )}
+              {getFilteredTopics(allTopics.audience).length === 0 && (
+                <p className="text-sm text-gray-500 py-4 text-center">No audience topics found</p>
+              )}
+            </TabsContent>
 
-              <TabsContent value="purpose" className="mt-0 space-y-2">
-                <p className="text-xs text-gray-600 mb-3">
-                  <strong>WHY</strong> do they need this? (Goal/Purpose)
-                </p>
-                {getFilteredTopics(allTopics.purpose).map(topic => 
-                  renderTopicButton(topic, value.includes(topic.id))
-                )}
-                {getFilteredTopics(allTopics.purpose).length === 0 && (
-                  <p className="text-sm text-gray-500 py-4 text-center">No purpose topics found</p>
-                )}
-              </TabsContent>
+            <TabsContent value="purpose" className="mt-0 space-y-2">
+              <p className="text-xs text-gray-600 mb-3"><strong>WHY</strong> do they need this? (Goal/Purpose)</p>
+              {getFilteredTopics(allTopics.purpose).map(topic =>
+                renderTopicButton(topic, value.includes(topic.id))
+              )}
+              {getFilteredTopics(allTopics.purpose).length === 0 && (
+                <p className="text-sm text-gray-500 py-4 text-center">No purpose topics found</p>
+              )}
+            </TabsContent>
 
-              <TabsContent value="theme" className="mt-0 space-y-2">
-                <p className="text-xs text-gray-600 mb-3">
-                  Cross-cutting themes and industry sectors:
-                </p>
-                {getFilteredTopics(allTopics.theme).map(topic => 
-                  renderTopicButton(topic, value.includes(topic.id))
-                )}
-                {getFilteredTopics(allTopics.theme).length === 0 && (
-                  <p className="text-sm text-gray-500 py-4 text-center">No theme topics found</p>
-                )}
-              </TabsContent>
-            </div>
-          </Tabs>
-        </PopoverContent>
-      </Popover>
+            <TabsContent value="theme" className="mt-0 space-y-2">
+              <p className="text-xs text-gray-600 mb-3">Cross-cutting themes and industry sectors:</p>
+              {getFilteredTopics(allTopics.theme).map(topic =>
+                renderTopicButton(topic, value.includes(topic.id))
+              )}
+              {getFilteredTopics(allTopics.theme).length === 0 && (
+                <p className="text-sm text-gray-500 py-4 text-center">No theme topics found</p>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+      )}
 
       {/* Help text */}
       <p className="text-xs text-gray-500">

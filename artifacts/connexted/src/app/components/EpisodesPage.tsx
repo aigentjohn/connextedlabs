@@ -6,9 +6,9 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Video, Plus, Search, Filter, Clock, Eye, Star, Trash2, Edit, Play, X, Tag, Users, Heart, MessageCircle, Share2 } from 'lucide-react';
-import { cn } from '@/app/components/ui/utils';
+import { Video, Plus, Search, Filter, X, Tag, Users, Heart } from 'lucide-react';
 import { PageHeader } from '@/app/components/shared/PageHeader';
+import { EpisodeCard } from '@/app/components/episodes/EpisodeCard';
 
 interface Episode {
   id: string;
@@ -426,25 +426,6 @@ export default function EpisodesPage() {
     }
   };
 
-  const formatDuration = (minutes: number | null) => {
-    if (!minutes) return 'N/A';
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
-  const getVideoThumbnail = (episode: Episode) => {
-    if (episode.thumbnail_url) return episode.thumbnail_url;
-    
-    // Generate YouTube thumbnail if it's a YouTube video
-    if (episode.video_platform === 'youtube' && episode.video_id) {
-      return `https://img.youtube.com/vi/${episode.video_id}/maxresdefault.jpg`;
-    }
-    
-    return null;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -672,170 +653,20 @@ export default function EpisodesPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEpisodes.map((episode) => {
-            const author = episode.author_id ? authors[episode.author_id] : null;
-            const isFavorited = favoritedEpisodeIds.has(episode.id);
-            const thumbnail = getVideoThumbnail(episode);
-            const metrics = engagementMetrics[episode.id] || {
-              likes_count: 0,
-              avg_rating: 0,
-              reviews_count: 0,
-              shares_count: 0,
-            };
-
-            return (
-              <Card key={episode.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Thumbnail */}
-                <Link to={`/episodes/${episode.id}`} className="block relative aspect-video bg-gray-100">
-                  {thumbnail ? (
-                    <img
-                      src={thumbnail}
-                      alt={episode.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-16 h-16 text-gray-300" />
-                    </div>
-                  )}
-                  {episode.duration_minutes && (
-                    <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
-                      {formatDuration(episode.duration_minutes)}
-                    </div>
-                  )}
-                </Link>
-
-                {/* Content */}
-                <div className="p-4">
-                  <Link to={`/episodes/${episode.id}`}>
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-purple-600">
-                      {episode.title}
-                    </h3>
-                  </Link>
-
-                  {episode.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {episode.description}
-                    </p>
-                  )}
-
-                  {/* Tags */}
-                  {episode.tags && episode.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {episode.tags.slice(0, 3).map((tag, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {episode.tags.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{episode.tags.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Topics */}
-                  {episodeTopics[episode.id] && episodeTopics[episode.id].length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {episodeTopics[episode.id].slice(0, 2).map((topic) => (
-                        <Badge
-                          key={topic.id}
-                          variant="outline"
-                          className="text-xs cursor-pointer hover:opacity-80"
-                          style={{ borderColor: topic.color, color: topic.color }}
-                          onClick={() => toggleTopic(topic.id)}
-                        >
-                          {topic.icon && <span className="mr-1">{topic.icon}</span>}
-                          {topic.name}
-                        </Badge>
-                      ))}
-                      {episodeTopics[episode.id].length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{episodeTopics[episode.id].length - 2}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Engagement Metrics */}
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mb-3 pb-3 border-b">
-                    <div className="flex items-center gap-1" title="Likes">
-                      <Heart className="w-3.5 h-3.5 text-red-500" />
-                      <span>{metrics.likes_count}</span>
-                    </div>
-                    {metrics.avg_rating > 0 && (
-                      <div className="flex items-center gap-1" title="Average Rating">
-                        <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                        <span>{metrics.avg_rating.toFixed(1)}</span>
-                      </div>
-                    )}
-                    {metrics.reviews_count > 0 && (
-                      <div className="flex items-center gap-1" title="Reviews">
-                        <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{metrics.reviews_count}</span>
-                      </div>
-                    )}
-                    {metrics.shares_count > 0 && (
-                      <div className="flex items-center gap-1" title="Shares">
-                        <Share2 className="w-3.5 h-3.5 text-green-500" />
-                        <span>{metrics.shares_count}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1 ml-auto" title="Views">
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{episode.views || 0}</span>
-                    </div>
-                  </div>
-
-                  {/* Author */}
-                  {author && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
-                        {author.avatar ? (
-                          <img src={author.avatar} alt={author.name} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          author.name.charAt(0)
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-600">{author.name}</span>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  {profile && episode.author_id === profile.id && (
-                    <div className="flex gap-2 pt-3 border-t">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/episodes/${episode.id}/edit`)}
-                        className="flex-1"
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleFavorite(episode.id)}
-                        className={cn(isFavorited && "text-yellow-600")}
-                      >
-                        <Star className={cn("w-3 h-3", isFavorited && "fill-yellow-400")} />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteEpisode(episode.id)}
-                        className="text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+          {filteredEpisodes.map((episode) => (
+            <EpisodeCard
+              key={episode.id}
+              episode={episode}
+              author={episode.author_id ? authors[episode.author_id] : null}
+              metrics={engagementMetrics[episode.id]}
+              topics={episodeTopics[episode.id] || []}
+              isFavorited={favoritedEpisodeIds.has(episode.id)}
+              isOwner={!!(profile && episode.author_id === profile.id)}
+              onToggleFavorite={toggleFavorite}
+              onDelete={deleteEpisode}
+              onTopicClick={toggleTopic}
+            />
+          ))}
         </div>
       )}
     </div>

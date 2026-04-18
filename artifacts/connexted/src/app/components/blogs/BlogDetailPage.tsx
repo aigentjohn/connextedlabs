@@ -390,24 +390,64 @@ export default function BlogDetailPage() {
               </Card>
             )}
 
-            {/* Topics */}
-            {topics.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Topics</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {topics.map((topic: any) => (
-                      <Link key={topic.id} to={`/browse?topic=${topic.slug}`}>
-                        <Badge variant="secondary" className="hover:bg-indigo-100 cursor-pointer">
-                          {topic.icon && <span className="mr-1">{topic.icon}</span>}
-                          {topic.name}
-                        </Badge>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Topics — grouped by type */}
+            {topics.length > 0 && (() => {
+              const grouped = {
+                audience: topics.filter((t: any) => t.topic_type === 'audience'),
+                purpose:  topics.filter((t: any) => t.topic_type === 'purpose'),
+                theme:    topics.filter((t: any) => t.topic_type === 'theme'),
+                other:    topics.filter((t: any) => !t.topic_type || !['audience','purpose','theme'].includes(t.topic_type)),
+              };
+              const sections = [
+                { key: 'audience', label: 'WHO',   items: grouped.audience },
+                { key: 'purpose',  label: 'WHY',   items: grouped.purpose  },
+                { key: 'theme',    label: 'Theme', items: grouped.theme    },
+                { key: 'other',    label: 'Topics',items: grouped.other    },
+              ].filter(s => s.items.length > 0);
+              const isGrouped = sections.length > 1 || (sections.length === 1 && sections[0].key !== 'other');
+
+              return (
+                <Card>
+                  <CardHeader><CardTitle>Topics</CardTitle></CardHeader>
+                  <CardContent className={isGrouped ? 'space-y-4' : ''}>
+                    {isGrouped ? sections.map(section => (
+                      <div key={section.key}>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{section.label}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {section.items.map((topic: any) => (
+                            <Link key={topic.id} to={`/topics/${topic.slug}`}>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:shadow-sm transition-all"
+                                style={{ borderColor: topic.color || '#9333ea', color: topic.color || '#9333ea' }}
+                              >
+                                {topic.icon && <span className="mr-1">{topic.icon}</span>}
+                                {topic.name}
+                              </Badge>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="flex flex-wrap gap-2">
+                        {topics.map((topic: any) => (
+                          <Link key={topic.id} to={`/topics/${topic.slug}`}>
+                            <Badge
+                              variant="outline"
+                              className="cursor-pointer hover:shadow-sm transition-all"
+                              style={{ borderColor: topic.color || '#9333ea', color: topic.color || '#9333ea' }}
+                            >
+                              {topic.icon && <span className="mr-1">{topic.icon}</span>}
+                              {topic.name}
+                            </Badge>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
           </TabsContent>
 

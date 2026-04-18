@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { Badge } from '@/app/components/ui/badge';
 import { Card, CardContent } from '@/app/components/ui/card';
-import { ExternalLink, Calendar, Clock } from 'lucide-react';
+import { ExternalLink, Calendar, Clock, Heart, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Topic {
@@ -23,6 +23,8 @@ interface Blog {
   reading_time_minutes: number | null;
   featured_image_url: string | null;
   created_at: string;
+  likes_count?: number;
+  avg_rating?: number;
   user?: {
     name: string;
     avatar: string | null;
@@ -139,13 +141,30 @@ export function BlogCard({ blog, showAuthor = true }: BlogCardProps) {
           )}
         </div>
 
-        {/* Domain */}
-        {blog.domain && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <ExternalLink className="h-3 w-3" />
-            <span>{blog.domain}</span>
+        {/* Domain + engagement */}
+        <div className="flex items-center justify-between">
+          {blog.domain ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <ExternalLink className="h-3 w-3" />
+              <span>{blog.domain}</span>
+            </div>
+          ) : <span />}
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {(blog.likes_count ?? 0) > 0 && (
+              <div className="flex items-center gap-1">
+                <Heart className="h-3 w-3 text-rose-500 fill-rose-500" />
+                <span>{blog.likes_count}</span>
+              </div>
+            )}
+            {(blog.avg_rating ?? 0) > 0 && (
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                <span>{blog.avg_rating!.toFixed(1)}</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

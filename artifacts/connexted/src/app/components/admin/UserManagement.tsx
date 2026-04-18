@@ -46,15 +46,23 @@ async function getAccessToken(): Promise<string> {
 
 async function adminFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
-  return fetch(`${SERVER_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${publicAnonKey}`,
-      'X-User-Token': token,
-      ...(options.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+  try {
+    const res = await fetch(`${SERVER_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${publicAnonKey}`,
+        'X-User-Token': token,
+        ...(options.headers ?? {}),
+      },
+    });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // User class definitions — loaded from DB in fetchData(), used for tabs and display names.
@@ -173,32 +181,18 @@ export default function UserManagement() {
 
       const users = usersData.data || [];
 
-      // Fetch all auth users in one server call (service role key stays on server)
-      let authUserMetaMap = new Map<string, any>();
-      try {
-        const res = await adminFetch('/admin/users?page=1&per_page=1000');
-        const json = await res.json();
-        if (json.success && json.users) {
-          json.users.forEach((u: any) => { authUserMetaMap.set(u.id, u); });
-        } else {
-          console.error('Failed to fetch auth users for metadata merge:', json.error);
-        }
-      } catch (err) {
-        console.error('Error fetching auth users from server:', err);
-      }
+      // Render the page immediately with data from direct Supabase queries.
+      // Auth metadata (temp_password, has_auth_account) is filled in below
+      // via the Edge Function — if that call fails or times out the page still loads.
+      const baseUsers = users.map((user: any) => ({
+        ...user,
+        has_auth_account: false,
+        temp_password: '',
+        imported_via_csv: false,
+        custom_password: false,
+      }));
 
-      const usersWithPasswords = users.map((user: any) => {
-        const authUser = authUserMetaMap.get(user.id);
-        return {
-          ...user,
-          has_auth_account: !!authUser,
-          temp_password: authUser?.user_metadata?.temp_password || '',
-          imported_via_csv: authUser?.user_metadata?.imported_via_csv || false,
-          custom_password: authUser?.user_metadata?.custom_password || false,
-        };
-      });
-
-      setUsers(usersWithPasswords);
+      setUsers(baseUsers);
       setCircles(circlesData.data || []);
       setTables(tablesData.data || []);
       setElevators(elevatorsData.data || []);
@@ -206,7 +200,33 @@ export default function UserManagement() {
       setPitches(pitchesData.data || []);
       setPosts(postsData.data || []);
       setDocuments(documentsData.data || []);
-      setLoading(false);
+      setLoading(false); // Page renders here — Edge Function result enriches below
+
+      // Fetch auth metadata from Edge Function (service role key stays on server).
+      // Non-blocking: failure just means has_auth_account stays false for all users.
+      try {
+        const res = await adminFetch('/admin/users?page=1&per_page=1000');
+        const json = await res.json();
+        if (json.success && json.users) {
+          const authUserMetaMap = new Map<string, any>();
+          json.users.forEach((u: any) => { authUserMetaMap.set(u.id, u); });
+          setUsers(prev => prev.map((user: any) => {
+            const authUser = authUserMetaMap.get(user.id);
+            if (!authUser) return user;
+            return {
+              ...user,
+              has_auth_account: true,
+              temp_password: authUser.user_metadata?.temp_password || '',
+              imported_via_csv: authUser.user_metadata?.imported_via_csv || false,
+              custom_password: authUser.user_metadata?.custom_password || false,
+            };
+          }));
+        } else {
+          console.warn('Auth metadata unavailable (Edge Function):', json.error);
+        }
+      } catch (err) {
+        console.warn('Could not reach Edge Function for auth metadata — page loaded without it:', err);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load user data');
@@ -1215,7 +1235,7 @@ export default function UserManagement() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Classes</SelectItem>
-              {USER_CLASSES.map(userClass => {
+              {userClassDefs.map(userClass => {
                 const count = users.filter(u => (u.user_class || 3) === userClass.level).length;
                 return (
                   <SelectItem key={userClass.level} value={userClass.level.toString()}>
