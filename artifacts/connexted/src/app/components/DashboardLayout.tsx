@@ -516,7 +516,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                       }`}
                     >
                       <Zap className="w-4 h-4 mr-2" />
-                      Activities
+                      Containers
                       <ChevronDown className="w-3 h-3 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>

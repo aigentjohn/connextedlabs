@@ -66,7 +66,7 @@ export function ActivitiesSection({
           <ChevronRight className="w-4 h-4 text-gray-500" />
         )}
         <Zap className="w-4 h-4 text-yellow-600" />
-        <span className="flex-1 text-left font-semibold text-gray-900">COMMON ACTIVITIES</span>
+        <span className="flex-1 text-left font-semibold text-gray-900">COMMON CONTAINERS</span>
         <span className="text-xs text-gray-500">({totalContainers})</span>
       </button>
 
