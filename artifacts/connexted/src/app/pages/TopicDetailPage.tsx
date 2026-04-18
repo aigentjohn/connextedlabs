@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/ta
 import {
   Users, Target, Sparkles, UserPlus, FileText,
   BookOpen, Layers, File, CheckSquare, Calendar,
-  MessageCircle, Eye, Heart, Star, GraduationCap, Rocket,
+  MessageCircle, Eye, Heart, Bell, GraduationCap, Rocket,
   Video, ListVideo, BookCopy, Hammer, Presentation,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -699,12 +699,12 @@ export default function TopicDetailPage() {
                 >
                   {isFollowing ? (
                     <>
-                      <Star className="w-4 h-4 mr-2 fill-current" />
+                      <Bell className="w-4 h-4 mr-2 fill-current text-indigo-500" />
                       Watching
                     </>
                   ) : (
                     <>
-                      <Star className="w-4 h-4 mr-2" />
+                      <Bell className="w-4 h-4 mr-2" />
                       Watch
                     </>
                   )}

@@ -21,6 +21,12 @@ import {
   Hash,
   Star,
   TrendingUp,
+  Users,
+  UserCheck,
+  Heart,
+  Trophy,
+  Library,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -58,7 +64,10 @@ export function DiscoverSection({
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">
           <DiscoverLink to="/explore" icon={Sparkles} pathname={location.pathname}>
-            Explore
+            Explore Containers
+          </DiscoverLink>
+          <DiscoverLink to="/explore/content" icon={Library} pathname={location.pathname} match="startsWith">
+            Browse Content
           </DiscoverLink>
           <DiscoverLink to="/topics" icon={Tag} pathname={location.pathname} match="startsWith">
             Topics
@@ -69,8 +78,20 @@ export function DiscoverSection({
           <DiscoverLink to="/rankings" icon={TrendingUp} pathname={location.pathname}>
             Rankings
           </DiscoverLink>
-          <DiscoverLink to="/discovery?tab=following" icon={Hash} pathname={location.pathname} match="startsWith" matchPath="/discovery">
+          <DiscoverLink to="/discovery/following" icon={Users} pathname={location.pathname} match="startsWith">
             Following Feed
+          </DiscoverLink>
+          <DiscoverLink to="/discovery/followers" icon={UserCheck} pathname={location.pathname} match="startsWith">
+            Followers Feed
+          </DiscoverLink>
+          <DiscoverLink to="/discovery/friends" icon={Heart} pathname={location.pathname} match="startsWith">
+            Friends Feed
+          </DiscoverLink>
+          <DiscoverLink to="/discovery/most-liked" icon={Trophy} pathname={location.pathname} match="startsWith">
+            Most Liked
+          </DiscoverLink>
+          <DiscoverLink to="/help/discover" icon={HelpCircle} pathname={location.pathname} match="startsWith">
+            Discover Guide
           </DiscoverLink>
           <Link
             to="/my-content"

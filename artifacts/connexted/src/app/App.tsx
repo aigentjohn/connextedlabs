@@ -173,6 +173,11 @@ const AddPortfolioItemPage = lazy(() => import('@/app/components/AddPortfolioIte
 
 // Discovery & Navigation
 const DiscoveryPage = lazy(() => import('@/app/components/DiscoveryPage'));
+const DiscoveryFollowingPage = lazy(() => import('@/app/pages/DiscoveryFollowingPage'));
+const DiscoveryFollowersPage = lazy(() => import('@/app/pages/DiscoveryFollowersPage'));
+const DiscoveryFriendsPage = lazy(() => import('@/app/pages/DiscoveryFriendsPage'));
+const MostLikedPage = lazy(() => import('@/app/pages/MostLikedPage'));
+const ExploreContentPage = lazy(() => import('@/app/pages/ExploreContentPage'));
 const ExplorePage = lazy(() => import('@/app/components/ExplorePage'));
 const TagDetailPage = lazy(() => import('@/app/components/TagDetailPage'));
 const NotificationsPage = lazy(() => import('@/app/components/NotificationsPage'));
@@ -585,6 +590,11 @@ const router = createBrowserRouter([
           { path: '/my-calendar-admin', element: <MyCalendarAdminPage /> },
           { path: '/calendar-admin/:eventId', element: <EventAdminDetailPage /> },
           { path: '/discovery', element: <DiscoveryPage /> },
+          { path: '/discovery/following', element: <DiscoveryFollowingPage /> },
+          { path: '/discovery/followers', element: <DiscoveryFollowersPage /> },
+          { path: '/discovery/friends', element: <DiscoveryFriendsPage /> },
+          { path: '/discovery/most-liked', element: <MostLikedPage /> },
+          { path: '/explore/content', element: <ExploreContentPage /> },
           { path: '/explore', element: <ExplorePage /> },
           { path: '/pricing', element: <PricingPage /> },
           { path: '/notifications', element: <NotificationsPage /> },

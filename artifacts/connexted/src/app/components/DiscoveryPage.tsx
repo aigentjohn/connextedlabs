@@ -951,11 +951,11 @@ export default function DiscoveryPage() {
       try {
         const { data: tagFollows } = await supabase
           .from('tag_followers')
-          .select('tag_name')
+          .select('tag')
           .eq('user_id', profile.id);
 
         if (tagFollows && tagFollows.length > 0) {
-          const tagNames = tagFollows.map((tf: any) => tf.tag_name);
+          const tagNames = tagFollows.map((tf: any) => tf.tag);
           const seenKeys2 = new Set(allActivity.map(a => `${a.type}:${a.id}`));
 
           const tagTables = [

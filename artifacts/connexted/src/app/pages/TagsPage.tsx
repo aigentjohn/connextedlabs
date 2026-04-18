@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import { Search, Hash, Lightbulb, Wrench, ChevronRight, TrendingUp, Star } from 'lucide-react';
+import { Search, Hash, Lightbulb, Wrench, ChevronRight, TrendingUp, Bell } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import { supabase } from '@/lib/supabase';
@@ -178,12 +178,12 @@ export default function TagsPage() {
                           disabled={isToggling}
                           className={`p-1 rounded-full transition-colors ${
                             isFollowed
-                              ? 'text-yellow-500 hover:text-yellow-600'
-                              : 'text-gray-300 hover:text-yellow-400'
+                              ? 'text-indigo-500 hover:text-indigo-600'
+                              : 'text-gray-300 hover:text-indigo-400'
                           }`}
-                          title={isFollowed ? 'Unfollow tag' : 'Follow tag'}
+                          title={isFollowed ? 'Unsubscribe from tag' : 'Subscribe to tag'}
                         >
-                          <Star className={`w-4 h-4 ${isFollowed ? 'fill-current' : ''}`} />
+                          <Bell className={`w-4 h-4 ${isFollowed ? 'fill-current' : ''}`} />
                         </button>
                       )}
                       <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />

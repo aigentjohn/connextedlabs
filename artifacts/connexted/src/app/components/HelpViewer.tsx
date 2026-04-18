@@ -8,6 +8,7 @@ import {
   Search,
   HelpCircle,
   FileText,
+  Compass,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import ReactMarkdown from 'react-markdown';
@@ -17,10 +18,13 @@ import ReactMarkdown from 'react-markdown';
 import staticWelcome from '@/WELCOME.md?raw';
 // @ts-ignore
 import staticHelp from '@/HELP.md?raw';
+// @ts-ignore
+import staticDiscover from '@/DISCOVER.md?raw';
 
 const STATIC_FALLBACK: Record<string, string> = {
   welcome: staticWelcome,
   help: staticHelp,
+  discover: staticDiscover,
 };
 
 export default function HelpViewer() {
@@ -29,12 +33,14 @@ export default function HelpViewer() {
   const [docContent, setDocContent] = useState<Record<string, string>>({
     welcome: staticWelcome,
     help: staticHelp,
+    discover: staticDiscover,
   });
   const [loading, setLoading] = useState(true);
 
   const docType = type || 'welcome';
   const isWelcome = docType === 'welcome';
   const isHelp = docType === 'help';
+  const isDiscover = docType === 'discover';
 
   useEffect(() => {
     fetchDocs();
@@ -45,7 +51,7 @@ export default function HelpViewer() {
       const { data, error } = await supabase
         .from('platform_docs')
         .select('doc_key, content')
-        .in('doc_key', ['welcome', 'help'])
+        .in('doc_key', ['welcome', 'help', 'discover'])
         .eq('is_active', true);
 
       if (error) throw error;
@@ -82,7 +88,7 @@ export default function HelpViewer() {
       <Breadcrumbs
         items={[
           { label: 'Help & Documentation', path: '/help' },
-          { label: isWelcome ? 'Welcome Guide' : 'Help Documentation' },
+          { label: isWelcome ? 'Welcome Guide' : isDiscover ? 'Discover Guide' : 'Help Documentation' },
         ]}
       />
 
@@ -93,6 +99,10 @@ export default function HelpViewer() {
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
+          ) : isDiscover ? (
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
+              <Compass className="w-6 h-6 text-white" />
+            </div>
           ) : (
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <HelpCircle className="w-6 h-6 text-white" />
@@ -100,17 +110,26 @@ export default function HelpViewer() {
           )}
           <div>
             <h1 className="text-3xl font-bold">
-              {isWelcome ? 'Welcome to CONNEXTED' : 'Help Documentation'}
+              {isWelcome ? 'Welcome to CONNEXTED' : isDiscover ? 'Discover — Feature Guide' : 'Help Documentation'}
             </h1>
             <p className="text-gray-600">
               {isWelcome
                 ? 'Your quick start guide to getting the most out of the platform'
+                : isDiscover
+                ? 'How to find, follow, and surface content across the platform'
                 : 'Comprehensive guide to all platform features and functionality'}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          {isWelcome ? (
+          {isDiscover ? (
+            <Link to="/help/help">
+              <Button variant="outline">
+                <FileText className="w-4 h-4 mr-2" />
+                Full Documentation
+              </Button>
+            </Link>
+          ) : isWelcome ? (
             <Link to="/help/help">
               <Button>
                 <FileText className="w-4 h-4 mr-2" />

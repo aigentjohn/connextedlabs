@@ -176,7 +176,7 @@ export default function Sidebar({ currentUserId }: SidebarProps) {
 
   // Auto-expand DISCOVER section when viewing any of its child routes
   useEffect(() => {
-    const discoverPaths = ['/explore', '/topics', '/discovery', '/my-content'];
+    const discoverPaths = ['/explore', '/topics', '/discovery', '/my-content', '/rankings', '/tags', '/explore/content'];
     const isDiscoverRoute = discoverPaths.some((p) =>
       location.pathname === p || location.pathname.startsWith(p + '/')
     );

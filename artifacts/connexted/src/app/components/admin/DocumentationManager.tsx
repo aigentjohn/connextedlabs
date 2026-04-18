@@ -59,6 +59,10 @@ const DOC_HINTS: Record<string, { format: string; preview: string }> = {
     format: 'Full Markdown document. Use ## for top-level sections, ### for subsections, code blocks for commands.',
     preview: '# Help Documentation\n\n## Getting Started\n\n### How do I sign in?\n…',
   },
+  discover: {
+    format: 'Full Markdown document. Use ## for each Discover feature (Topics, Tags, Rankings, etc.), ### for sub-sections.',
+    preview: '# Discover — Feature Guide\n\n## Topics\n\nTopics are the structured subject taxonomy…\n\n## Tags\n\nTags are free-text labels…',
+  },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ReactNode> = {

@@ -9,7 +9,7 @@ import { PageHeader } from '@/app/components/shared/PageHeader';
 import {
   TrendingUp, Hash, Tag, Search, Crown, Medal,
   FileText, MessageSquare, Calendar, BookOpen, Users,
-  Hammer, Lightbulb, Headphones, Presentation, ChevronRight, BookCopy,
+  Hammer, Lightbulb, Headphones, Presentation, ChevronRight, BookCopy, Bell,
 } from 'lucide-react';
 
 interface TagRank {
@@ -72,6 +72,7 @@ export default function RankingsPage() {
   const [activeTab, setActiveTab] = useState<'tags' | 'topics'>('tags');
   const [tagRanks, setTagRanks] = useState<TagRank[]>([]);
   const [topicRanks, setTopicRanks] = useState<TopicRank[]>([]);
+  const [topicSort, setTopicSort] = useState<'content' | 'watchers'>('content');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [fetchWarning, setFetchWarning] = useState<string | null>(null);
@@ -209,10 +210,16 @@ export default function RankingsPage() {
     t.tag.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredTopics = topicRanks.filter(t =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredTopics = topicRanks
+    .filter(t =>
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) =>
+      topicSort === 'watchers'
+        ? b.follower_count - a.follower_count || b.content_count - a.content_count
+        : b.content_count - a.content_count || b.follower_count - a.follower_count
+    );
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -222,7 +229,7 @@ export default function RankingsPage() {
         iconBg="bg-amber-100"
         iconColor="text-amber-600"
         title="Rankings"
-        description="The most used tags and most active topics across the platform"
+        description="The most used tags and most watched topics across the platform"
       />
 
       <div className="mt-6">
@@ -328,11 +335,33 @@ export default function RankingsPage() {
           <TabsContent value="topics">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-purple-600" />
-                  Most Active Topics
-                  {!loading && <Badge variant="secondary">{filteredTopics.length} topics</Badge>}
-                </CardTitle>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-purple-600" />
+                    {topicSort === 'watchers' ? 'Most Watched Topics' : 'Most Active Topics'}
+                    {!loading && <Badge variant="secondary">{filteredTopics.length} topics</Badge>}
+                  </CardTitle>
+                  <div className="flex items-center gap-1 border border-gray-200 rounded-lg overflow-hidden text-xs">
+                    <button
+                      onClick={() => setTopicSort('content')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                        topicSort === 'content' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      By Content
+                    </button>
+                    <button
+                      onClick={() => setTopicSort('watchers')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                        topicSort === 'watchers' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      By Watchers
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -369,8 +398,13 @@ export default function RankingsPage() {
                               <p className="text-sm text-gray-500 line-clamp-1">{topic.description}</p>
                             )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                              <span>{topic.content_count} {topic.content_count === 1 ? 'item' : 'items'} linked</span>
-                              <span>{topic.follower_count} {topic.follower_count === 1 ? 'watcher' : 'watchers'}</span>
+                              <span className={topicSort === 'content' ? 'font-medium text-purple-700' : ''}>
+                                {topic.content_count} {topic.content_count === 1 ? 'item' : 'items'} linked
+                              </span>
+                              <span className={`flex items-center gap-1 ${topicSort === 'watchers' ? 'font-medium text-purple-700' : ''}`}>
+                                <Bell className="w-3 h-3" />
+                                {topic.follower_count} {topic.follower_count === 1 ? 'watcher' : 'watchers'}
+                              </span>
                             </div>
                           </div>
 
@@ -378,7 +412,11 @@ export default function RankingsPage() {
                             <div className="w-24 bg-gray-100 rounded-full h-2 overflow-hidden">
                               <div
                                 className="bg-purple-500 h-2 rounded-full"
-                                style={{ width: `${Math.min(100, (topic.content_count / (filteredTopics[0]?.content_count || 1)) * 100)}%` }}
+                                style={{
+                                  width: topicSort === 'subscribers'
+                                    ? `${Math.min(100, (topic.follower_count / (filteredTopics[0]?.follower_count || 1)) * 100)}%`
+                                    : `${Math.min(100, (topic.content_count / (filteredTopics[0]?.content_count || 1)) * 100)}%`
+                                }}
                               />
                             </div>
                           </div>

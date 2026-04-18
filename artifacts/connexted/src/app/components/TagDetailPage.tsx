@@ -10,7 +10,7 @@ import {
   FileText, MessageSquare, Calendar, BookOpen, ThumbsUp, Hash, Filter,
   ArrowLeft, Users, Hammer, Table, TrendingUp, Presentation,
   CalendarClock, Handshake, Image as ImageIcon, BookCopy, Library,
-  CheckSquare, Sparkles, ListVideo, Video, Rocket, Star,
+  CheckSquare, Sparkles, ListVideo, Video, Rocket, Bell,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { format } from 'date-fns';
@@ -293,7 +293,7 @@ export default function TagDetailPage() {
             disabled={followLoading}
             className="shrink-0"
           >
-            <Star className={`w-4 h-4 mr-1.5 ${isFollowing ? 'fill-current text-yellow-500' : ''}`} />
+            <Bell className={`w-4 h-4 mr-1.5 ${isFollowing ? 'fill-current text-indigo-500' : ''}`} />
             {isFollowing ? 'Following' : 'Follow'}
           </Button>
         )}
