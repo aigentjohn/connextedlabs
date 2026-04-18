@@ -87,7 +87,6 @@ const TABLE_QUERIES: TableQuery[] = [
   { table: 'books',         type: 'book',      select: 'id, title, description, created_at, created_by, tags',              titleField: 'title', descField: 'description' },
   { table: 'decks',         type: 'deck',      select: 'id, title, description, created_at, created_by, tags',              titleField: 'title', descField: 'description' },
   { table: 'courses',       type: 'course',    select: 'id, title, description, created_at, instructor_id, tags',           titleField: 'title', descField: 'description' },
-  { table: 'forum_threads', type: 'thread',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
   { table: 'reviews',       type: 'review',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
   { table: 'blogs',         type: 'post',      select: 'id, title, description, created_at, author_id, tags',               titleField: 'title', descField: 'description' },
   { table: 'events',        type: 'event',     select: 'id, title, description, start_time, host_id, tags',                 titleField: 'title', descField: 'description' },

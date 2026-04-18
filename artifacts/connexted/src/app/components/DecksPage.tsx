@@ -25,7 +25,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { PrivacySelector } from '@/app/components/unified/PrivacySelector';
 import { VisibilityBadge } from '@/app/components/unified/VisibilityBadge';
 import { TagSelector } from '@/app/components/unified/TagSelector';
-import { TopicSelector } from '@/app/components/unified/TopicSelector';
 
 interface Deck {
   id: string;
@@ -62,16 +61,14 @@ export default function DecksPage() {
     description: '',
     visibility: 'public' as 'public' | 'member' | 'private' | 'unlisted',
     tags: [] as string[],
-    topicIds: [] as string[]
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
-  const [editForm, setEditForm] = useState({ 
-    title: '', 
-    description: '', 
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
     visibility: 'public' as 'public' | 'member' | 'private' | 'unlisted',
     tags: [] as string[],
-    topicIds: [] as string[]
   });
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -218,31 +215,7 @@ export default function DecksPage() {
       const data = await response.json();
       toast.success('Deck created!');
       
-      // Link topics if any selected
-      if (newDeck.topicIds.length > 0 && data.deck?.id) {
-        try {
-          await fetch(
-            `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/topics/link`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${publicAnonKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                userId: profile.id,
-                entityType: 'deck',
-                entityId: data.deck.id,
-                topicIds: newDeck.topicIds,
-              }),
-            }
-          );
-        } catch (topicError) {
-          console.error('Error linking topics:', topicError);
-        }
-      }
-      
-      setNewDeck({ title: '', description: '', visibility: 'public', tags: [], topicIds: [] });
+      setNewDeck({ title: '', description: '', visibility: 'public', tags: [] });
       setIsCreateDialogOpen(false);
       fetchDecks();
     } catch (error) {
@@ -282,7 +255,6 @@ export default function DecksPage() {
       description: deck.description || '',
       visibility: deck.visibility || 'public',
       tags: deck.tags || [],
-      topicIds: []
     });
     setIsEditDialogOpen(true);
   };
@@ -487,17 +459,6 @@ export default function DecksPage() {
                         value={newDeck.visibility}
                         onChange={(value) => setNewDeck({ ...newDeck, visibility: value })}
                         contentType="deck"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="deck-topics" className="text-sm">Topics (Who/Why)</Label>
-                    <div className="mt-1">
-                      <TopicSelector
-                        value={newDeck.topicIds}
-                        onChange={(topicIds) => setNewDeck({ ...newDeck, topicIds })}
-                        maxTopics={3}
-                        showSuggestions={true}
                       />
                     </div>
                   </div>

@@ -82,7 +82,6 @@ const TAG_TABLES = [
   { table: 'books',         type: 'book',     titleF: 'title', descF: 'description', authorF: 'created_by' },
   { table: 'builds',        type: 'build',    titleF: 'name',  descF: 'description', authorF: 'created_by' },
   { table: 'pitches',       type: 'pitch',    titleF: 'title', descF: 'description', authorF: 'created_by' },
-  { table: 'forum_threads', type: 'thread',   titleF: 'title', descF: 'body',        authorF: 'author_id' },
 ];
 
 const TOPIC_CONTENT_MAP: Record<string, { table: string; titleF: string; descF: string; authorF: string }> = {

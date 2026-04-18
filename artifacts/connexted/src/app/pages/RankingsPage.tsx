@@ -44,7 +44,6 @@ const TAG_TABLES = [
   { table: 'reviews',       label: 'Reviews',    icon: FileText },
   { table: 'events',        label: 'Events',     icon: Calendar },
   // ── Containers (CONTAINER_TAXONOMY) ─────────────────────────────────────
-  { table: 'forum_threads', label: 'Threads',    icon: MessageSquare },
   { table: 'tables',        label: 'Tables',     icon: Presentation },
   { table: 'pitches',       label: 'Pitches',    icon: Lightbulb },
   { table: 'builds',        label: 'Builds',     icon: Hammer },
