@@ -30,18 +30,23 @@ interface TopicRank {
   follower_count: number;
 }
 
+// Tables included in tag ranking counts.
+// Content types (taxonomy.ts CONTENT_TAXONOMY) + containers that support tags.
+// Circles excluded — they are a separate platform section, not content/container.
+// Courses/programs excluded — they belong to MY GROWTH, not the content taxonomy.
 const TAG_TABLES = [
-  { table: 'documents',     label: 'Documents',  icon: FileText },
+  // ── Content (CONTENT_TAXONOMY) ──────────────────────────────────────────
+  { table: 'blogs',         label: 'Blogs',      icon: FileText },
   { table: 'episodes',      label: 'Episodes',   icon: Headphones },
+  { table: 'documents',     label: 'Documents',  icon: FileText },
   { table: 'books',         label: 'Books',      icon: BookOpen },
   { table: 'decks',         label: 'Decks',      icon: Presentation },
-  { table: 'courses',       label: 'Courses',    icon: BookOpen },
+  { table: 'reviews',       label: 'Reviews',    icon: FileText },
+  { table: 'events',        label: 'Events',     icon: Calendar },
+  // ── Containers (CONTAINER_TAXONOMY) ─────────────────────────────────────
   { table: 'forum_threads', label: 'Threads',    icon: MessageSquare },
-  { table: 'blogs',         label: 'Blogs',      icon: FileText },
-  { table: 'programs',      label: 'Programs',   icon: Users },
   { table: 'tables',        label: 'Tables',     icon: Presentation },
   { table: 'pitches',       label: 'Pitches',    icon: Lightbulb },
-  { table: 'circles',       label: 'Circles',    icon: Users },
   { table: 'builds',        label: 'Builds',     icon: Hammer },
   { table: 'standups',      label: 'Standups',   icon: MessageSquare },
   { table: 'sprints',       label: 'Sprints',    icon: Calendar },
@@ -413,7 +418,7 @@ export default function RankingsPage() {
                               <div
                                 className="bg-purple-500 h-2 rounded-full"
                                 style={{
-                                  width: topicSort === 'subscribers'
+                                  width: topicSort === 'watchers'
                                     ? `${Math.min(100, (topic.follower_count / (filteredTopics[0]?.follower_count || 1)) * 100)}%`
                                     : `${Math.min(100, (topic.content_count / (filteredTopics[0]?.content_count || 1)) * 100)}%`
                                 }}

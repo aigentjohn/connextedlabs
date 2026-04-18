@@ -90,6 +90,7 @@ const TABLE_QUERIES: TableQuery[] = [
   { table: 'forum_threads', type: 'thread',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
   { table: 'reviews',       type: 'review',    select: 'id, title, content, created_at, author_id, tags',                   titleField: 'title', descField: 'content' },
   { table: 'blogs',         type: 'post',      select: 'id, title, description, created_at, author_id, tags',               titleField: 'title', descField: 'description' },
+  { table: 'events',        type: 'event',     select: 'id, title, description, start_time, host_id, tags',                 titleField: 'title', descField: 'description' },
   { table: 'programs',      type: 'program',   select: 'id, name, description, created_at, created_by, tags',               titleField: 'name',  descField: 'description' },
   // Containers
   { table: 'tables',        type: 'table',     select: 'id, name, description, created_at, created_by, tags, slug',         titleField: 'name',  descField: 'description' },
@@ -226,7 +227,7 @@ export default function TagDetailPage() {
             type: q.type,
             title: row[q.titleField] || 'Untitled',
             description: row[q.descField] || undefined,
-            created_at: row.created_at,
+            created_at: row.created_at || row.start_time,
             circle_ids: row.circle_ids,
             tags: rowTags,
           });

@@ -1,9 +1,8 @@
 /**
  * ExploreContentPage — Browse content (not containers) by type.
  *
- * Complements ExplorePage (containers) by surfacing:
- *   Episodes, Books, Blogs, Playlists, Documents,
- *   Courses, Builds, Pitches, Decks, Magazines
+ * Types driven by CONTENT_TAXONOMY in taxonomy.ts:
+ *   Blogs, Episodes, Documents, Books, Decks, Reviews, Events
  *
  * Features:
  *   - Type tabs with item counts
@@ -22,8 +21,8 @@ import { Input } from '@/app/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import {
   Search, FileText, BookOpen, Headphones, Presentation,
-  Hammer, Lightbulb, ChevronRight, SortAsc, Calendar,
-  TrendingUp, Hash, Loader2,
+  ChevronRight, SortAsc, Calendar, Star, Video, Layers,
+  TrendingUp, Hash, Loader2, PenTool,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { format } from 'date-fns';
@@ -44,33 +43,11 @@ interface ContentTypeConfig {
   iconColor: string;
 }
 
+// Types aligned with CONTENT_TAXONOMY in src/lib/taxonomy.ts.
+// Containers (playlists, builds, pitches, magazines) and MY GROWTH types
+// (courses) intentionally excluded — they live in Explore Containers and
+// MY GROWTH respectively.
 const CONTENT_TYPES: ContentTypeConfig[] = [
-  {
-    key: 'episode',
-    label: 'Episode',
-    pluralLabel: 'Episodes',
-    table: 'episodes',
-    titleField: 'title',
-    descField: 'description',
-    dateField: 'created_at',
-    authorField: 'created_by',
-    route: '/episodes',
-    icon: <Headphones className="w-5 h-5" />,
-    iconColor: 'text-purple-600',
-  },
-  {
-    key: 'book',
-    label: 'Book',
-    pluralLabel: 'Books',
-    table: 'books',
-    titleField: 'title',
-    descField: 'description',
-    dateField: 'created_at',
-    authorField: 'created_by',
-    route: '/books',
-    icon: <BookOpen className="w-5 h-5" />,
-    iconColor: 'text-emerald-600',
-  },
   {
     key: 'blog',
     label: 'Blog',
@@ -81,21 +58,21 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
     dateField: 'created_at',
     authorField: 'author_id',
     route: '/blogs',
-    icon: <FileText className="w-5 h-5" />,
+    icon: <PenTool className="w-5 h-5" />,
     iconColor: 'text-blue-600',
   },
   {
-    key: 'playlist',
-    label: 'Playlist',
-    pluralLabel: 'Playlists',
-    table: 'playlists',
-    titleField: 'name',
+    key: 'episode',
+    label: 'Episode',
+    pluralLabel: 'Episodes',
+    table: 'episodes',
+    titleField: 'title',
     descField: 'description',
     dateField: 'created_at',
     authorField: 'created_by',
-    route: '/playlists',
-    icon: <Headphones className="w-5 h-5" />,
-    iconColor: 'text-sky-600',
+    route: '/episodes',
+    icon: <Video className="w-5 h-5" />,
+    iconColor: 'text-purple-600',
   },
   {
     key: 'document',
@@ -111,43 +88,17 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
     iconColor: 'text-slate-600',
   },
   {
-    key: 'course',
-    label: 'Course',
-    pluralLabel: 'Courses',
-    table: 'courses',
+    key: 'book',
+    label: 'Book',
+    pluralLabel: 'Books',
+    table: 'books',
     titleField: 'title',
     descField: 'description',
     dateField: 'created_at',
     authorField: 'created_by',
-    route: '/courses',
+    route: '/books',
     icon: <BookOpen className="w-5 h-5" />,
-    iconColor: 'text-indigo-600',
-  },
-  {
-    key: 'build',
-    label: 'Build',
-    pluralLabel: 'Builds',
-    table: 'builds',
-    titleField: 'name',
-    descField: 'description',
-    dateField: 'created_at',
-    authorField: 'created_by',
-    route: '/builds',
-    icon: <Hammer className="w-5 h-5" />,
-    iconColor: 'text-orange-600',
-  },
-  {
-    key: 'pitch',
-    label: 'Pitch',
-    pluralLabel: 'Pitches',
-    table: 'pitches',
-    titleField: 'title',
-    descField: 'description',
-    dateField: 'created_at',
-    authorField: 'created_by',
-    route: '/pitches',
-    icon: <Lightbulb className="w-5 h-5" />,
-    iconColor: 'text-yellow-600',
+    iconColor: 'text-emerald-600',
   },
   {
     key: 'deck',
@@ -159,21 +110,34 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
     dateField: 'created_at',
     authorField: 'created_by',
     route: '/decks',
-    icon: <Presentation className="w-5 h-5" />,
+    icon: <Layers className="w-5 h-5" />,
     iconColor: 'text-pink-600',
   },
   {
-    key: 'magazine',
-    label: 'Magazine',
-    pluralLabel: 'Magazines',
-    table: 'magazines',
-    titleField: 'name',
-    descField: 'description',
+    key: 'review',
+    label: 'Review',
+    pluralLabel: 'Reviews',
+    table: 'reviews',
+    titleField: 'title',
+    descField: 'content',
     dateField: 'created_at',
-    authorField: 'created_by',
-    route: '/magazines',
-    icon: <BookOpen className="w-5 h-5" />,
-    iconColor: 'text-rose-600',
+    authorField: 'author_id',
+    route: '/reviews',
+    icon: <Star className="w-5 h-5" />,
+    iconColor: 'text-amber-500',
+  },
+  {
+    key: 'event',
+    label: 'Event',
+    pluralLabel: 'Events',
+    table: 'events',
+    titleField: 'title',
+    descField: 'description',
+    dateField: 'start_time',
+    authorField: 'host_id',
+    route: '/events',
+    icon: <Calendar className="w-5 h-5" />,
+    iconColor: 'text-sky-600',
   },
 ];
 
@@ -411,7 +375,7 @@ export default function ExploreContentPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Browse Content</h1>
         <p className="text-gray-600 mt-1">
-          Explore episodes, books, courses, documents, and more across the platform
+          Explore blogs, episodes, documents, books, decks, reviews, and events across the platform
         </p>
       </div>
 

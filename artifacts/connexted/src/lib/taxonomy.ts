@@ -56,6 +56,7 @@ import {
   BookOpen,
   Layers,
   Star,
+  Calendar,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -94,11 +95,14 @@ export const CONTAINER_KEYS = CONTAINER_TAXONOMY.map((t) => t.key) as readonly s
 // ─── CONTENT ─────────────────────────────────────────────────────────────────
 // Standalone platform-level artefacts. Shown under COMMON CONTENT.
 //
-// NOT included: Posts (feed), Forums, Events — these are elements OF circles,
+// NOT included: Posts (feed), Forums — these are elements OF circles,
 // not independent content types. They exist within circle contexts.
 //
 // Episodes and Blogs are standalone content artefacts.
 // Their containers (Playlists → Episodes, Magazines → Blogs) live in CONTAINER_TAXONOMY.
+//
+// Events are platform-level content: they exist independently of any circle
+// and are discoverable by tag and topic.
 
 export const CONTENT_TAXONOMY: TaxonomyEntry[] = [
   { key: 'blogs',     label: 'Blog',     labelPlural: 'Blogs',     icon: PenTool,       path: '/blogs'     },
@@ -107,6 +111,7 @@ export const CONTENT_TAXONOMY: TaxonomyEntry[] = [
   { key: 'books',     label: 'Book',     labelPlural: 'Books',     icon: BookOpen,      path: '/books'     },
   { key: 'decks',     label: 'Deck',     labelPlural: 'Decks',     icon: Layers,        path: '/decks'     },
   { key: 'reviews',   label: 'Review',   labelPlural: 'Reviews',   icon: Star,          path: '/reviews'   },
+  { key: 'events',    label: 'Event',    labelPlural: 'Events',    icon: Calendar,      path: '/events'    },
 ];
 
 /** Plural keys of all content types */
