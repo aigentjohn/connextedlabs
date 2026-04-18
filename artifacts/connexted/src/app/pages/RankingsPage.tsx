@@ -99,9 +99,12 @@ export default function RankingsPage() {
       const tagMap = new Map<string, { count: number; original: string; tables: { table: string; count: number }[] }>();
       const originalCaseMap = new Map<string, string>();
 
+      // Only count publicly visible content so rankings reflect what
+      // any member can actually discover. Tables that don't have a
+      // `visibility` column will fail gracefully via Promise.allSettled.
       const results = await Promise.allSettled(
         TAG_TABLES.map(({ table }) =>
-          supabase.from(table).select('tags').not('tags', 'is', null)
+          supabase.from(table).select('tags').not('tags', 'is', null).eq('visibility', 'public')
         )
       );
 
