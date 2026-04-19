@@ -212,9 +212,11 @@ and Explore/Discover.
 
 ## 5. Visibility Options by Type
 
+Circles, Programs, and Courses are not included here — each has its own visibility
+and membership model treated separately.
+
 | Type | public | member | premium | private |
 |---|:---:|:---:|:---:|:---:|
-| Circles | ✅ | ✅ | — | ✅ |
 | Tables | ✅ | ✅ | — | ✅ |
 | Elevators | ✅ | ✅ | — | ✅ |
 | Meetings | ✅ | ✅ | — | ✅ |
@@ -227,8 +229,6 @@ and Explore/Discover.
 | Libraries | ✅ | ✅ | — | ✅ |
 | Magazines | ✅ | ✅ | — | ✅ |
 | Checklists | ✅ | ✅ | — | ✅ |
-| Programs | ✅ | ✅ | — | ✅ |
-| Courses | ✅ | ✅ | — | ✅ |
 | Blogs | ✅ | — | ✅ | ✅ |
 | Episodes | ✅ | — | ✅ | ✅ |
 | Documents | ✅ | — | ✅ | ✅ |
