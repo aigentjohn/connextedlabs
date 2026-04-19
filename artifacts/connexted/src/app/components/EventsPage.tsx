@@ -595,7 +595,8 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
   const canAccessContent = (accessLevel?: string) => {
     if (!accessLevel || accessLevel === 'public') return true;
     if (accessLevel === 'member') return userPermissions?.permitted_types.includes('events') ?? false;
-    if (accessLevel === 'premium') return userPermissions?.permitted_types.includes('events_premium') ?? false;
+    // TODO Phase 2: replace with journey enrollment check (canAccessPremiumContent)
+    if (accessLevel === 'premium') return false;
     return false;
   };
 

@@ -310,23 +310,37 @@ Items are ordered by dependency — earlier items unblock later ones.
   matching all other containers. Migrate: `is_public = true` → `public`,
   `is_public = false` → `private`
 
-- [ ] **Remove content type entries from `user_class_permissions`**
-  The entries for `documents`, `episodes`, `blogs`, `reviews`, `decks`, `books`,
-  `posts`, `documents_premium`, `episodes_premium`, `decks_premium` should be
-  removed. User class only controls nav item visibility, not content access.
+- [ ] **Remove `_premium` type codes from `user_class_permissions`**
+  Delete all rows where `container_type` ends in `_premium`
+  (`documents_premium`, `episodes_premium`, `decks_premium`, `events_premium`,
+  `reviews_premium`). These were added incorrectly. The `premium` visibility
+  state is not a separate class-tier permission — it is a browse filter whose
+  access is determined by journey enrollment, not user class.
+  Also remove the `_premium` insert block from `add-content-type-permissions.sql`.
 
 ### Phase 2 — Runtime access logic (`visibility-access.ts`)
 
-- [ ] **Remove `memberRequiresTier` flag**
-  This flag currently routes `member` visibility on content through `user_class_permissions`.
-  Remove it entirely. Content types no longer support `member` visibility.
+- [ ] **Separate the two access checks for content**
+  Access to a content item requires passing two independent checks:
+  1. **Class gate** — `permitted_types.includes(contentType)` — the platform admin
+     controls which content types each user class can access via the
+     ContainerConfigurationPage matrix. If the user's class does not have
+     permission for this content type, they are blocked regardless of visibility.
+  2. **Visibility check** — applied only if the class gate passes:
+     - `public` → accessible to all users whose class permits this content type
+     - `premium` → accessible only via journey enrollment (see below)
+     - `private` → accessible only to the creator
+  Remove the `memberRequiresTier` flag entirely — it conflated these two checks.
 
 - [ ] **Add `premium` access check**
-  When `visibility = 'premium'`, check if the user is enrolled in any program or course
-  whose `journey_items` includes this content item. Implement as a helper function:
-  `canAccessPremiumContent(profile, contentType, contentId)`.
+  When `visibility = 'premium'` and the class gate passes, check if the user is
+  enrolled in any program or course whose `journey_items` includes this content item.
+  Implement as a helper function: `canAccessPremiumContent(profile, contentType, contentId)`.
   Preload enrolled program/course IDs into the user's session profile to avoid
   per-item queries on browse pages.
+  Remove the broken `permitted_types.includes('documents_premium')` checks in
+  `DocumentsPage.tsx`, `EpisodesPage.tsx`, `EventsPage.tsx`, `ReviewsPage.tsx`
+  and replace with this enrollment check.
 
 - [ ] **Add companion access check**
   When a user attempts to access non-public content, also check `circle_companion_items`
@@ -373,7 +387,13 @@ Items are ordered by dependency — earlier items unblock later ones.
 
 ### Phase 5 — ContainerConfigurationPage cleanup
 
-- [ ] **Split nav permissions from content permissions**
-  Remove the content type rows (documents, episodes, etc.) from the
-  ContainerConfigurationPage matrix. It should only show nav container types.
-  Content access is now handled entirely by the visibility + companion/journey model.
+- [ ] **Confirm `_premium` rows are absent from the matrix**
+  After the Phase 1 migration, verify that no `_premium` type codes appear as
+  rows in the ContainerConfigurationPage matrix. The matrix should show container
+  types and base content types only — one row per type, no suffix variants.
+
+- [ ] **Add two-level access note to the matrix UI**
+  Update the info card on ContainerConfigurationPage to clarify that checking
+  a content type (documents, episodes, etc.) for a user class controls whether
+  that class can access that content type at all — independently of the
+  content's own visibility setting.
