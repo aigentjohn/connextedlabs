@@ -31,7 +31,7 @@ interface Blog {
   reading_time_minutes: number | null;
   featured_image_url: string | null;
   created_at: string;
-  visibility: 'public' | 'member' | 'unlisted' | 'private';
+  visibility: 'public' | 'member' | 'premium' | 'private';
   user_id: string;
   tags: string[] | null;
   user?: {
@@ -53,7 +53,7 @@ export default function BlogsPage() {
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'member' | 'unlisted' | 'private'>('all');
+  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'member' | 'premium' | 'private'>('all');
   const [filterMyContent, setFilterMyContent] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -324,7 +324,7 @@ export default function BlogsPage() {
             <option value="all">All Visibility</option>
             <option value="public">Public</option>
             <option value="member">Members Only</option>
-            <option value="unlisted">Unlisted</option>
+            <option value="premium">Course &amp; Program</option>
             <option value="private">Private</option>
           </select>
 

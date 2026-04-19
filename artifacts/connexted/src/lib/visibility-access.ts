@@ -1,44 +1,43 @@
 /**
  * visibility-access.ts — Single source of truth for container/content access rules.
  *
- * HOW IT WORKS
+ * TWO-LEVEL CONTENT ACCESS CHECK
  * ─────────────────────────────────────────────────────────────────
- * All container types share the same three fields:
- *   visibility  : 'public' | 'member' | 'unlisted' | 'private'
- *   member_ids  : string[]
- *   admin_ids   : string[]
+ * Content types (blogs, episodes, documents, posts, books, decks, reviews)
+ * go through TWO sequential gates before a user can view them:
  *
- * The VISIBILITY_RULES config below controls two behavioural knobs
- * per container type.  Changing a knob here propagates everywhere
- * automatically — no component edits needed.
+ *   Gate 1 — Class gate (platform admin controls via the permissions matrix):
+ *     profile.permitted_types.includes(contentType)
+ *     If this fails the user cannot access the content regardless of visibility.
  *
- * KNOBS
- * ─────────────────────────────────────────────────────────────────
- * unlistedPassesListFilter
- *   true  → 'unlisted' records appear in browse lists (anyone with the
- *            URL can also view the detail page)
- *   false → 'unlisted' records are hidden from lists but viewable by
- *            direct URL (detail page still passes)
+ *   Gate 2 — Visibility check (applied only when gate 1 passes):
+ *     public   → anyone (who passed gate 1) can view
+ *     premium  → TODO Phase 2: check journey/course enrollment (stub returns false)
+ *     private  → creator only
  *
- * memberRequiresTier
- *   false → 'member' visibility means the user must be in member_ids
- *            (standard container behaviour)
- *   true  → 'member' visibility means the content type must be in
- *            the user's permitted_types (from user_class_permissions)
+ * CONTAINER TYPES (tables, elevators, meetings, pitches, builds, standups,
+ *                  sprints, meetups, playlists, libraries, checklists)
+ * These do NOT go through the class gate.  Visibility works as:
+ *     public   → anyone can view
+ *     member   → user must be in member_ids
+ *     private  → creator/admin only
  *
  * NAMING RULES (do not change)
  * ─────────────────────────────────────────────────────────────────
- * - Visibility canonical values: 'public' | 'member' | 'unlisted' | 'private'
+ * - Visibility canonical values for content:   'public' | 'premium' | 'private'
+ * - Visibility canonical values for containers:'public' | 'member'  | 'private'
  * - Field name is always `visibility` on every table
- * - `member` is the mid-tier value (NOT 'members-only' or 'community')
- * - `pricing_type: 'members-only'` is intentionally kept as-is (enrollment cost, not visibility)
+ * - `member` is the container mid-tier value (NOT 'members-only' or 'community')
+ * - `premium` is the content mid-tier value (gated behind journey enrollment)
+ * - `pricing_type: 'members-only'` is intentionally kept as-is (enrollment cost,
+ *   not visibility)
  */
 
 import type { Role } from '@/lib/constants/roles';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Visibility = 'public' | 'member' | 'unlisted' | 'private';
+export type Visibility = 'public' | 'member' | 'premium' | 'private';
 
 export interface AccessRecord {
   visibility?: Visibility | string | null;
@@ -60,7 +59,7 @@ export interface AccessProfile {
    * Covers both container types (tables, meetings, …) and content types
    * (documents, episodes, books, …).
    * Populated from userPermissions.permitted_types in auth-context.
-   * Use this for content visibility checks — do NOT use membership_tier.
+   * Use this for the content class gate — do NOT use membership_tier.
    */
   permitted_types: string[];
 }
@@ -68,16 +67,12 @@ export interface AccessProfile {
 // ─── Per-type rule config ─────────────────────────────────────────────────────
 
 interface VisibilityRule {
-  /** Does 'unlisted' show up in list/browse pages? (always viewable via direct URL) */
-  unlistedPassesListFilter: boolean;
   /**
-   * Does 'member' visibility check user_class instead of member_ids?
-   *   false → container behaviour: user must be in member_ids
-   *   true  → content behaviour: user must have user_class >= 3
-   * (membership_tier is NOT used here — it is reserved for commercial content
-   * gating: pathways, courses, programs, companies, markets.)
+   * true  → this is a content type; the two-level access check applies:
+   *         first check permitted_types (class gate), then check visibility.
+   * false → this is a container type; only visibility + member_ids are checked.
    */
-  memberRequiresTier: boolean;
+  isContent: boolean;
 }
 
 /**
@@ -86,36 +81,32 @@ interface VisibilityRule {
  */
 export const VISIBILITY_RULES: Record<string, VisibilityRule> = {
   // ── Default (covers most containers) ──────────────────────────
-  // 'unlisted' shown in lists; 'member' requires member_ids entry
-  default:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
+  default:    { isContent: false },
 
-  // ── Containers with same-as-default rules (explicit for clarity) ──
-  tables:     { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  elevators:  { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  meetings:   { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  meetups:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  standups:   { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  sprints:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  libraries:  { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  playlists:  { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  checklists: { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  prompts:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
-  circles:    { unlistedPassesListFilter: true,  memberRequiresTier: false },
+  // ── Containers (explicit for clarity) ─────────────────────────
+  tables:     { isContent: false },
+  elevators:  { isContent: false },
+  meetings:   { isContent: false },
+  meetups:    { isContent: false },
+  standups:   { isContent: false },
+  sprints:    { isContent: false },
+  libraries:  { isContent: false },
+  playlists:  { isContent: false },
+  checklists: { isContent: false },
+  prompts:    { isContent: false },
+  circles:    { isContent: false },
+  builds:     { isContent: false },
+  pitches:    { isContent: false },
 
-  // ── Containers where 'unlisted' should NOT appear in browse lists ──
-  // (e.g. builds/pitches are typically shared by direct link)
-  builds:     { unlistedPassesListFilter: false, memberRequiresTier: false },
-  pitches:    { unlistedPassesListFilter: false, memberRequiresTier: false },
-
-  // ── Content types — 'member' means paid tier, not member_ids ──
-  documents:  { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  events:     { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  posts:      { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  episodes:   { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  blogs:      { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  books:      { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  decks:      { unlistedPassesListFilter: false, memberRequiresTier: true  },
-  reviews:    { unlistedPassesListFilter: false, memberRequiresTier: true  },
+  // ── Content types — two-level access applies ───────────────────
+  documents:  { isContent: true },
+  events:     { isContent: true },
+  posts:      { isContent: true },
+  episodes:   { isContent: true },
+  blogs:      { isContent: true },
+  books:      { isContent: true },
+  decks:      { isContent: true },
+  reviews:    { isContent: true },
 };
 
 // ─── Core access helpers ──────────────────────────────────────────────────────
@@ -146,29 +137,28 @@ export function canViewContainer(
 
   const rule = getRule(containerType);
   const vis = (record.visibility ?? 'public') as Visibility;
+
+  if (rule.isContent) {
+    // Gate 1 — class gate: does this user's class allow this content type?
+    if (!profile.permitted_types.includes(containerType)) return false;
+
+    // Gate 2 — visibility check
+    switch (vis) {
+      case 'public':  return true;
+      case 'premium': return false; // TODO Phase 2: check journey enrollment
+      case 'private': return false;
+      default:        return false;
+    }
+  }
+
+  // Container path
   const isMember = record.member_ids?.includes(profile.id) ?? false;
 
   switch (vis) {
-    case 'public':
-      return true;
-
-    case 'unlisted':
-      // Unlisted is always viewable via direct URL (detail page)
-      return true;
-
-    case 'member':
-      if (rule.memberRequiresTier) {
-        // Content types: check user_class_permissions — is this content type
-        // in the list of types the user's class can access?
-        return profile.permitted_types.includes(containerType);
-      }
-      return isMember;
-
-    case 'private':
-      return isMember;
-
-    default:
-      return false;
+    case 'public':  return true;
+    case 'member':  return isMember;
+    case 'private': return false;
+    default:        return false;
   }
 }
 
@@ -176,13 +166,12 @@ export function canViewContainer(
  * filterByVisibility — used in list/browse pages.
  * Returns only the records this profile is allowed to see in a list context.
  *
- * The key difference from canViewContainer: 'unlisted' records are hidden
- * from lists (controlled by unlistedPassesListFilter) but still accessible
- * by direct URL.
+ * For content types: applies the two-level check (class gate + visibility).
+ * For container types: applies public/member/private rules using member_ids.
  *
  * @param records        Array of container/content records
  * @param profile        The current user's profile
- * @param containerType  DB table name, e.g. 'tables', 'builds'
+ * @param containerType  DB table name, e.g. 'tables', 'builds', 'episodes'
  */
 export function filterByVisibility<T extends AccessRecord>(
   records: T[],
@@ -200,27 +189,28 @@ export function filterByVisibility<T extends AccessRecord>(
     if (record.admin_ids?.includes(profile.id)) return true;
 
     const vis = (record.visibility ?? 'public') as Visibility;
+
+    if (rule.isContent) {
+      // Gate 1 — class gate
+      if (!profile.permitted_types.includes(containerType)) return false;
+
+      // Gate 2 — visibility check
+      switch (vis) {
+        case 'public':  return true;
+        case 'premium': return false; // TODO Phase 2: check journey enrollment
+        case 'private': return false;
+        default:        return false;
+      }
+    }
+
+    // Container path
     const isMember = record.member_ids?.includes(profile.id) ?? false;
 
     switch (vis) {
-      case 'public':
-        return true;
-
-      case 'unlisted':
-        // Config knob: show in lists or hide (still accessible via URL)
-        return rule.unlistedPassesListFilter;
-
-      case 'member':
-        if (rule.memberRequiresTier) {
-          return profile.permitted_types.includes(containerType);
-        }
-        return isMember;
-
-      case 'private':
-        return isMember;
-
-      default:
-        return false;
+      case 'public':  return true;
+      case 'member':  return isMember;
+      case 'private': return false;
+      default:        return false;
     }
   });
 }

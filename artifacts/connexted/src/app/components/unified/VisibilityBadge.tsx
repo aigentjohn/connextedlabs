@@ -1,5 +1,5 @@
 import { Badge } from '@/app/components/ui/badge';
-import { Globe, Users, Link, Lock } from 'lucide-react';
+import { Globe, Users, Star, Lock } from 'lucide-react';
 import type { Visibility } from '@/app/components/unified/PrivacySelector';
 
 interface VisibilityBadgeProps {
@@ -19,16 +19,10 @@ export function VisibilityBadge({ visibility, size = 'md' }: VisibilityBadgeProp
       label: 'Members Only',
       color: 'bg-blue-100 text-blue-800 border-blue-300',
     },
-    // legacy alias — maps 'members-only' stored values to the member config
-    'members-only': {
-      icon: Users,
-      label: 'Members Only',
-      color: 'bg-blue-100 text-blue-800 border-blue-300',
-    },
-    unlisted: {
-      icon: Link,
-      label: 'Unlisted',
-      color: 'bg-purple-100 text-purple-800 border-purple-300',
+    premium: {
+      icon: Star,
+      label: 'Course & Program',
+      color: 'bg-amber-100 text-amber-800 border-amber-300',
     },
     private: {
       icon: Lock,

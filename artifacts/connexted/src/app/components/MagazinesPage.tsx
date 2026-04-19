@@ -30,6 +30,7 @@ interface Magazine {
   curator_avatar?: string;
   blog_count: number;
   subscriber_count: number;
+  // TODO: update to use visibility field once normalize-magazines-visibility.sql migration has run
   is_public: boolean;
   curation_type: 'auto' | 'curated' | 'hybrid';
   publishing_frequency?: string;

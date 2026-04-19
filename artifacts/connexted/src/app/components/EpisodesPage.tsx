@@ -21,7 +21,7 @@ interface Episode {
   tags: string[];
   category: string;
   video_platform: string;
-  visibility: 'public' | 'member' | 'unlisted' | 'private';
+  visibility: 'public' | 'member' | 'premium' | 'private';
   views: number;
   favorites: string[];
   is_published: boolean;
@@ -57,7 +57,7 @@ export default function EpisodesPage() {
   const [authors, setAuthors] = useState<Record<string, Author>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'member' | 'private'>('all');
+  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'member' | 'premium' | 'private'>('all');
   const [filterMyContent, setFilterMyContent] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);

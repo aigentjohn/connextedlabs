@@ -424,13 +424,14 @@ export default function ContainerConfigurationPage() {
             <div className="flex-1">
               <h3 className="font-medium text-blue-900 mb-2">Header Navigation Visibility</h3>
               <p className="text-sm text-blue-800">
-                Control which containers appear in the header navigation for each user class.
-                Users will only see containers that are checked for their class level.
-                Admins always see all containers regardless of these settings.
+                Control which container and content types are accessible for each user class.
+                A user whose class does not have permission for a type cannot access it regardless
+                of any other setting. This is the platform-level governance gate. Content visibility
+                (public / premium / private) is a second layer applied after this check.
               </p>
               <p className="text-sm text-blue-800 mt-2">
-                <strong>Tip:</strong> Start with minimal containers for Class 1 (Guest), add more as classes increase.
-                Reserve special containers (Elevators, Pitches, Builds, Meetups) for sponsor sidebar only (Phase 3).
+                <strong>Tip:</strong> Start with minimal types for Class 1 (Guest) and add more as
+                classes increase. Admins always see all types regardless of these settings.
               </p>
             </div>
           </div>
