@@ -11,7 +11,7 @@ This section is conditionally shown based on user role. It groups pages for mana
 | any user listed as admin on at least one container | My Admin |
 | any user listed as admin on at least one circle | Circle Admin |
 | coordinator / manager (or any program admin) | Program Admin |
-| admin or super | + all Platform Admin pages |
+| admin or super | + all Platform Admin pages (intended; currently restricted to super only in code — deferred fix) |
 | super only | + Link Library Admin |
 
 ---
@@ -168,7 +168,7 @@ Workflow: Shareable Links → Prospects → Applications → Invitations → Ana
 - Offerings Manager (`/platform-admin/offerings`)
 
 ### Tab 6 — Containers
-- Batch Container Delete (`/platform-admin/batch-delete`) — marked dangerous
+- Batch Container Delete (`/platform-admin/batch-delete`) — marked dangerous; container type list loaded dynamically from `container_types` table with hardcoded fallback
 - Lists Management (`/platform-admin/checklists`)
 - Sprints Management (`/platform-admin/sprints`)
 - Builds Management (`/platform-admin/builds`)
@@ -196,7 +196,7 @@ Analysis & Monitoring:
 - Flagged Content (`/platform-admin/flagged-content`)
 
 Data Operations:
-- Data Cleanup Utility (`/platform-admin/data-cleanup-utility`) — marked dangerous
+- Data Cleanup Utility (`/platform-admin/data-cleanup-utility`) — marked dangerous; container table list loaded dynamically from `container_types` table with hardcoded fallback
 - Data Cleanup (`/platform-admin/data-cleanup`) — permanent deletion
 - Account Management (`/platform-admin/account-management`)
 - Deleted Documents (`/platform-admin/deleted-documents`)
@@ -210,6 +210,7 @@ Demo & Seed Data:
 **Below all tabs:** `MyCircleLinksCard` and administered containers (same lists as My Admin but scoped to the super admin's own records)
 
 **Known issues / gaps:**
+- `AdminDashboardTabbed` is restricted to `role === 'super'` — `admin` role users see an access-denied state. The access levels table above reflects intended behaviour. Fix is deferred.
 - Shareable Links appears in both Tab 3 (Growth) and Tab 5 (Programs) — duplicate entry
 - Several entries in Tab 8 duplicate entries from other tabs (Seed Data Config, Data Seeder, Demo Accounts, Batch Delete)
 - Waitlist Management link in Tab 3 points to `/program-admin/waitlist` (not under `/platform-admin`)
@@ -233,7 +234,7 @@ Demo & Seed Data:
 **Role definitions managed here:**
 - member, host, moderator, admin, coordinator, manager, super
 
-**User class fallback names (1–10):** Visitor, Guest, Basic User, Attender, Regular User, Regular User Plus, Power User, Circle Leader, Circle Leader Plus, Platform Admin
+**User class names:** Loaded dynamically from the `user_classes` table. The default class (where `is_default = true`) is fetched at runtime — hardcoded fallback of `3` is retained only if the DB call fails. Current DB names: Class 1 - Starter, Class 2 - Basic, Class 3 - Standard, Class 4 - Plus, Class 5 - Advanced, Class 6 - Pro, Class 7 - Expert, Class 8 - Enterprise, Class 9 - Executive, Class 10 - Unlimited.
 
 **Actions:**
 - View user detail → `/platform-admin/users/{userId}`
@@ -249,6 +250,50 @@ Demo & Seed Data:
 **Known issues / gaps:**
 - Auth operations are proxied through a named Supabase Edge Function (`make-server-d7930c7f`); if that function is unavailable, privileged actions silently fail
 - 8-second fetch timeout on server calls — no user-visible retry mechanism
+
+---
+
+## User Class Management (`/platform-admin/user-classes`)
+
+**Component:** `src/app/components/admin/UserClassManagement.tsx`
+**Access:** `role === 'super'`
+
+**What it does:** Manages the ten user classes — their display names, capacity limits, and which are advertised to members for upgrade. This is the authoritative source for what each class can do; the nav visibility matrix (Container Configuration) is a separate concern.
+
+**Data managed:** `user_classes` table
+
+**Fields per class:**
+- `class_number` (1–10, primary key)
+- `display_name` — shown in User Management and MembershipManagement
+- `max_admin_circles` — how many circles the user may administer (-1 = unlimited)
+- `max_admin_containers` — how many containers the user may administer (-1 = unlimited)
+- `max_member_containers` — how many containers the user may join (-1 = unlimited)
+- `description` — shown in upgrade prompts
+- `is_default` — the class assigned to new users if not set explicitly
+- `is_advertised` — controls whether the class appears in the MembershipManagement upgrade UI (replaces former hardcoded range of classes 3–9)
+
+**Actions:**
+- Edit any class inline
+- Save changes (upserts to `user_class_permissions`)
+- Reset to defaults — calls `initializeDefaultClasses()`, which is now a fallback only and will not override existing DB values
+
+**Current class values (as of April 2026):**
+
+| Class | Name | max_admin_circles | max_admin_containers | max_member_containers |
+|---|---|---|---|---|
+| 1 | Starter | 0 | 0 | 5 |
+| 2 | Basic | 0 | 10 | 10 |
+| 3 | Standard | 1 | 30 | 30 |
+| 4 | Plus | 5 | 40 | 40 |
+| 5 | Advanced | 10 | 50 | 50 |
+| 6 | Pro | 30 | 60 | 60 |
+| 7 | Expert | 30 | 90 | 90 |
+| 8 | Enterprise | 90 | 90 | 90 |
+| 9 | Executive | -1 | -1 | -1 |
+| 10 | Unlimited | -1 | -1 | -1 |
+
+**Known issues / gaps:**
+- `is_advertised` field is stored in the DB but is not yet surfaced as an editable toggle in the User Class Management UI — currently set directly via SQL
 
 ---
 
@@ -282,19 +327,22 @@ Demo & Seed Data:
 **Component:** `src/app/components/admin/ContainerConfigurationPage.tsx`
 **Access:** `role === 'super'`
 
-**What it does:** Controls which container types are visible in the navigation header for each user class (1–10). Reads from `container_types` and `user_class_permissions` tables.
+**What it does:** Controls which nav items are visible for each user class (1–10). Reads from `container_types` and `user_class_permissions` tables. The `container_types` table now covers all nav item types — not just containers and content types — including home, news, circles, calendar, programs, courses, events, forums, and prompts as well as the original container types (tables, meetings, libraries etc.) and content types (documents, episodes, books, blogs, reviews, decks, posts).
 
-**Data managed:** A matrix of container type × user class → `visible` boolean and `sort_order`
+**Data managed:** A matrix of nav item type × user class → `visible` boolean and `sort_order`
+
+**User class list source:** Fetched dynamically from `user_classes` table. Falls back to a hardcoded list of ten classes only if the DB call fails.
 
 **Actions:**
-- Toggle visibility of each container type per user class
+- Toggle visibility of each nav type per user class
 - Adjust sort order
 - Save changes (upserts to `user_class_permissions`)
 - Reset to defaults
 
 **Known issues / gaps:**
 - Comment in source: "Split candidate: ~597 lines — consider extracting NavigationConfigPanel, ContainerVisibilityForm, and ContainerDefaultsPanel into sub-components"
-- If `container_types` table is missing (migration not run), the page surfaces a `migrationNeeded` warning and stops loading
+- `forums` and `prompts` are in `container_types` and configurable in the matrix but neither has a page or route yet — enabling them causes a nav item that leads nowhere (both deferred)
+- If `container_types` table is missing, the page surfaces a `migrationNeeded` warning and stops loading
 
 ---
 
