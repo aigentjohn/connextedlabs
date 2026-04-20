@@ -26,10 +26,10 @@ own content and data on the platform — without requiring admin intervention.
 | `/my-contents` | My Links — folder org, import, bulk enrich, health check | ✅ Working | No nested folders, no export |
 | `/my-reviews` | Reviews with rating, tags, circles; edit, delete | ✅ Working | Edit flow unclear |
 | `/my-content-admin` | Expiring/scheduled content lifecycle, renew RPC | ✅ Working | No renewal history, no auto-notify |
-| `/books` | My Books | ⚠️ Not reviewed | Unknown status |
-| `/decks` | My Decks | ⚠️ Not reviewed | Unknown status |
-| `/checklists` | My Lists | ⚠️ Not reviewed | Unknown status |
-| `/libraries` | My Libraries | ⚠️ Not reviewed | Unknown status |
+| `/books` | My Books | ⚠️ Issues found | PrivacySelector wrong mode; settings page missing visibility |
+| `/decks` | My Decks | ⚠️ Issues found | PrivacySelector wrong mode; no server-side access control; line 556 bug |
+| `/checklists` | My Lists | ❌ Incomplete | No visibility field or access control in UI |
+| `/libraries` | My Libraries | ⚠️ Issues found | UI still uses `is_public` boolean despite DB migration |
 
 ### My Growth section
 
@@ -56,7 +56,89 @@ own content and data on the platform — without requiring admin intervention.
 
 ---
 
-## 2. Impact of Recent Updates (April 2026)
+## 2. Review Findings — My Books, My Decks, My Lists, My Libraries
+
+These four pages were audited in April 2026 as part of the visibility model normalisation work.
+
+---
+
+### My Books (`/books`)
+
+**What works:**
+- Books load and display correctly for the owner
+- `PrivacySelector` is present on the create/manage form
+
+**Issues found:**
+- `PrivacySelector` is called without a `mode` prop — defaults to `mode="container"`, showing `public / member / private`
+  Books are a **content type** and must use `mode="content"` (`public / premium / private`)
+- The Settings page for a book does not include a visibility control at all — visibility can only be set at creation time, not updated later
+
+**Fixes needed:**
+- Add `mode="content"` to `<PrivacySelector` in the book create form
+- Add a visibility field (with `mode="content"`) to the book settings/manage tab
+
+---
+
+### My Decks (`/decks`)
+
+**What works:**
+- Decks load and display for the owner
+- `visibility` column exists in the DB; `PrivacySelector` is present on create/manage forms
+
+**Issues found:**
+- `PrivacySelector` is called without `mode` prop — shows `public / member / private` (wrong for content)
+  Must use `mode="content"` → `public / premium / private`
+- **Bug on line 556** of `DecksPage.tsx`: references an undefined variable `creator` — should be `deck.author`
+  This will throw a runtime error when the deck author block is rendered
+- No server-side access control: the API query returns all decks regardless of `visibility`
+  A public deck and a private deck are both accessible via direct URL or API call for any user
+- `admin_ids` and `member_ids` columns exist on the `decks` table but are not used anywhere in the UI
+
+**Fixes needed:**
+- Add `mode="content"` to `<PrivacySelector` in deck create/manage forms
+- Fix line 556: replace `creator` with `deck.author`
+- Add server-side visibility filter to the deck query (exclude `private` decks the user doesn't own; exclude `premium` decks from non-enrolled users)
+- Decide whether `admin_ids` / `member_ids` on decks is intentional — if not, ignore or remove
+
+---
+
+### My Lists / Checklists (`/checklists`)
+
+**What works:**
+- Checklists load and can be created, edited, and completed
+
+**Issues found:**
+- No `visibility` field exists in the checklist create or manage UI — every checklist is effectively always `public`
+- No `PrivacySelector` component is used anywhere in the checklist flow
+- No access control applied when rendering checklists — visibility column exists in DB (added during April migration) but the UI neither reads nor writes it
+- Checklists are a **container type** and should use `mode="container"` → `public / member / private`
+
+**Fixes needed:**
+- Add `<PrivacySelector mode="container">` to the checklist create form, wired to `visibility`
+- Add visibility field to the checklist manage/settings tab
+- Add server-side filter to the checklist list query so `member` and `private` checklists are filtered correctly
+
+---
+
+### My Libraries (`/libraries`)
+
+**What works:**
+- Libraries load and display; the `visibility` column was added to the DB during the April 2026 migration
+
+**Issues found:**
+- The create page still uses a **boolean toggle** (`is_public: true / false`) instead of the `visibility` column
+- The manage/settings page has the same boolean toggle — it does not read or write the `visibility` field
+- The `is_public` boolean was not removed from the table — both columns exist; only `is_public` is used in the UI
+- Libraries are a **container type** and should use `mode="container"` → `public / member / private`
+
+**Fixes needed:**
+- Replace the boolean `is_public` toggle with `<PrivacySelector mode="container">` writing to `visibility`
+- Update the library list query to filter by `visibility` (not `is_public`)
+- Decide whether to drop `is_public` from the `libraries` table in a migration once UI is updated
+
+---
+
+## 3. Impact of Recent Updates (April 2026)
 
 The following changes from this session affect this plan:
 
@@ -82,7 +164,7 @@ The following changes from this session affect this plan:
 
 ---
 
-## 3. What Users Cannot Do (Priority Order)
+## 4. What Users Cannot Do (Priority Order)
 
 | Capability | Priority | Blocking on |
 |---|---|---|
@@ -94,6 +176,9 @@ The following changes from this session affect this plan:
 | See and manage their uploaded images | 🟡 Medium | Image upload plan (IMAGE_SPECIFICATIONS.md) + Supabase Storage RPC |
 | Submit links to the shared library | 🟡 Medium | New table + admin review flow |
 | Restore soft-deleted content | 🟡 Medium | New Trash view |
+| Set visibility on their checklists | 🟡 Medium | Add PrivacySelector to checklist create/manage forms |
+| Set visibility on their libraries | 🟡 Medium | Replace is_public toggle with PrivacySelector in library forms |
+| Have their private/premium decks protected server-side | 🟡 Medium | Add visibility filter to deck API query |
 | Browser bookmark import (HTML) | 🟢 Low | Completes existing "Coming Soon" in ImportUrlDialog |
 | Bulk delete/archive content | 🟢 Low | UI addition |
 | Activity/login audit log | 🟢 Low | New table |
@@ -101,7 +186,7 @@ The following changes from this session affect this plan:
 
 ---
 
-## 4. Development Plan
+## 5. Development Plan
 
 ### Phase 1 — Quick Fixes (ready to build)
 
@@ -123,11 +208,33 @@ The following changes from this session affect this plan:
 - Add tag dropdown from `link_library.tags`
 - Effort: 1–2 hours
 
-**1d. Wire correct PrivacySelector mode into content forms**
-- All content create/manage forms (documents, blogs, episodes, posts, books, decks)
-  need `mode="content"` on the `PrivacySelector` component
-- Without this, content forms show `member` as an option which is not valid for content
-- Effort: 2–3 hours (search all create/manage forms and add the prop)
+**1d. Wire correct PrivacySelector mode into content and container forms**
+- Content create/manage forms (documents, blogs, episodes, posts, books, decks)
+  need `mode="content"` on `PrivacySelector` → shows `public / premium / private`
+- Container create/manage forms (checklists, libraries — and any others still missing)
+  need `mode="container"` → shows `public / member / private`
+- Books settings page is missing a visibility field entirely — add one with `mode="content"`
+- Effort: 2–3 hours (search all create/manage forms)
+
+**1e. Fix DecksPage line 556 crash**
+- `DecksPage.tsx` line 556 references an undefined variable `creator` — should be `deck.author`
+- This causes a runtime error when rendering the deck author credit
+- File: `src/app/components/DecksPage.tsx`
+- Effort: 15 minutes
+
+**1f. Update Libraries UI to use `visibility` field**
+- Libraries create/manage forms still use a boolean `is_public` toggle
+- Replace with `<PrivacySelector mode="container">` wired to the `visibility` column
+- Update the library list query to filter by `visibility` instead of `is_public`
+- File: library create form, `LibraryDetailPage` manage tab
+- Effort: 1–2 hours
+
+**1g. Add visibility control to Checklists**
+- Checklist create and manage forms have no visibility field at all
+- Add `<PrivacySelector mode="container">` wired to `visibility`
+- Update checklist list query to apply visibility filter
+- File: checklist create form, checklist manage tab
+- Effort: 1–2 hours
 
 ---
 
@@ -302,7 +409,7 @@ CREATE POLICY "link_submissions_admin_edit" ON public.link_submissions FOR UPDAT
 
 ---
 
-## 5. Admin-Side Enhancements
+## 6. Admin-Side Enhancements
 
 | Item | Detail | Effort |
 |---|---|---|
@@ -312,11 +419,11 @@ CREATE POLICY "link_submissions_admin_edit" ON public.link_submissions FOR UPDAT
 
 ---
 
-## 6. Effort Summary
+## 7. Effort Summary
 
 | Phase | Description | Effort |
 |---|---|---|
-| 1 | Quick fixes (circles, shareable links, tag filter, PrivacySelector mode) | 1 day |
+| 1 | Quick fixes (circles, shareable links, tag filter, PrivacySelector mode, Decks bug, Libraries/Checklists UI) | 1–2 days |
 | 2 | My Content Audit page | 4–6 days |
 | 3 | Account deletion + full data export | 5–7 days |
 | 4 | Link health & review workflow | 1–2 days |
@@ -324,11 +431,11 @@ CREATE POLICY "link_submissions_admin_edit" ON public.link_submissions FOR UPDAT
 | 6 | Home page enhancements + consolidation | 1–2 days |
 | 7 | Deleted content recovery | 1 day |
 | Admin | Admin-side enhancements | 2–3 days |
-| **Total** | | **~18–25 days** |
+| **Total** | | **~18–26 days** |
 
 ---
 
-## 7. What Is Covered Elsewhere
+## 8. What Is Covered Elsewhere
 
 These related topics have their own dedicated documents and are not duplicated here:
 

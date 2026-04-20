@@ -1,5 +1,11 @@
 # My Content Hub — Current State & Development Plan
 
+> ⚠️ **SUPERSEDED — April 2026**
+> This document has been merged into [`USER_CONTENT_PLAN.md`](USER_CONTENT_PLAN.md),
+> which incorporates all items from this file alongside the April 2026 visibility model
+> and platform updates. This file is kept for historical reference only and should not
+> be edited.
+
 **Status:** Planning  
 **Goal:** Give every user a single, unified place to find, audit, and manage everything they have contributed to the platform — documents, links, AI prompts, images, shareable URLs, and container content — with health checks and update workflows built in.
 

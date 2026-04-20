@@ -1,6 +1,12 @@
 # User Content Control & Data Management Plan
 ## Connexted Labs — Full Platform Audit & Development Roadmap
 
+> ⚠️ **SUPERSEDED — April 2026**
+> This document has been merged into [`USER_CONTENT_PLAN.md`](USER_CONTENT_PLAN.md),
+> which incorporates all items from this file alongside the April 2026 visibility model
+> and platform updates. This file is kept for historical reference only and should not
+> be edited.
+
 **Status:** Planning  
 **Scope:** Everything a user can see, manage, add, update, import, share, or audit about their own data  
 **Goal:** Give individual users meaningful control over their content footprint, content imports, link sharing, and data visibility — without requiring admin intervention.
