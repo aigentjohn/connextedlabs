@@ -102,14 +102,18 @@ export default function UserClassManagement() {
         
         // Put all users in the default class (Class 1) for now
         const dist: { [key: number]: ClassDistribution } = {};
-        
-        for (let i = 1; i <= 10; i++) {
-          dist[i] = {
-            class_number: i,
-            count: i === 1 ? (usersData?.length || 0) : 0,
-            free_count: i === 1 ? usersData?.filter((u: any) => u.membership_tier === 'free').length || 0 : 0,
-            member_count: i === 1 ? usersData?.filter((u: any) => u.membership_tier === 'member').length || 0 : 0,
-            premium_count: i === 1 ? usersData?.filter((u: any) => u.membership_tier === 'premium').length || 0 : 0,
+
+        const classNumbers = userClasses.length > 0
+          ? userClasses.map(uc => uc.class_number)
+          : Array.from({ length: 10 }, (_, i) => i + 1);
+
+        for (const classNum of classNumbers) {
+          dist[classNum] = {
+            class_number: classNum,
+            count: classNum === 1 ? (usersData?.length || 0) : 0,
+            free_count: classNum === 1 ? usersData?.filter((u: any) => u.membership_tier === 'free').length || 0 : 0,
+            member_count: classNum === 1 ? usersData?.filter((u: any) => u.membership_tier === 'member').length || 0 : 0,
+            premium_count: classNum === 1 ? usersData?.filter((u: any) => u.membership_tier === 'premium').length || 0 : 0,
           };
         }
 
@@ -126,10 +130,14 @@ export default function UserClassManagement() {
 
       // Calculate distribution
       const dist: { [key: number]: ClassDistribution } = {};
-      
-      for (let i = 1; i <= 10; i++) {
-        dist[i] = {
-          class_number: i,
+
+      const classNumbers = userClasses.length > 0
+        ? userClasses.map(uc => uc.class_number)
+        : Array.from({ length: 10 }, (_, i) => i + 1);
+
+      for (const classNum of classNumbers) {
+        dist[classNum] = {
+          class_number: classNum,
           count: 0,
           free_count: 0,
           member_count: 0,
@@ -172,6 +180,9 @@ export default function UserClassManagement() {
   };
 
   const initializeDefaultClasses = (): UserClass[] => {
+    // FALLBACK ONLY — used when user_classes table is empty.
+    // These values are not authoritative. The user_classes table is the source of truth.
+    // Update this only if the DB seed data changes.
     return [
       { class_number: 1, display_name: 'Class 1 - Starter', max_admin_circles: 0, max_admin_containers: 1, max_member_containers: 5, description: 'Limited participation', is_default: true },
       { class_number: 2, display_name: 'Class 2 - Basic', max_admin_circles: 0, max_admin_containers: 2, max_member_containers: 10, description: 'Light container admin', is_default: false },

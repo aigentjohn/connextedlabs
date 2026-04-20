@@ -35,19 +35,22 @@ export default function ContainerConfigurationPage() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [migrationNeeded, setMigrationNeeded] = useState(false);
+  const [userClassDefs, setUserClassDefs] = useState<{ class_number: number; display_name: string }[]>([]);
 
-  const userClasses = [
-    { number: 1, name: 'Class 1 - Starter' },
-    { number: 2, name: 'Class 2 - Basic' },
-    { number: 3, name: 'Class 3 - Member' },
-    { number: 4, name: 'Class 4 - Plus' },
-    { number: 5, name: 'Class 5 - Advanced' },
-    { number: 6, name: 'Class 6 - Pro' },
-    { number: 7, name: 'Class 7 - Premium' },
-    { number: 8, name: 'Class 8 - Enterprise' },
-    { number: 9, name: 'Class 9 - Executive' },
-    { number: 10, name: 'Class 10 - Unlimited' },
-  ];
+  const userClasses = userClassDefs.length > 0
+    ? userClassDefs.map(c => ({ number: c.class_number, name: c.display_name }))
+    : [
+        { number: 1, name: 'Class 1 - Starter' },
+        { number: 2, name: 'Class 2 - Basic' },
+        { number: 3, name: 'Class 3 - Standard' },
+        { number: 4, name: 'Class 4 - Plus' },
+        { number: 5, name: 'Class 5 - Advanced' },
+        { number: 6, name: 'Class 6 - Pro' },
+        { number: 7, name: 'Class 7 - Expert' },
+        { number: 8, name: 'Class 8 - Enterprise' },
+        { number: 9, name: 'Class 9 - Executive' },
+        { number: 10, name: 'Class 10 - Unlimited' },
+      ];
 
   useEffect(() => {
     if (profile?.role === 'super') {
@@ -83,6 +86,15 @@ export default function ContainerConfigurationPage() {
         setMigrationNeeded(true);
         setLoading(false);
         return;
+      }
+
+      const { data: classData } = await supabase
+        .from('user_classes')
+        .select('class_number, display_name')
+        .order('class_number', { ascending: true });
+
+      if (classData && classData.length > 0) {
+        setUserClassDefs(classData);
       }
 
       setContainers(containersData || []);

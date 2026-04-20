@@ -57,6 +57,7 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
   });
   const [loading, setLoading] = useState(true);
   const [upgradeOfferings, setUpgradeOfferings] = useState<MarketOffering[]>([]);
+  const [containerTypes, setContainerTypes] = useState<string[]>(['tables', 'elevators', 'meetings', 'pitches', 'builds', 'standups', 'meetups']);
 
   useEffect(() => {
     fetchUserClassInfo();
@@ -109,7 +110,14 @@ export function MembershipManagement({ userId }: MembershipManagementProps) {
         .contains('member_ids', [userId]);
 
       // Fetch containers
-      const containerTypes = ['tables', 'elevators', 'meetings', 'pitches', 'builds', 'standups', 'meetups'];
+      const { data: ctData } = await supabase
+        .from('container_types')
+        .select('type_code');
+
+      if (ctData && ctData.length > 0) {
+        setContainerTypes(ctData.map((c: any) => c.type_code));
+      }
+
       let adminContainersTotal = 0;
       let memberContainersTotal = 0;
 
@@ -422,8 +430,7 @@ function TierComparisonGrid({ currentClass }: { currentClass: number }) {
       .order('class_number', { ascending: true })
       .then(({ data }) => {
         if (data && data.length > 0) {
-          // Show classes 3–9 as the advertised range; skip 1–2 (Visitor/Guest) and 10 (Platform Admin)
-          setAllClasses(data.filter((c: any) => c.class_number >= 3 && c.class_number <= 9));
+          setAllClasses(data.filter((c: any) => c.is_advertised === true));
         }
       });
   }, []);

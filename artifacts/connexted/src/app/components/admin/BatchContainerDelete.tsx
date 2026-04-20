@@ -37,15 +37,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type ContainerType = 
-  | 'circles' 
-  | 'tables' 
-  | 'builds' 
-  | 'pitches' 
-  | 'elevators' 
-  | 'meetups' 
-  | 'meetings' 
-  | 'standups' 
+// Type union kept for TypeScript safety — labels and list are loaded from DB at runtime
+type ContainerType =
+  | 'circles'
+  | 'tables'
+  | 'builds'
+  | 'pitches'
+  | 'elevators'
+  | 'meetups'
+  | 'meetings'
+  | 'standups'
   | 'sprints'
   | 'programs'
   | 'journeys'
@@ -94,6 +95,7 @@ const containerTypeLabels: Record<ContainerType, string> = {
 export default function BatchContainerDelete() {
   const { profile } = useAuth();
   const [containerType, setContainerType] = useState<ContainerType>('circles');
+  const [containerTypeOptions, setContainerTypeOptions] = useState<{type_code: string, display_name: string}[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -106,6 +108,27 @@ export default function BatchContainerDelete() {
       fetchContainers();
     }
   }, [containerType, profile]);
+
+  useEffect(() => {
+    if (profile?.role === 'super') {
+      const loadContainerTypeOptions = async () => {
+        const { data: containerTypesData } = await supabase
+          .from('container_types')
+          .select('type_code, display_name')
+          .order('sort_order', { ascending: true });
+
+        if (containerTypesData && containerTypesData.length > 0) {
+          setContainerTypeOptions(containerTypesData);
+        } else {
+          // Fallback to hardcoded labels
+          setContainerTypeOptions(
+            Object.entries(containerTypeLabels).map(([type_code, display_name]) => ({ type_code, display_name }))
+          );
+        }
+      };
+      loadContainerTypeOptions();
+    }
+  }, [profile]);
 
   const fetchContainers = async () => {
     setLoading(true);
@@ -258,9 +281,9 @@ export default function BatchContainerDelete() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(containerTypeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                {containerTypeOptions.map(({ type_code, display_name }) => (
+                  <SelectItem key={type_code} value={type_code}>
+                    {display_name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -29,21 +29,7 @@ interface TableStats {
   sample?: any[];
 }
 
-const CONTAINER_TABLES = [
-  'programs',
-  'journeys', 
-  'circles',
-  'tables',
-  'builds',
-  'pitches',
-  'elevators',
-  'meetups',
-  'meetings',
-  'standups',
-  'sprints',
-  'checklists',
-  'libraries'
-];
+// CONTAINER_TABLES removed — loaded from container_types DB table at runtime (see containerTables state below)
 
 const CONTENT_TABLES = [
   'posts',
@@ -63,6 +49,7 @@ export default function DataCleanupUtility() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<TableStats[]>([]);
+  const [containerTables, setContainerTables] = useState<string[]>([]);
   const [sqlCopied, setSqlCopied] = useState(false);
   const [deletingTable, setDeletingTable] = useState<string | null>(null);
   const [diagnosticCopied, setDiagnosticCopied] = useState(false);
@@ -76,7 +63,25 @@ export default function DataCleanupUtility() {
 
   const fetchStats = async () => {
     setLoading(true);
-    const allTables = [...CONTAINER_TABLES, ...CONTENT_TABLES, ...ADMIN_TABLES, 'users'];
+
+    // Load container types from DB
+    const { data: containerTypesData } = await supabase
+      .from('container_types')
+      .select('type_code');
+
+    let resolvedContainerTables: string[];
+    if (containerTypesData && containerTypesData.length > 0) {
+      resolvedContainerTables = containerTypesData.map((c: any) => c.type_code);
+    } else {
+      // Fallback
+      resolvedContainerTables = [
+        'programs', 'journeys', 'circles', 'tables', 'builds', 'pitches',
+        'elevators', 'meetups', 'meetings', 'standups', 'sprints', 'checklists', 'libraries'
+      ];
+    }
+    setContainerTables(resolvedContainerTables);
+
+    const allTables = [...resolvedContainerTables, ...CONTENT_TABLES, ...ADMIN_TABLES, 'users'];
     
     try {
       const statsPromises = allTables.map(async (table) => {
@@ -845,7 +850,7 @@ SELECT 'Done! All foreign keys fixed automatically.' as result;`}</pre>
               <div>
                 <h4 className="font-semibold mb-3 text-gray-900">Container Tables</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {stats.filter(s => CONTAINER_TABLES.includes(s.table)).map(stat => (
+                  {stats.filter(s => containerTables.includes(s.table)).map(stat => (
                     <div key={stat.table} className="border rounded-lg p-3 bg-white">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-gray-900">{stat.table}</span>

@@ -144,6 +144,7 @@ export default function UserManagement() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userClassDefs, setUserClassDefs] = useState<{ level: number; name: string }[]>(USER_CLASS_FALLBACKS);
+  const [defaultClass, setDefaultClass] = useState<number>(3);
   const [importing, setImporting] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deletionPreview, setDeletionPreview] = useState<any>(null);
@@ -167,6 +168,15 @@ export default function UserManagement() {
       if (classData && classData.length > 0) {
         setUserClassDefs(classData.map((c: any) => ({ level: c.class_number, name: c.display_name })));
       }
+
+      const { data: defaultClassData } = await supabase
+        .from('user_classes')
+        .select('class_number')
+        .eq('is_default', true)
+        .single();
+
+      const resolvedDefaultClass = defaultClassData?.class_number ?? 3;
+      setDefaultClass(resolvedDefaultClass);
 
       const [usersData, circlesData, tablesData, elevatorsData, meetingsData, pitchesData, postsData, documentsData] = await Promise.all([
         supabase.from('users').select('*'),
@@ -425,7 +435,7 @@ export default function UserManagement() {
         user.email || '',
         user.temp_password || '', // Export temp password if it exists
         user.role || 'member',
-        user.user_class || 3, // Access level 1-10, default is 3 (Member)
+        user.user_class || defaultClass, // Access level 1-10, default comes from user_classes.is_default
         user.membership_tier || 'free',
         user.location || '',
         user.tagline || '',
@@ -505,7 +515,7 @@ export default function UserManagement() {
             else if (normalizedHeader === 'email') user.email = values[index];
             else if (normalizedHeader === 'password') user.password = values[index] || null; // Optional custom password
             else if (normalizedHeader === 'role') user.role = values[index] || 'member';
-            else if (normalizedHeader === 'user class') user.user_class = parseInt(values[index]) || 3;
+            else if (normalizedHeader === 'user class') user.user_class = parseInt(values[index]) || defaultClass;
             else if (normalizedHeader === 'membership tier') user.membership_tier = values[index] || 'free';
             else if (normalizedHeader === 'location') user.location = values[index];
             else if (normalizedHeader === 'tagline') user.tagline = values[index];
@@ -590,7 +600,7 @@ export default function UserManagement() {
               const updateData: any = {
                 name: user.name,
                 role: user.role || 'member',
-                user_class: user.user_class || 3,
+                user_class: user.user_class || defaultClass,
                 membership_tier: user.membership_tier || 'free',
               };
 
@@ -718,7 +728,7 @@ export default function UserManagement() {
                   full_name: user.name,
                   email: user.email,
                   role: user.role || 'member',
-                  user_class: user.user_class || 3,
+                  user_class: user.user_class || defaultClass,
                   membership_tier: user.membership_tier || 'free',
                   location: user.location || null,
                   tagline: user.tagline || null,
@@ -1091,7 +1101,7 @@ export default function UserManagement() {
         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
           <TabsTrigger value="all">All Users ({users.length})</TabsTrigger>
           {userClassDefs.map(cls => {
-            const count = users.filter(u => (u.user_class || 3) === cls.level).length;
+            const count = users.filter(u => (u.user_class || defaultClass) === cls.level).length;
             return (
               <TabsTrigger key={cls.level} value={cls.level.toString()}>
                 <Badge className={`mr-2 ${getUserClassColor(cls.level)}`}>
@@ -1236,7 +1246,7 @@ export default function UserManagement() {
             <SelectContent>
               <SelectItem value="all">All Classes</SelectItem>
               {userClassDefs.map(userClass => {
-                const count = users.filter(u => (u.user_class || 3) === userClass.level).length;
+                const count = users.filter(u => (u.user_class || defaultClass) === userClass.level).length;
                 return (
                   <SelectItem key={userClass.level} value={userClass.level.toString()}>
                     {userClass.name} ({count})
@@ -1422,8 +1432,8 @@ export default function UserManagement() {
                             >
                               <SelectTrigger className="h-7 text-xs border">
                                 <SelectValue>
-                                  <Badge className={`text-xs ${getUserClassColor(user.user_class || 3)}`}>
-                                    {getUserClassName(user.user_class || 3)}
+                                  <Badge className={`text-xs ${getUserClassColor(user.user_class || defaultClass)}`}>
+                                    {getUserClassName(user.user_class || defaultClass)}
                                   </Badge>
                                 </SelectValue>
                               </SelectTrigger>
