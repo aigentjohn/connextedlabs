@@ -176,6 +176,71 @@ Each enrollment record carries: `progress_percentage`, `enrolled_at`, `last_acce
 
 ---
 
+## CourseAdminSetupPage (`/course-admin/:courseId/setup`)
+
+**Component:** `src/app/components/admin/ProgramSetupDashboard.tsx`
+**Note:** This component is shared between courses (`/course-admin/:courseId/setup`) and programs (`/program-admin/:programId/setup`). It detects which context it is in from the URL param name (`courseId` vs `programId`) and adjusts labels, data sources, and available tabs accordingly.
+
+**Access:** Course instructor (`instructor_id` or `created_by` matches `profile.id`) or `role >= admin`. Unauthorized users see an access-denied card; no redirect.
+
+**What it does:** The main content-building workspace for a course. Reached after creating a course or via the "Content" button in `InstructorCourseManagement`. Organises all course-building tasks into five tabs.
+
+**Stats displayed (header):**
+- Status (published / draft badge)
+- Students (from `courses.enrollment_count` — may be stale)
+- Journeys (count from `program_journeys`)
+- Course Leader (always 1 for courses)
+
+**Tabs:**
+
+### Overview tab
+- Displays course description and ordered list of journeys with status badges
+- Quick-action buttons linking to the Journeys, Analytics, and Audit tabs
+- Info cards explaining the journey-based structure and progress tracking model
+
+### Journeys tab — `JourneyManagement` component
+The primary course-building surface. Manages the module (journey) and lesson (journey item) structure.
+
+**Journey-level actions:**
+- Create journey: title, description, status (not-started / in-progress / completed), optional linked circle
+- Edit journey (inline dialog)
+- Delete journey (with confirmation)
+- Expand/collapse journey to view its items
+
+**Journey item types supported:**
+`document`, `book`, `deck`, `shelf`, `playlist`, `build`, `pitch`, `table`, `elevator`, `standup`, `meetup`, `sprint`, `event`, `discussion`, `resource`, `container`
+
+**Journey item actions:**
+- Add content to a journey via `AddContentDialog` — search existing containers/content by type
+- Create a new container inline via `CreateContainerDialog`
+- Each item stores: `item_type`, `item_id`, `title`, `description`, `order_index`, `is_published`, `icon`, `estimated_time`
+- Delete item (with confirmation)
+
+**Data managed:** `program_journeys` table (`course_id` or `program_id` FK), `journey_items` table
+
+### Progress & Analytics tab
+- **For courses:** Renders a "Coming Soon" placeholder — `JourneyProgressAnalytics` is not wired up for courses, only for programs
+- **For programs:** Renders `JourneyProgressAnalytics` with per-journey progress breakdown
+
+### Backup & Restore tab — `ExportImportManager` component
+- Export course structure (journeys and items) as JSON
+- Import from a previously exported JSON file
+- Works for both courses and programs
+
+### Audit tab
+- **For courses:** Renders a "Coming Soon" placeholder — `ProgramAuditView` is not wired up for courses
+- **For programs:** Renders `ProgramAuditView` with data integrity checks
+
+**Known issues / gaps:**
+- Progress & Analytics tab is a placeholder for courses — no course-level analytics exist; program analytics (`JourneyProgressAnalytics`) are not reused for courses
+- Audit tab is a placeholder for courses — `ProgramAuditView` exists for programs only
+- `enrollment_count` stat in the header reads from the `courses` table column which may be stale (not a live join)
+- "Manage Sessions" quick action in the Overview tab is only rendered for programs (`programId` check), not courses
+- The component uses `courses.enrollment_count` for the Students stat but the column is not reliably updated when enrollments are managed via `access_tickets`
+- Comment in source: "Split candidate: ~572 lines — consider extracting SetupStepsChecklist, ProgramOverviewCard, and SetupActionPanel into sub-components"
+
+---
+
 ## CoursesManagement (`/platform-admin/courses` or similar)
 
 **What it does:** Platform admin and instructor view listing all courses on the platform (admins see all; instructors see only their own). Provides links to view, set up, manage settings, and delete courses.
