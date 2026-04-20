@@ -112,6 +112,8 @@ export default function PathwayProgressTracker() {
 
   const [enrollments, setEnrollments] = useState<EnrollmentEntry[]>([]);
   const [pendingReports, setPendingReports] = useState<StepReport[]>([]);
+  // Set of "userId:stepId" keys for steps confirmed complete
+  const [completedStepMap, setCompletedStepMap] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filterPathway, setFilterPathway] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -171,6 +173,40 @@ export default function PathwayProgressTracker() {
 
       setEnrollments(entries);
       setPendingReports([]);
+
+      // Batch-fetch step completions for course and program steps
+      const allUserIds = [...new Set(entries.map(e => e.enrollment.user_id))];
+      const courseStepIds = [...new Set(entries.flatMap(e =>
+        e.pathway.steps.filter((s: PathwayStep) => s.step_type === 'course').map((s: PathwayStep) => s.step_id)
+      ))];
+      const programStepIds = [...new Set(entries.flatMap(e =>
+        e.pathway.steps.filter((s: PathwayStep) => s.step_type === 'program').map((s: PathwayStep) => s.step_id)
+      ))];
+
+      const completed = new Set<string>();
+      const key = (userId: string, stepId: string) => `${userId}:${stepId}`;
+
+      if (allUserIds.length > 0 && courseStepIds.length > 0) {
+        const { data: courseCompletions } = await supabase
+          .from('course_enrollments')
+          .select('user_id, course_id')
+          .in('user_id', allUserIds)
+          .in('course_id', courseStepIds)
+          .not('completed_at', 'is', null);
+        (courseCompletions || []).forEach((c: any) => completed.add(key(c.user_id, c.course_id)));
+      }
+
+      if (allUserIds.length > 0 && programStepIds.length > 0) {
+        const { data: programCompletions } = await supabase
+          .from('program_members')
+          .select('user_id, program_id')
+          .in('user_id', allUserIds)
+          .in('program_id', programStepIds)
+          .eq('status', 'completed');
+        (programCompletions || []).forEach((p: any) => completed.add(key(p.user_id, p.program_id)));
+      }
+
+      setCompletedStepMap(completed);
     } catch (error) {
       console.error('Error loading progress data:', error);
       toast.error('Failed to load progress data');
@@ -459,9 +495,9 @@ export default function PathwayProgressTracker() {
                       {entry.pathway.steps
                         .sort((a: PathwayStep, b: PathwayStep) => a.order_index - b.order_index)
                         .map((step: PathwayStep) => {
-                          const isCompleted = false;
-                          const isSkipped = false;
-                          const isPending = false;
+                          const isCompleted = completedStepMap.has(`${entry.enrollment.user_id}:${step.step_id}`);
+                          const isSkipped = false; // requires pathway_step_reports table (not yet created)
+                          const isPending = false;  // requires pathway_step_reports table (not yet created)
 
                           return (
                             <div

@@ -54,6 +54,7 @@ export default function MyDocumentsPage() {
   const [circles, setCircles] = useState<Circle[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
+  const [favoritedDocIds, setFavoritedDocIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   
@@ -84,6 +85,18 @@ export default function MyDocumentsPage() {
       if (authoredError) throw authoredError;
 
       setDocuments(authoredDocs || []);
+
+      // Fetch this user's favorited document IDs
+      const docIds = (authoredDocs || []).map((d: Document) => d.id);
+      if (docIds.length > 0) {
+        const { data: favData } = await supabase
+          .from('content_favorites')
+          .select('content_id')
+          .eq('user_id', profile.id)
+          .eq('content_type', 'document')
+          .in('content_id', docIds);
+        setFavoritedDocIds(new Set((favData || []).map((f: any) => f.content_id)));
+      }
 
       // Fetch user's circles for display names
       const { data: circlesData } = await supabase
@@ -182,7 +195,7 @@ export default function MyDocumentsPage() {
 
   const renderDocumentCard = (doc: Document, showShareInfo: boolean = false) => {
     const isCreatedByUser = doc.author_id === profile.id;
-    const isFavorited = false; // Favorites are now tracked in content_favorites table
+    const isFavorited = favoritedDocIds.has(doc.id);
     const hasCircles = doc.circle_ids && doc.circle_ids.length > 0;
     const hasTables = doc.table_ids && doc.table_ids.length > 0;
 

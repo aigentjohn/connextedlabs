@@ -328,16 +328,30 @@ export default function BooksPage() {
     }
   };
 
-  const handleEditBook = (book: Book) => {
+  const handleEditBook = async (book: Book) => {
     setEditingBook(book);
     setEditForm({
       title: book.title,
       description: book.description || '',
       visibility: book.visibility || 'public',
       tags: book.tags || [],
-      topicIds: [] // Will need to fetch if implementing topic edit
+      topicIds: [],
     });
     setIsEditDialogOpen(true);
+
+    // Fetch existing topics for this book
+    try {
+      const { data: topicData } = await supabase
+        .from('content_topics')
+        .select('topic_id')
+        .eq('content_id', book.id)
+        .eq('content_type', 'book');
+      if (topicData && topicData.length > 0) {
+        setEditForm(prev => ({ ...prev, topicIds: topicData.map((t: any) => t.topic_id) }));
+      }
+    } catch (err) {
+      console.error('Error fetching book topics:', err);
+    }
   };
 
   const handleUpdateBook = async () => {
@@ -362,6 +376,29 @@ export default function BooksPage() {
       );
 
       if (!response.ok) throw new Error('Failed to update book');
+
+      // Re-link topics if changed
+      if (editForm.topicIds.length > 0) {
+        try {
+          await fetch(
+            `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/topics/link`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${publicAnonKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                content_id: editingBook.id,
+                content_type: 'book',
+                topic_ids: editForm.topicIds,
+              }),
+            }
+          );
+        } catch (topicError) {
+          console.error('Error updating topics:', topicError);
+        }
+      }
 
       toast.success('Book updated!');
       setIsEditDialogOpen(false);

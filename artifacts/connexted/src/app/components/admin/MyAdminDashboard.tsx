@@ -295,15 +295,34 @@ export default function MyAdminDashboard() {
       
       const totalMembers = allMemberIds.size;
 
-      // Note: Recent activity calculation logic omitted for brevity as it was complex and circle-dependent
-      // We'll just use a placeholder for now or remove recent activity tracking if it depended heavily on circles
-      const recentActivity = 0; 
+      // Count new membership events across admin containers in the last 30 days
+      const allContainerIds = allContainers.map((c: any) => c.id);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      let recentActivity = 0;
+      let pendingRequests = 0;
+      if (allContainerIds.length > 0) {
+        const { count: activityCount } = await supabase
+          .from('membership_states')
+          .select('*', { count: 'exact', head: true })
+          .in('entity_id', allContainerIds)
+          .gte('applied_at', thirtyDaysAgo.toISOString());
+        recentActivity = activityCount || 0;
+
+        const { count: pendingCount } = await supabase
+          .from('membership_states')
+          .select('*', { count: 'exact', head: true })
+          .in('entity_id', allContainerIds)
+          .eq('state', 'applied');
+        pendingRequests = pendingCount || 0;
+      }
 
       setStats({
         totalContainers,
         totalMembers,
         recentActivity,
-        pendingRequests: 0,
+        pendingRequests,
       });
 
     } catch (error) {
