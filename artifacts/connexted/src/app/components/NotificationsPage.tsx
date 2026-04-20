@@ -138,44 +138,58 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 100;
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [showPreferences, setShowPreferences] = useState(false);
 
   useEffect(() => {
     if (profile) {
-      fetchNotifications();
+      fetchNotifications(0);
       fetchPreferences();
     }
   }, [profile]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (pageIndex: number) => {
     if (!profile?.id) return;
 
     try {
-      setLoading(true);
-      
-      // Fetch notifications
+      if (pageIndex === 0) setLoading(true);
+      else setLoadingMore(true);
+
+      const from = pageIndex * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (error) throw error;
 
-      // Add category to each notification
       const notificationsWithCategories = (data || []).map(notif => ({
         ...notif,
         category: NOTIFICATION_CATEGORIES[notif.type] || 'system'
       }));
 
-      setNotifications(notificationsWithCategories);
+      if (pageIndex === 0) {
+        setNotifications(notificationsWithCategories);
+      } else {
+        setNotifications(prev => [...prev, ...notificationsWithCategories]);
+      }
+
+      setHasMore((data || []).length === PAGE_SIZE);
+      setPage(pageIndex);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -606,11 +620,14 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* Load More (future enhancement) */}
-      {filteredNotifications.length >= 100 && (
+      {hasMore && (
         <div className="text-center py-4">
-          <Button variant="outline">
-            Load More
+          <Button
+            variant="outline"
+            onClick={() => fetchNotifications(page + 1)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading...' : 'Load More'}
           </Button>
         </div>
       )}

@@ -221,6 +221,27 @@ export default function MyContentsPage() {
     setSelectedItems(newSelected);
   };
 
+  const handleEnrichSingle = (id: string) => {
+    setSelectedItems(new Set([id]));
+    setEnrichDialogOpen(true);
+  };
+
+  const handleDeleteContent = async (id: string) => {
+    if (!confirm('Delete this link? This cannot be undone.')) return;
+    try {
+      const { error } = await supabase
+        .from('my_contents')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Link deleted');
+      fetchContents();
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      toast.error('Failed to delete link');
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'enriched':
@@ -454,6 +475,8 @@ export default function MyContentsPage() {
                   isSelected={selectedItems.has(content.id)}
                   onToggleSelect={() => toggleItemSelection(content.id)}
                   onRefetch={fetchContents}
+                  onEnrich={handleEnrichSingle}
+                  onDelete={handleDeleteContent}
                 />
               ))}
             </div>
@@ -466,6 +489,8 @@ export default function MyContentsPage() {
                   isSelected={selectedItems.has(content.id)}
                   onToggleSelect={() => toggleItemSelection(content.id)}
                   onRefetch={fetchContents}
+                  onEnrich={handleEnrichSingle}
+                  onDelete={handleDeleteContent}
                 />
               ))}
             </div>
@@ -583,11 +608,15 @@ function ContentCard({
   isSelected,
   onToggleSelect,
   onRefetch,
+  onEnrich,
+  onDelete,
 }: {
   content: MyContent;
   isSelected: boolean;
   onToggleSelect: () => void;
   onRefetch: () => void;
+  onEnrich: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const [createdContent, setCreatedContent] = useState<any[]>([]);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -777,15 +806,15 @@ function ContentCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEnrich(content.id)}>
               <Edit className="w-4 h-4 mr-2" />
               Enrich Metadata
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.open(content.url, '_blank')}>
               <ExternalLink className="w-4 h-4 mr-2" />
               Open URL
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">
+            <DropdownMenuItem className="text-red-600" onClick={() => onDelete(content.id)}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </DropdownMenuItem>
@@ -802,11 +831,15 @@ function ContentListItem({
   isSelected,
   onToggleSelect,
   onRefetch,
+  onEnrich,
+  onDelete,
 }: {
   content: MyContent;
   isSelected: boolean;
   onToggleSelect: () => void;
   onRefetch: () => void;
+  onEnrich: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div
@@ -856,15 +889,15 @@ function ContentListItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onEnrich(content.id)}>
             <Edit className="w-4 h-4 mr-2" />
             Enrich Metadata
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.open(content.url, '_blank')}>
             <ExternalLink className="w-4 h-4 mr-2" />
             Open URL
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600">
+          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(content.id)}>
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </DropdownMenuItem>

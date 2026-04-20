@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -20,6 +20,7 @@ interface Circle {
 
 export default function MyCirclesPage() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [circles, setCircles] = useState<Circle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -175,7 +176,7 @@ export default function MyCirclesPage() {
           </p>
         </div>
         {profile.role === 'super' && (
-          <Button>
+          <Button onClick={() => navigate('/circle-admin')}>
             <Plus className="w-4 h-4 mr-2" />
             Create Circle
           </Button>

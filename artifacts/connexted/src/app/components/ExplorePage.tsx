@@ -278,8 +278,25 @@ export default function ExplorePage() {
     }
 
     if (container.access_type === 'request') {
-      toast.success('Join request sent! Waiting for admin approval.');
-      // In a full implementation, this would create a join request in the database
+      try {
+        setJoiningContainerId(container.id);
+        const { error } = await supabase
+          .from('membership_states')
+          .insert({
+            user_id: profile.id,
+            entity_type: container.type,
+            entity_id: container.id,
+            state: 'applied',
+            applied_at: new Date().toISOString(),
+          });
+        if (error) throw error;
+        toast.success('Join request sent! Waiting for admin approval.');
+      } catch (error) {
+        console.error('Error submitting join request:', error);
+        toast.error('Failed to submit join request');
+      } finally {
+        setJoiningContainerId(null);
+      }
       return;
     }
 

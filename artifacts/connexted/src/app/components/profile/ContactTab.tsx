@@ -54,6 +54,7 @@ interface ContactTabProps {
 export function ContactTab({ profile, onUpdate, onNavigateToPrivacy }: ContactTabProps) {
   // Self-managed state initialized from profile
   const [phone, setPhone] = useState(profile.phone_number || '');
+  const [whatsapp, setWhatsapp] = useState(profile.whatsapp_number || '');
   const [location, setLocation] = useState(profile.location || '');
   const [showVCardImport, setShowVCardImport] = useState(false);
 
@@ -72,6 +73,7 @@ export function ContactTab({ profile, onUpdate, onNavigateToPrivacy }: ContactTa
   // Sync if profile changes externally
   useEffect(() => {
     setPhone(profile.phone_number || '');
+    setWhatsapp(profile.whatsapp_number || '');
     setLocation(profile.location || '');
     setDirty(false);
   }, [profile]);
@@ -83,6 +85,7 @@ export function ContactTab({ profile, onUpdate, onNavigateToPrivacy }: ContactTa
         .from('users')
         .update({
           phone_number: phone || null,
+          whatsapp_number: whatsapp || null,
           location: location || null,
         })
         .eq('id', profile.id);
@@ -268,10 +271,10 @@ export function ContactTab({ profile, onUpdate, onNavigateToPrivacy }: ContactTa
             <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
             <Input
               id="whatsapp"
-              value={profile.whatsapp_number || ''}
-              disabled
-              placeholder="Not set - Click Edit Profile to add"
-              className="pl-9 bg-gray-50"
+              value={whatsapp}
+              onChange={(e) => { setWhatsapp(e.target.value); markDirty(); }}
+              placeholder="+1 (555) 123-4567"
+              className="pl-9"
             />
           </div>
         </div>
@@ -413,7 +416,6 @@ export function ContactTab({ profile, onUpdate, onNavigateToPrivacy }: ContactTa
         <Alert className="bg-blue-50 border-blue-200">
           <Info className="w-4 h-4 text-blue-600" />
           <AlertDescription className="text-sm text-blue-800">
-            <strong>Note:</strong> To edit your WhatsApp number, click "Edit Profile" at the top of the page.
             Contact preference changes save immediately. To change who can <em>see</em> your contact info, visit the{' '}
             {onNavigateToPrivacy ? (
               <button

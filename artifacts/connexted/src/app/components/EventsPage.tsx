@@ -582,10 +582,6 @@ export default function EventsPage({ meetupId }: { meetupId?: string }) {
       .join(', ') || 'General';
   };
 
-  const handleAttendEvent = async (eventId: string, event: any) => {
-    // Add logic to handle attending an event
-  };
-
   // Filter events based on search
   const filteredEvents = events.filter((event) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
