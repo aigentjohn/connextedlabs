@@ -127,6 +127,19 @@ interface Topic {
   slug: string;
 }
 
+interface PathwayEnrollmentRow {
+  user_id: string;
+  enrolled_at: string;
+  completed_at: string | null;
+  progress_pct: number;
+  status: string;
+  profile: {
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -287,6 +300,11 @@ export default function PathwayAdminPage() {
   const [tagInput, setTagInput] = useState('');
   const [roleInput, setRoleInput] = useState('');
 
+  // Enrollment drilldown view
+  const [viewingEnrollmentsFor, setViewingEnrollmentsFor] = useState<any | null>(null);
+  const [enrollments, setEnrollments] = useState<PathwayEnrollmentRow[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+
   // Instance picker state (select a specific item when ADDING an activity step)
   const [pendingActivityType, setPendingActivityType] = useState<string | null>(null);
   const [instanceQuery, setInstanceQuery] = useState('');
@@ -349,6 +367,48 @@ export default function PathwayAdminPage() {
       if (topicData) setTopics(topicData);
     } catch (error) {
       console.error('Error loading reference data:', error);
+    }
+  }
+
+  async function loadEnrollments(pathway: any) {
+    setViewingEnrollmentsFor(pathway);
+    setLoadingEnrollments(true);
+    setEnrollments([]);
+    try {
+      const { data, error } = await supabase
+        .from('pathway_enrollments')
+        .select(`
+          user_id,
+          enrolled_at,
+          completed_at,
+          progress_pct,
+          status,
+          users:user_id (
+            full_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq('pathway_id', pathway.id)
+        .order('enrolled_at', { ascending: false });
+
+      if (error) throw error;
+
+      setEnrollments(
+        (data || []).map((row: any) => ({
+          user_id: row.user_id,
+          enrolled_at: row.enrolled_at,
+          completed_at: row.completed_at,
+          progress_pct: row.progress_pct ?? 0,
+          status: row.status ?? 'enrolled',
+          profile: row.users ?? null,
+        }))
+      );
+    } catch (err) {
+      console.error('Error loading enrollments:', err);
+      toast.error('Failed to load enrollments');
+    } finally {
+      setLoadingEnrollments(false);
     }
   }
 
@@ -729,6 +789,137 @@ export default function PathwayAdminPage() {
     );
   }
 
+  // ========== ENROLLMENT DRILLDOWN VIEW ==========
+  if (viewingEnrollmentsFor) {
+    const pw = viewingEnrollmentsFor;
+    const completedCount  = enrollments.filter(e => e.status === 'completed').length;
+    const inProgressCount = enrollments.filter(e => e.status !== 'completed').length;
+
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <Breadcrumbs
+          items={[
+            { label: 'Admin', path: '/platform-admin' },
+            { label: 'Pathways', path: '/platform-admin/pathways' },
+            { label: pw.name },
+          ]}
+        />
+
+        <div className="flex items-center justify-between">
+          <div>
+            <button
+              onClick={() => setViewingEnrollmentsFor(null)}
+              className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 mb-2"
+            >
+              ← Back to Pathways
+            </button>
+            <h1 className="text-2xl font-bold flex items-center gap-3">
+              <Users className="w-7 h-7 text-indigo-600" />
+              Enrollments — {pw.name}
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {enrollments.length} enrolled &middot; {completedCount} completed &middot; {inProgressCount} in progress
+            </p>
+          </div>
+        </div>
+
+        {loadingEnrollments ? (
+          <div className="space-y-2">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
+          </div>
+        ) : enrollments.length === 0 ? (
+          <Card>
+            <CardContent className="py-14 text-center">
+              <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">No one has enrolled in this pathway yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-gray-400 uppercase tracking-wide">
+                    <th className="px-4 py-3">Member</th>
+                    <th className="px-4 py-3">Progress</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Enrolled</th>
+                    <th className="px-4 py-3">Completed</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {enrollments.map((row) => {
+                    const name = row.profile?.full_name || row.profile?.email || row.user_id.slice(0, 8) + '…';
+                    const statusColor =
+                      row.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      row.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-600';
+
+                    return (
+                      <tr key={row.user_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {row.profile?.avatar_url ? (
+                              <img
+                                src={row.profile.avatar_url}
+                                alt={name}
+                                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-semibold text-indigo-600">
+                                  {(name[0] || '?').toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-gray-900 leading-tight">{name}</p>
+                              {row.profile?.email && row.profile.full_name && (
+                                <p className="text-[11px] text-gray-400">{row.profile.email}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-indigo-500"
+                                style={{ width: `${row.progress_pct || 0}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500">{row.progress_pct || 0}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
+                            {row.status === 'completed' ? 'Completed' :
+                             row.status === 'in_progress' ? 'In Progress' :
+                             row.status.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                          {row.enrolled_at
+                            ? new Date(row.enrolled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                          {row.completed_at
+                            ? new Date(row.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
   // ========== LIST VIEW ==========
   if (!editing) {
     return (
@@ -814,6 +1005,17 @@ export default function PathwayAdminPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadEnrollments(pathway)}
+                        title="View enrolled members"
+                      >
+                        <Users className="w-4 h-4 mr-1.5" />
+                        <span className="text-xs">
+                          {pathway.enrollment_count || 0} enrolled
+                        </span>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
