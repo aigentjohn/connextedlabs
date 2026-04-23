@@ -613,9 +613,18 @@ export default function PathwayAdminPage() {
 
     setSaving(true);
     try {
+      // Generate a URL-safe slug from the pathway name.
+      // Only set on create — preserves existing slug on edit.
+      const generateSlug = (name: string) =>
+        name.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          + '-' + Date.now().toString(36);
+
       const payload = {
         name:                     form.name,
         title:                    form.name,
+        ...(!form.id ? { slug: generateSlug(form.name) } : {}),
         description:              form.description,
         short_description:        form.short_description,
         destination:              form.destination,

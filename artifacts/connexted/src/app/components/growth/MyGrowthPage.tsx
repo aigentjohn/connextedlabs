@@ -619,21 +619,29 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
           <Progress value={enrollment.progress_pct || 0} className="h-2.5" />
         </div>
 
-        {/* Step summary */}
-        <div className="mt-3 flex items-center justify-between">
+        {/* Step summary + actions */}
+        <div className="mt-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-4 text-sm text-gray-500">
             <span>
               {pathway.steps.length} total steps
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? 'Hide Steps' : 'Show Steps'}
-            <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to={`/my-growth/pathway/${pathway.id}`}>
+              <Button size="sm" variant="default" className="text-xs">
+                <Rocket className="w-3.5 h-3.5 mr-1" />
+                Continue Pathway
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? 'Hide Steps' : 'Show Steps'}
+              <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </Button>
+          </div>
         </div>
 
         {/* Expanded step list */}

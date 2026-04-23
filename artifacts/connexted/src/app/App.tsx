@@ -158,6 +158,7 @@ const MyGrowthPage = lazy(() => import('@/app/components/growth/MyGrowthPage'));
 const BrowsePathwaysPage = lazy(() => import('@/app/components/growth/BrowsePathwaysPage'));
 const PathwayAdminPage = lazy(() => import('@/app/components/growth/PathwayAdminPage'));
 const PathwayProgressTracker = lazy(() => import('@/app/components/growth/PathwayProgressTracker'));
+const PathwayDetailPage = lazy(() => import('@/app/pages/PathwayDetailPage'));
 const FollowersPage = lazy(() => import('@/app/components/FollowersPage'));
 const FollowingPage = lazy(() => import('@/app/components/FollowingPage'));
 const VenuesPage = lazy(() => import('@/app/components/VenuesPage'));
@@ -581,6 +582,7 @@ const router = createBrowserRouter([
           { path: '/profile/badges', element: <MyBadgesPage /> },
           { path: '/badges/:badgeTypeId', element: <BadgeDetailPage /> },
           { path: '/my-growth', element: <MyGrowthPage /> },
+          { path: '/my-growth/pathway/:pathwayId', element: <PathwayDetailPage /> },
           { path: '/browse-pathways', element: <BrowsePathwaysPage /> },
           { path: '/profile/followers', element: <FollowersPage /> },
           { path: '/profile/following', element: <FollowingPage /> },
