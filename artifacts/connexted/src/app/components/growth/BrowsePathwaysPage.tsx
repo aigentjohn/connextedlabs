@@ -160,6 +160,22 @@ export default function BrowsePathwaysPage() {
     }
   }
 
+  async function handleUnenroll(pathwayId: string) {
+    if (!profile) return;
+    try {
+      const { error } = await supabase
+        .from('pathway_enrollments')
+        .delete()
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', profile.id);
+      if (error) throw error;
+      toast.success('Unenrolled from pathway.');
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to unenroll');
+    }
+  }
+
   // Collect all unique tags and roles for filter chips
   const allTags = Array.from(new Set(pathways.flatMap(p => p.relevant_tags || []))).sort();
   const allRoles = Array.from(new Set(pathways.flatMap(p => p.target_roles || []))).sort();
@@ -285,7 +301,8 @@ export default function BrowsePathwaysPage() {
                     enrollment={enrollments[p.id]}
                     enrolling={enrolling === p.id}
                     onEnroll={() => handleEnroll(p.id)}
-                    onViewProgress={() => navigate('/my-growth')}
+                    onUnenroll={() => handleUnenroll(p.id)}
+                    onViewProgress={() => navigate(`/my-growth/pathway/${p.id}`)}
                   />
                 ))}
               </div>
@@ -308,7 +325,8 @@ export default function BrowsePathwaysPage() {
                     enrollment={enrollments[p.id]}
                     enrolling={enrolling === p.id}
                     onEnroll={() => handleEnroll(p.id)}
-                    onViewProgress={() => navigate('/my-growth')}
+                    onUnenroll={() => handleUnenroll(p.id)}
+                    onViewProgress={() => navigate(`/my-growth/pathway/${p.id}`)}
                   />
                 ))}
               </div>
@@ -329,12 +347,14 @@ function PathwayCard({
   enrollment,
   enrolling,
   onEnroll,
+  onUnenroll,
   onViewProgress,
 }: {
   pathway: Pathway;
   enrollment?: EnrollmentMap[string];
   enrolling: boolean;
   onEnroll: () => void;
+  onUnenroll: () => void;
   onViewProgress: () => void;
 }) {
   const isEnrolled = !!enrollment;
@@ -440,18 +460,36 @@ function PathwayCard({
         )}
 
         {/* Action */}
-        <div className="pt-1">
+        <div className="pt-1 space-y-2">
           {isCompleted ? (
-            <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-              <CheckCircle2 className="w-4 h-4" />
-              Pathway complete!
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                Pathway complete!
+              </div>
+              <button
+                onClick={onUnenroll}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Unenroll
+              </button>
             </div>
           ) : isEnrolled ? (
-            <Button size="sm" variant="outline" onClick={onViewProgress} className="w-full">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              View My Progress
-              <ArrowRight className="w-4 h-4 ml-auto" />
-            </Button>
+            <div className="space-y-1.5">
+              <Button size="sm" variant="default" onClick={onViewProgress} className="w-full">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Continue Pathway
+                <ArrowRight className="w-4 h-4 ml-auto" />
+              </Button>
+              <div className="text-center">
+                <button
+                  onClick={onUnenroll}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  Unenroll from this pathway
+                </button>
+              </div>
+            </div>
           ) : (
             <Button
               size="sm"

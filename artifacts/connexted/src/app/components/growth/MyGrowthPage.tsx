@@ -269,6 +269,21 @@ export default function MyGrowthPage() {
     }
   }
 
+  async function handleUnenroll(pathwayId: string) {
+    try {
+      const { error } = await supabase
+        .from('pathway_enrollments')
+        .delete()
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', profile!.id);
+      if (error) throw error;
+      toast.success('Unenrolled from pathway.');
+      loadGrowthData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to unenroll');
+    }
+  }
+
   async function handleSkipStep(pathwayId: string, stepId: string) {
     try {
       await fetchAPI(`/pathways/${pathwayId}/skip-step`, {
@@ -382,6 +397,7 @@ export default function MyGrowthPage() {
                     enrollment={enrollment}
                     onSkipStep={handleSkipStep}
                     onSelfReport={handleSelfReport}
+                    onUnenroll={handleUnenroll}
                   />
                 ))}
               </div>
@@ -568,11 +584,12 @@ function SectionHeader({ icon, title, subtitle }: {
   );
 }
 
-function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: {
+function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport, onUnenroll }: {
   pathway: Pathway;
   enrollment: PathwayEnrollment;
   onSkipStep: (pathwayId: string, stepId: string) => void;
   onSelfReport: (pathwayId: string, stepId: string, evidenceNote: string) => void;
+  onUnenroll: (pathwayId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [reportingStepId, setReportingStepId] = useState<string | null>(null);
@@ -641,6 +658,12 @@ function PathwayProgressCard({ pathway, enrollment, onSkipStep, onSelfReport }: 
               {expanded ? 'Hide Steps' : 'Show Steps'}
               <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${expanded ? 'rotate-90' : ''}`} />
             </Button>
+            <button
+              onClick={() => onUnenroll(pathway.id)}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1"
+            >
+              Unenroll
+            </button>
           </div>
         </div>
 
