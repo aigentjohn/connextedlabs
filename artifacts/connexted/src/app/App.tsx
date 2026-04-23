@@ -363,6 +363,7 @@ const MyContentAdminPage = lazy(() => import('@/app/pages/MyContentAdminPage').t
 const ContactDirectoryPage = lazy(() => import('@/app/pages/ContactDirectoryPage'));
 const FriendsPage = lazy(() => import('@/app/pages/FriendsPage'));
 const FriendCompanionPage = lazy(() => import('@/app/pages/FriendCompanionPage'));
+const FriendCompanionsListPage = lazy(() => import('@/app/pages/FriendCompanionsListPage'));
 const SocialsPage = lazy(() => import('@/app/pages/SocialsPage'));
 const SocialStatsPage = lazy(() => import('@/app/pages/SocialStatsPage'));
 const ActiveMembersPage = lazy(() => import('@/app/pages/ActiveMembersPage'));
@@ -702,6 +703,7 @@ const router = createBrowserRouter([
           { path: '/my-contents', element: <MyContentsPage /> },
           { path: '/members', element: <MembersPage /> },
           { path: '/members/friends', element: <FriendsPage /> },
+          { path: '/members/friends/companions', element: <FriendCompanionsListPage /> },
           { path: '/members/friends/:friendId/companion', element: <FriendCompanionPage /> },
           { path: '/members/socials', element: <SocialsPage /> },
           { path: '/members/social-stats', element: <SocialStatsPage /> },
