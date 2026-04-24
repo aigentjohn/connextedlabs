@@ -246,10 +246,10 @@ export default function CircleResources({ circleId, isAdmin, isMember }: CircleR
             Resources
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Key content curated by circle admins
+            Key content shared by circle members
           </p>
         </div>
-        {isAdmin && (
+        {(isAdmin || isMember) && (
           <Button
             size="sm"
             onClick={() => setShowAdd(!showAdd)}
@@ -262,7 +262,7 @@ export default function CircleResources({ circleId, isAdmin, isMember }: CircleR
       </div>
 
       {/* Add Resource Form */}
-      {isAdmin && showAdd && (
+      {(isAdmin || isMember) && showAdd && (
         <Card className="border-indigo-200 bg-indigo-50/30">
           <CardHeader>
             <CardTitle className="text-base">Add a Resource</CardTitle>
