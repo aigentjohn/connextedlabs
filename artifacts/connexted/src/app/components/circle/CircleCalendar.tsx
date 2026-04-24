@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Calendar, Clock, MapPin, Users, Video, ExternalLink, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import CreateEventDialog from '@/app/components/calendar/CreateEventDialog';
+import CircleSessionsPanel from '@/app/components/circle/CircleSessionsPanel';
 import { toast } from 'sonner';
 
 interface CircleCalendarProps {
@@ -119,6 +120,18 @@ export default function CircleCalendar({ circleId, isAdmin }: CircleCalendarProp
 
   return (
     <div className="space-y-4">
+
+      {/* Sessions panel — planned/proposed gatherings (supports Date TBD) */}
+      <CircleSessionsPanel circleId={circleId} isAdmin={isAdmin} />
+
+      {/* Divider before scheduled events */}
+      {events.length > 0 && (
+        <div className="flex items-center gap-3 pt-2">
+          <Calendar className="w-5 h-5 text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900">Events</h3>
+        </div>
+      )}
+
       {/* Header */}
       {isAdmin && (
         <div className="flex justify-end">
