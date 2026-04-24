@@ -155,4 +155,157 @@ export default function LifecycleDashboard() {
 
   if (loading) {
     return (
-      <div className=\"flex items-center justify-center h-64\">\n        <div className=\"text-gray-600\">Loading lifecycle metrics...</div>\n      </div>\n    );\n  }\n\n  const totalContainers = stats.reduce((sum, s) => sum + s.total, 0);\n  const engagedCount = stats.reduce((sum, s) => sum + (s.byState['engaged'] || 0), 0);\n  const staleCount = stats.reduce((sum, s) => sum + (s.byState['stale'] || 0), 0);\n\n  return (\n    <div className=\"space-y-6\">\n      {/* Header */}\n      <div>\n        <h1 className=\"text-3xl font-bold text-gray-900\">Lifecycle Dashboard</h1>\n        <p className=\"text-gray-600 mt-2\">Monitor engagement and health across all containers</p>\n      </div>\n\n      {/* Overall Stats */}\n      <div className=\"grid grid-cols-1 md:grid-cols-4 gap-4\">\n        <Card>\n          <CardContent className=\"pt-6\">\n            <div className=\"flex items-center justify-between\">\n              <div>\n                <p className=\"text-sm text-gray-600\">Total Containers</p>\n                <p className=\"text-3xl font-bold\">{totalContainers}</p>\n              </div>\n              <Activity className=\"w-8 h-8 text-gray-400\" />\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card>\n          <CardContent className=\"pt-6\">\n            <div className=\"flex items-center justify-between\">\n              <div>\n                <p className=\"text-sm text-gray-600\">Engaged</p>\n                <p className=\"text-3xl font-bold text-green-600\">{engagedCount}</p>\n              </div>\n              <TrendingUp className=\"w-8 h-8 text-green-400\" />\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card>\n          <CardContent className=\"pt-6\">\n            <div className=\"flex items-center justify-between\">\n              <div>\n                <p className=\"text-sm text-gray-600\">Stale</p>\n                <p className=\"text-3xl font-bold text-orange-600\">{staleCount}</p>\n              </div>\n              <AlertCircle className=\"w-8 h-8 text-orange-400\" />\n            </div>\n          </CardContent>\n        </Card>\n\n        <Card>\n          <CardContent className=\"pt-6\">\n            <div className=\"flex items-center justify-between\">\n              <div>\n                <p className=\"text-sm text-gray-600\">Health Rate</p>\n                <p className=\"text-3xl font-bold\">\n                  {totalContainers > 0 ? Math.round((engagedCount / totalContainers) * 100) : 0}%\n                </p>\n              </div>\n              <Users className=\"w-8 h-8 text-blue-400\" />\n            </div>\n          </CardContent>\n        </Card>\n      </div>\n\n      {/* Container Type Breakdown */}\n      <div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6\">\n        {stats.map(stat => (\n          <Card key={stat.type}>\n            <CardHeader>\n              <CardTitle className=\"capitalize\">{stat.type}</CardTitle>\n            </CardHeader>\n            <CardContent>\n              <div className=\"space-y-4\">\n                <div className=\"flex justify-between items-center\">\n                  <span className=\"text-sm text-gray-600\">Total</span>\n                  <span className=\"font-bold\">{stat.total}</span>\n                </div>\n                \n                <div className=\"flex justify-between items-center\">\n                  <span className=\"text-sm text-gray-600\">Avg Members</span>\n                  <span className=\"font-bold\">{stat.avgMembers}</span>\n                </div>\n                \n                <div className=\"flex justify-between items-center\">\n                  <span className=\"text-sm text-gray-600\">Avg Posts/Month</span>\n                  <span className=\"font-bold\">{stat.avgActivity}</span>\n                </div>\n\n                <div className=\"pt-2 border-t\">\n                  <p className=\"text-xs text-gray-600 mb-2\">By State</p>\n                  <div className=\"flex flex-wrap gap-2\">\n                    {Object.entries(stat.byState)\n                      .sort(([, a], [, b]) => b - a)\n                      .map(([state, count]) => (\n                        <Badge key={state} className={getStateBadgeColor(state)}>\n                          {getStateEmoji(state)} {state}: {count}\n                        </Badge>\n                      ))}\n                  </div>\n                </div>\n              </div>\n            </CardContent>\n          </Card>\n        ))}\n      </div>\n\n      {/* Detailed Metrics Table */}\n      <Card>\n        <CardHeader>\n          <CardTitle>Detailed Metrics</CardTitle>\n        </CardHeader>\n        <CardContent>\n          <div className=\"overflow-x-auto\">\n            <table className=\"w-full\">\n              <thead>\n                <tr className=\"border-b\">\n                  <th className=\"text-left p-2\">Container Type</th>\n                  <th className=\"text-left p-2\">State</th>\n                  <th className=\"text-right p-2\">Count</th>\n                  <th className=\"text-right p-2\">Avg Members</th>\n                  <th className=\"text-right p-2\">Avg Posts (30d)</th>\n                </tr>\n              </thead>\n              <tbody>\n                {metrics\n                  .sort((a, b) => b.count - a.count)\n                  .map((metric, index) => (\n                    <tr key={index} className=\"border-b hover:bg-gray-50\">\n                      <td className=\"p-2 capitalize\">{metric.entity_type}</td>\n                      <td className=\"p-2\">\n                        <Badge className={getStateBadgeColor(metric.lifecycle_state)}>\n                          {getStateEmoji(metric.lifecycle_state)} {metric.lifecycle_state}\n                        </Badge>\n                      </td>\n                      <td className=\"text-right p-2\">{metric.count}</td>\n                      <td className=\"text-right p-2\">{metric.avg_members}</td>\n                      <td className=\"text-right p-2\">{metric.avg_posts}</td>\n                    </tr>\n                  ))}\n              </tbody>\n            </table>\n          </div>\n        </CardContent>\n      </Card>\n    </div>\n  );\n}
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-600">Loading lifecycle metrics...</div>
+      </div>
+    );
+  }
+
+  const totalContainers = stats.reduce((sum, s) => sum + s.total, 0);
+  const engagedCount = stats.reduce((sum, s) => sum + (s.byState['engaged'] || 0), 0);
+  const staleCount = stats.reduce((sum, s) => sum + (s.byState['stale'] || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Lifecycle Dashboard</h1>
+        <p className="text-gray-600 mt-2">Monitor engagement and health across all containers</p>
+      </div>
+
+      {/* Overall Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Containers</p>
+                <p className="text-3xl font-bold">{totalContainers}</p>
+              </div>
+              <Activity className="w-8 h-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Engaged</p>
+                <p className="text-3xl font-bold text-green-600">{engagedCount}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Stale</p>
+                <p className="text-3xl font-bold text-orange-600">{staleCount}</p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Health Rate</p>
+                <p className="text-3xl font-bold">
+                  {totalContainers > 0 ? Math.round((engagedCount / totalContainers) * 100) : 0}%
+                </p>
+              </div>
+              <Users className="w-8 h-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Container Type Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map(stat => (
+          <Card key={stat.type}>
+            <CardHeader>
+              <CardTitle className="capitalize">{stat.type}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total</span>
+                  <span className="font-bold">{stat.total}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Avg Members</span>
+                  <span className="font-bold">{stat.avgMembers}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Avg Posts/Month</span>
+                  <span className="font-bold">{stat.avgActivity}</span>
+                </div>
+
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-gray-600 mb-2">By State</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(stat.byState)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([state, count]) => (
+                        <Badge key={state} className={getStateBadgeColor(state)}>
+                          {getStateEmoji(state)} {state}: {count}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Detailed Metrics Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Metrics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Container Type</th>
+                  <th className="text-left p-2">State</th>
+                  <th className="text-right p-2">Count</th>
+                  <th className="text-right p-2">Avg Members</th>
+                  <th className="text-right p-2">Avg Posts (30d)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics
+                  .sort((a, b) => b.count - a.count)
+                  .map((metric, index) => (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="p-2 capitalize">{metric.entity_type}</td>
+                      <td className="p-2">
+                        <Badge className={getStateBadgeColor(metric.lifecycle_state)}>
+                          {getStateEmoji(metric.lifecycle_state)} {metric.lifecycle_state}
+                        </Badge>
+                      </td>
+                      <td className="text-right p-2">{metric.count}</td>
+                      <td className="text-right p-2">{metric.avg_members}</td>
+                      <td className="text-right p-2">{metric.avg_posts}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
