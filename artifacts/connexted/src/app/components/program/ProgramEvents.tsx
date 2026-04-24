@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Calendar, Plus, MapPin, Clock, Users, Filter, Video, BookOpen } from 'lucide-react';
+import { Calendar, Plus, MapPin, Clock, Users, Filter, Video, BookOpen, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isPast, isFuture } from 'date-fns';
 
@@ -21,9 +21,9 @@ interface Session {
   journey_id: string | null;
   name: string;
   description: string;
-  start_date: string;
+  start_date: string | null;   // null = proposed / Date TBD
   end_date: string | null;
-  duration_minutes: number;
+  duration_minutes: number | null;
   location: string | null;
   virtual_link: string | null;
   session_type: string;
@@ -44,7 +44,7 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
   const [sessions, setSessions] = useState<Session[]>([]);
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'past' | 'proposed'>('upcoming');
 
   // Fetch journeys and sessions
   const fetchData = async () => {
@@ -87,13 +87,17 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
 
       // Apply time filter
       let filteredSessions = sessionsWithAttendance;
-      if (filter === 'upcoming') {
-        filteredSessions = sessionsWithAttendance.filter(s => 
-          isFuture(new Date(s.start_date)) || s.status === 'scheduled'
+      if (filter === 'proposed') {
+        // Only sessions with no confirmed date
+        filteredSessions = sessionsWithAttendance.filter(s => !s.start_date || s.status === 'proposed');
+      } else if (filter === 'upcoming') {
+        // Scheduled future sessions + proposed (so members see the full roadmap)
+        filteredSessions = sessionsWithAttendance.filter(s =>
+          !s.start_date || s.status === 'proposed' || isFuture(new Date(s.start_date)) || s.status === 'scheduled'
         );
       } else if (filter === 'past') {
-        filteredSessions = sessionsWithAttendance.filter(s => 
-          isPast(new Date(s.start_date)) && s.status !== 'scheduled'
+        filteredSessions = sessionsWithAttendance.filter(s =>
+          s.start_date && isPast(new Date(s.start_date)) && s.status !== 'scheduled'
         );
       }
 
@@ -153,13 +157,21 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-900">Schedule</h2>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={filter === 'upcoming' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('upcoming')}
             >
               Upcoming
+            </Button>
+            <Button
+              variant={filter === 'proposed' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('proposed')}
+              className={filter !== 'proposed' ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : ''}
+            >
+              Date TBD
             </Button>
             <Button
               variant={filter === 'past' ? 'default' : 'outline'}
@@ -178,10 +190,10 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
           </div>
         </div>
         {isAdmin && (
-          <Link to={`/program-admin/programs/${programId}/sessions`}>
+          <Link to={`/program-admin/${programId}/sessions`}>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              New Session
+              Add Session
             </Button>
           </Link>
         )}
@@ -194,10 +206,10 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
             <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-3" />
             <p className="text-gray-500 mb-4">No {filter === 'all' ? '' : filter} sessions</p>
             {isAdmin && (
-              <Link to={`/program-admin/programs/${programId}/sessions`}>
+              <Link to={`/program-admin/${programId}/sessions`}>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create the first session
+                  Add the first session
                 </Button>
               </Link>
             )}
@@ -265,43 +277,71 @@ export default function ProgramEvents({ programId, isAdmin, selectedJourneyId }:
 
 // Session Card Component (extracted for reuse)
 function SessionCard({ session, programId }: { session: Session; programId: string }) {
-  const startDate = new Date(session.start_date);
+  const isProposed = !session.start_date || session.status === 'proposed';
+  const startDate = session.start_date ? new Date(session.start_date) : null;
   const endDate = session.end_date ? new Date(session.end_date) : null;
-  const isUpcoming = isFuture(startDate);
+  const isUpcoming = startDate ? isFuture(startDate) : false;
+
+  const sessionTypeLabel: Record<string, string> = {
+    meeting: 'Meeting', workshop: 'Workshop', webinar: 'Webinar',
+    training: 'Training', social: 'Social', standup: 'Standup',
+    class: 'Class', other: 'Other',
+  };
 
   return (
     <Link to={`/programs/${programId}/events/${session.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+      <Card className={`hover:shadow-md transition-shadow cursor-pointer h-full ${isProposed ? 'border-dashed border-gray-300' : ''}`}>
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-semibold text-lg text-gray-900 hover:text-indigo-600">
               {session.name}
             </h3>
-            {isUpcoming && (
-              <Badge variant="default" className="shrink-0">Upcoming</Badge>
-            )}
-            {session.session_type === 'virtual' && (
-              <Badge variant="outline" className="text-xs">
-                Virtual Event
-              </Badge>
-            )}
+            <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+              {isProposed && (
+                <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
+                  Date TBD
+                </Badge>
+              )}
+              {!isProposed && isUpcoming && (
+                <Badge variant="default" className="text-xs">Upcoming</Badge>
+              )}
+              {session.session_type && session.session_type !== 'other' && (
+                <Badge variant="secondary" className="text-xs">
+                  {sessionTypeLabel[session.session_type] ?? session.session_type}
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {session.description}
-          </p>
+          {session.description && (
+            <p className="text-sm text-gray-600 line-clamp-2">
+              {session.description}
+            </p>
+          )}
           <div className="space-y-2 text-sm text-gray-600">
+            {/* Date */}
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-400" />
-              <span>{format(startDate, 'MMM d, yyyy')}</span>
+              {startDate ? (
+                <span>{format(startDate, 'MMM d, yyyy')}</span>
+              ) : (
+                <span className="text-amber-600 italic">Date to be announced</span>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span>
-                {format(startDate, 'h:mm a')} - {endDate ? format(endDate, 'h:mm a') : 'N/A'}
-              </span>
-            </div>
+
+            {/* Time — only show when date is set */}
+            {startDate && (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span>
+                  {format(startDate, 'h:mm a')} EST
+                  {endDate && ` – ${format(endDate, 'h:mm a')}`}
+                  {!endDate && session.duration_minutes && ` (${session.duration_minutes} min)`}
+                </span>
+              </div>
+            )}
+
             {session.location && (
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-400" />
@@ -309,9 +349,10 @@ function SessionCard({ session, programId }: { session: Session; programId: stri
               </div>
             )}
             {session.virtual_link && (
-              <Badge variant="outline" className="text-xs">
-                Virtual Event
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-gray-400" />
+                <span className="text-indigo-600">Virtual</span>
+              </div>
             )}
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-400" />

@@ -4,25 +4,56 @@
 // Sessions are one-time meetings/events that belong to
 // either a Program or a Circle
 
-export type SessionType = 'meeting' | 'workshop' | 'event' | 'class' | 'other';
+export type SessionType =
+  | 'meeting'
+  | 'workshop'
+  | 'webinar'
+  | 'training'
+  | 'social'
+  | 'standup'
+  | 'class'
+  | 'other';
 
-export type SessionStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type SessionStatus = 'proposed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+  meeting:  'Meeting',
+  workshop: 'Workshop',
+  webinar:  'Webinar',
+  training: 'Training',
+  social:   'Social',
+  standup:  'Standup',
+  class:    'Class',
+  other:    'Other',
+};
+
+export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
+  proposed:    'Date TBD',
+  scheduled:   'Scheduled',
+  in_progress: 'In Progress',
+  completed:   'Completed',
+  cancelled:   'Cancelled',
+};
 
 export interface Session {
   id: string;
-  
-  // Parent relationship - EITHER program OR circle
+
+  // Parent relationship — one of program, circle, or pathway
   program_id: string | null;
   circle_id: string | null;
-  
+  pathway_id: string | null;
+
   // Session details
   name: string;
   description: string | null;
   session_type: SessionType;
-  
-  // Schedule
-  start_date: string; // ISO timestamp
-  duration_minutes: number;
+
+  // Schedule — nullable: proposed sessions have no confirmed date yet
+  start_date: string | null; // ISO timestamp or null
+  duration_minutes: number | null;
+
+  // Timezone — defaults to America/New_York
+  timezone: string;
   
   // Location
   location: string | null;

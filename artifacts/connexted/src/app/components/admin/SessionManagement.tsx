@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { Plus, Users, Calendar, AlertCircle, Edit2, Trash2, ArrowLeft, Video, MapPin } from 'lucide-react';
 import { Breadcrumb } from '@/app/components/ui/breadcrumb';
 import { AttendanceTracker } from '@/app/components/admin/AttendanceTracker';
-import type { Session } from '@/types/sessions';
+import type { Session, SessionType, SessionStatus } from '@/types/sessions';
+import { SESSION_TYPE_LABELS, SESSION_STATUS_LABELS } from '@/types/sessions';
 
 interface Program {
   id: string;
@@ -37,12 +38,12 @@ export function SessionManagement() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    session_type: 'meeting' as const,
+    session_type: 'meeting' as SessionType,
     start_date: '',
-    duration_minutes: '60',
+    duration_minutes: '',
     location: '',
     virtual_link: '',
-    status: 'scheduled' as const,
+    status: 'proposed' as SessionStatus,
     max_capacity: ''
   });
 
@@ -173,10 +174,10 @@ export function SessionManagement() {
       description: '',
       session_type: 'meeting',
       start_date: '',
-      duration_minutes: '60',
+      duration_minutes: '',
       location: '',
       virtual_link: '',
-      status: 'scheduled',
+      status: 'proposed',
       max_capacity: ''
     });
   };
@@ -187,8 +188,10 @@ export function SessionManagement() {
       name: session.name,
       description: session.description || '',
       session_type: session.session_type,
-      start_date: new Date(session.start_date).toISOString().slice(0, 16),
-      duration_minutes: session.duration_minutes.toString(),
+      start_date: session.start_date
+        ? new Date(session.start_date).toISOString().slice(0, 16)
+        : '',
+      duration_minutes: session.duration_minutes?.toString() ?? '',
       location: session.location || '',
       virtual_link: session.virtual_link || '',
       status: session.status,
@@ -197,14 +200,16 @@ export function SessionManagement() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      scheduled: { variant: 'default', label: 'Scheduled' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'secondary', label: 'Completed' },
-      cancelled: { variant: 'destructive', label: 'Cancelled' }
+    const variants: Record<string, { variant: any }> = {
+      proposed:    { variant: 'outline' },
+      scheduled:   { variant: 'default' },
+      in_progress: { variant: 'default' },
+      completed:   { variant: 'secondary' },
+      cancelled:   { variant: 'destructive' },
     };
     const config = variants[status] || variants.scheduled;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const label = SESSION_STATUS_LABELS[status as SessionStatus] ?? status;
+    return <Badge variant={config.variant}>{label}</Badge>;
   };
 
   if (showAttendance) {
@@ -287,11 +292,9 @@ export function SessionManagement() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="meeting">Meeting</SelectItem>
-                        <SelectItem value="workshop">Workshop</SelectItem>
-                        <SelectItem value="event">Event</SelectItem>
-                        <SelectItem value="class">Class</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {(Object.entries(SESSION_TYPE_LABELS) as [SessionType, string][]).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -305,10 +308,9 @@ export function SessionManagement() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        {(Object.entries(SESSION_STATUS_LABELS) as [SessionStatus, string][]).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -405,9 +407,11 @@ export function SessionManagement() {
                       <div className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          {new Date(session.start_date).toLocaleString()}
+                          {session.start_date
+                            ? new Date(session.start_date).toLocaleString('en-US', { timeZone: 'America/New_York' })
+                            : 'Date TBD'}
                         </span>
-                        <span>{session.duration_minutes} min</span>
+                        {session.duration_minutes && <span>{session.duration_minutes} min</span>}
                         {session.session_type && (
                           <Badge variant="outline">{session.session_type}</Badge>
                         )}
