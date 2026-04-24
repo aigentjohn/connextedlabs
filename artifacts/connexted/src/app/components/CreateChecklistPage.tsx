@@ -13,6 +13,7 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Badge } from '@/app/components/ui/badge';
+import { PrivacySelector } from '@/app/components/unified/PrivacySelector';
 
 export default function CreateChecklistPage() {
   const { profile } = useAuth();
@@ -22,6 +23,7 @@ export default function CreateChecklistPage() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [isTemplate, setIsTemplate] = useState(false);
+  const [visibility, setVisibility] = useState('public');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,6 +39,7 @@ export default function CreateChecklistPage() {
           description: description.trim() || null,
           category: category.trim() || null,
           is_template: isTemplate,
+          visibility,
           ...ownerFields('checklists'),
         })
         .select()
@@ -113,6 +116,17 @@ export default function CreateChecklistPage() {
             <p className="text-sm text-gray-500 mt-1">
               Helps organize and filter lists
             </p>
+          </div>
+
+          <div>
+            <Label>Visibility</Label>
+            <div className="mt-1">
+              <PrivacySelector
+                mode="container"
+                value={visibility}
+                onChange={setVisibility}
+              />
+            </div>
           </div>
 
           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
