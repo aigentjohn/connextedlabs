@@ -63,6 +63,7 @@ interface Pathway {
   enrollment_count: number;
   completion_count: number;
   status: string;
+  created_by: string;
 }
 
 interface EnrollmentMap {
@@ -162,6 +163,13 @@ export default function BrowsePathwaysPage() {
 
   async function handleUnenroll(pathwayId: string) {
     if (!profile) return;
+    const pathway = pathways.find(p => p.id === pathwayId);
+    if (pathway?.created_by === profile.id) {
+      const confirmed = window.confirm(
+        `You created "${pathway.name}". Unenrolling will remove your progress but the pathway stays published for others. Continue?`
+      );
+      if (!confirmed) return;
+    }
     try {
       const { error } = await supabase
         .from('pathway_enrollments')

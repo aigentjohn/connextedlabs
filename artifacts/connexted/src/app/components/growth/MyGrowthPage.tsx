@@ -186,44 +186,53 @@ export default function MyGrowthPage() {
   async function loadGrowthData() {
     setLoading(true);
     try {
-      // ── 1. Enrolled pathways (direct Supabase — no API server needed) ──────
+      // ── 1a. Get enrollment rows for this user ──────────────────────────────
       const { data: enrollData, error: enrollError } = await supabase
         .from('pathway_enrollments')
-        .select(`
-          pathway_id, enrolled_at, completed_at, progress_pct, status,
-          pathways:pathway_id (
-            id, name, slug, description, short_description, destination,
-            relevant_topics, relevant_tags, target_roles, target_career_stages,
-            completion_badge_type_id, estimated_hours, icon, color,
-            status, is_featured, enrollment_count, completion_count,
-            pathway_steps (*)
-          )
-        `)
+        .select('pathway_id, enrolled_at, completed_at, progress_pct, status')
         .eq('user_id', profile!.id);
 
       if (enrollError) console.error('Enrollment fetch error:', enrollError);
 
-      const enrolled: EnrolledPathway[] = (enrollData || [])
-        .filter((e: any) => e.pathways)
-        .map((e: any) => ({
-          enrollment: {
-            pathway_id: e.pathway_id,
-            user_id: profile!.id,
-            enrolled_at: e.enrolled_at,
-            completed_at: e.completed_at,
-            progress_pct: e.progress_pct ?? 0,
-            status: e.status ?? 'enrolled',
-          },
-          pathway: {
-            ...e.pathways,
-            steps: (e.pathways.pathway_steps || [])
+      const enrollRows = enrollData || [];
+      const enrolledPathwayIds = enrollRows.map((e: any) => e.pathway_id);
+
+      // ── 1b. Fetch the actual pathway data + steps separately ───────────────
+      let enrolled: EnrolledPathway[] = [];
+      if (enrolledPathwayIds.length > 0) {
+        const { data: pathwaysData, error: pwError } = await supabase
+          .from('pathways')
+          .select('*, pathway_steps(*)')
+          .in('id', enrolledPathwayIds);
+
+        if (pwError) console.error('Pathways fetch error:', pwError);
+
+        const pathwayMap: Record<string, any> = {};
+        for (const pw of (pathwaysData || [])) {
+          pathwayMap[pw.id] = {
+            ...pw,
+            steps: (pw.pathway_steps || [])
               .sort((a: any, b: any) => a.order_index - b.order_index),
-          },
-        }));
+          };
+        }
+
+        enrolled = enrollRows
+          .filter((e: any) => pathwayMap[e.pathway_id])
+          .map((e: any) => ({
+            enrollment: {
+              pathway_id: e.pathway_id,
+              user_id: profile!.id,
+              enrolled_at: e.enrolled_at,
+              completed_at: e.completed_at,
+              progress_pct: e.progress_pct ?? 0,
+              status: e.status ?? 'enrolled',
+            },
+            pathway: pathwayMap[e.pathway_id],
+          }));
+      }
       setEnrolledPathways(enrolled);
 
       // ── 2. Recommendations — published pathways not yet enrolled in ────────
-      const enrolledIds = enrolled.map(e => e.pathway.id);
       const { data: allPathways } = await supabase
         .from('pathways')
         .select('*, pathway_steps(*)')
@@ -233,7 +242,7 @@ export default function MyGrowthPage() {
 
       if (allPathways) {
         const recs = allPathways
-          .filter((p: any) => !enrolledIds.includes(p.id))
+          .filter((p: any) => !enrolledPathwayIds.includes(p.id))
           .map((p: any) => ({
             pathway: {
               ...p,
@@ -286,6 +295,14 @@ export default function MyGrowthPage() {
   }
 
   async function handleUnenroll(pathwayId: string) {
+    // Warn creators — unenrolling removes their progress but not the pathway itself
+    const pathway = enrolledPathways.find(ep => ep.pathway.id === pathwayId)?.pathway;
+    if (pathway?.created_by === profile!.id) {
+      const confirmed = window.confirm(
+        `You created "${pathway.name}". Unenrolling will remove your progress but the pathway stays published for others. Continue?`
+      );
+      if (!confirmed) return;
+    }
     try {
       const { error } = await supabase
         .from('pathway_enrollments')
