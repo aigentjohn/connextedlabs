@@ -244,14 +244,21 @@ export default function MyContentPage() {
       <Breadcrumbs items={[{ label: 'My Favorites' }]} />
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {items.length} saved item{items.length !== 1 ? 's' : ''} across {typesPresent.length} type{typesPresent.length !== 1 ? 's' : ''}
-          </p>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {items.length} saved item{items.length !== 1 ? 's' : ''} across {typesPresent.length} type{typesPresent.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
+        <Link to="/my-content/audit">
+          <Button variant="outline" size="sm">
+            Content Audit
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
