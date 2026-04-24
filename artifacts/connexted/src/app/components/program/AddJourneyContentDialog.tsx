@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/app/components/ui/select';
 import { Switch } from '@/app/components/ui/switch';
-import { FileText, Calendar, MessageSquare, Box, ExternalLink, BookOpen, Presentation, Library, Video, CheckSquare } from 'lucide-react';
+import { FileText, Calendar, MessageSquare, Box, ExternalLink, BookOpen, Presentation, Library, Video, CheckSquare, StickyNote } from 'lucide-react';
 
 interface AddJourneyContentDialogProps {
   open: boolean;
@@ -38,8 +38,8 @@ interface ContentItem {
   description?: string;
 }
 
-type ItemType = 
-  | 'document' | 'book' | 'deck' | 'shelf' | 'playlist' | 'magazine' | 'episode'  // Content types
+type ItemType =
+  | 'document' | 'book' | 'deck' | 'shelf' | 'playlist' | 'magazine' | 'episode' | 'page'  // Content types
   | 'table' | 'elevator' | 'pitch' | 'build' | 'standup' | 'meetup' | 'sprint' | 'checklist'  // Container types
   | 'event' | 'discussion' | 'resource';  // Other types
 
@@ -241,6 +241,15 @@ export function AddJourneyContentDialog({
           data = (checklists || []).map(c => ({ id: c.id, title: c.name, description: c.description }));
           break;
 
+        case 'page':
+          const { data: pages } = await supabase
+            .from('pages')
+            .select('id, title, description')
+            .order('updated_at', { ascending: false })
+            .limit(100);
+          data = pages || [];
+          break;
+
         case 'resource':
           // Resources could be external links or content items
           // For now, use documents as resources
@@ -320,6 +329,8 @@ export function AddJourneyContentDialog({
 
   const getItemTypeIcon = (type: string) => {
     switch (type) {
+      case 'page':
+        return <StickyNote className="w-4 h-4" />;
       case 'document':
       case 'resource':
         return <FileText className="w-4 h-4" />;
@@ -376,6 +387,12 @@ export function AddJourneyContentDialog({
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     Document
+                  </div>
+                </SelectItem>
+                <SelectItem value="page">
+                  <div className="flex items-center gap-2">
+                    <StickyNote className="w-4 h-4" />
+                    Page
                   </div>
                 </SelectItem>
                 <SelectItem value="book">

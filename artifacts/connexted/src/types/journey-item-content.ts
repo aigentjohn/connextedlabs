@@ -35,6 +35,7 @@
  * playlist     → playlists
  * shelf        → libraries
  * magazine     → magazines
+ * page         → pages
  * build        → builds
  * pitch        → pitches
  * table        → tables
@@ -117,6 +118,13 @@ export interface MagazineContent {
   slug?: string;
 }
 
+export interface PageContent {
+  /** Full markdown body stored inline in the `pages` table */
+  body: string;
+  description?: string;
+  tags?: string[];
+}
+
 // ============================================================================
 // COMMUNITY CONTAINER TYPES (named, slugged, visibility-controlled)
 // These map to their own DB tables and are created fresh on import.
@@ -184,6 +192,7 @@ export type JourneyItemContent =
   | PlaylistContent
   | ShelfContent
   | MagazineContent
+  | PageContent
   | BuildContent
   | PitchContent
   | TableContent
@@ -208,6 +217,7 @@ export type JourneyItemType =
   | 'playlist'
   | 'shelf'
   | 'magazine'
+  | 'page'
   | 'build'
   | 'pitch'
   | 'table'
