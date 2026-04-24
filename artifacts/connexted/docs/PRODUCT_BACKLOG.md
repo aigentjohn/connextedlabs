@@ -1,6 +1,6 @@
 # Connexted Labs — Product Backlog
 
-Last updated: April 2026 (updated with Saved Items, Pathway improvements, Advisory Cohort)
+Last updated: April 2026
 Maintained by: @aigentjohn
 
 Status legend:
@@ -89,17 +89,6 @@ Everything a user can see, manage, and act on about their own content.
 | Visibility control | ✅ Live | — | Fixed Apr 2026; backfill migration run |
 | Add documents to library | ✅ Live | — | — |
 | Expiration / renewal | 📋 Planned | 🟢 | — |
-
-### My Favorites
-| Feature | Status | Priority | Notes |
-|---|---|---|---|
-| `content_favorites` table + `useContentEngagement` hook | ✅ Live | — | Cross-type; works for any content type |
-| Like / Favorite buttons on browse pages | ✅ Live | — | Episodes, Decks, Circles, Tables, Meetups |
-| My Favorites page (`/my-content`) | ✅ Live | — | `MyContentPage.tsx`; groups by type, remove button |
-| Sidebar link — "My Favorites" in Discover section | ✅ Live | — | `DiscoverSection.tsx`; shows count badge |
-| "Save" action on Pathway steps | 📋 Planned | 🟡 | Heart/bookmark on step cards; calls `toggleFavorite` |
-| "Save" action on Companion items | 📋 Planned | 🟡 | Companion panel → add to favorites |
-| Sort / filter by content type on My Favorites | 📋 Planned | 🟢 | Client-side; types already grouped |
 
 ### My Links
 | Feature | Status | Priority | Notes |
@@ -234,17 +223,6 @@ How members track their own development over time.
 |---|---|---|---|
 | Browse pathways | ✅ Live | — | `/browse-pathways` |
 | My growth / pathway progress | ✅ Live | — | `/my-growth` |
-| Activity types: join, post, create, mentor, attend | ✅ Live | — | Core doing/participation verbs |
-| Activity type: `watch_episode` with specific instance | ✅ Live | — | Fixed Apr 2026; `ACTIVITY_TABLE_MAP` wired |
-| Activity types: `read_page`, `view_pitch`, `view_build` | ✅ Live | — | Added Apr 2026; learning/observation verbs |
-| Editable step title and instructions | ✅ Live | — | Added Apr 2026; inline edit in step card |
-| Pathway admin RLS fix | 🚫 Blocked | 🔴 | Admin writes blocked by RLS; see `PATHWAY_ADMIN_RLS_PLAN.md` |
-| Step-level completion tracking | 📋 Planned | 🟡 | `pathway_step_reports` table does not exist; only aggregate progress stored |
-| Step targeting a specific item (pick from list) | ✅ Live | — | `activity_criteria.target_id` + search dialog |
-| Step instructions visible to learner | ✅ Live | — | `step.description` rendered in PathwayDetailPage |
-| Pathway templates (starter sequences) | 📋 Planned | 🟢 | Pre-built onboarding, mentorship, cohort sequences |
-| Micro-pathway (3–5 steps, shareable) | 💡 Exploring | 🟢 | Short prerequisite or challenge sequences |
-| Pathway completion certificate | 💡 Exploring | 🟢 | Badge award on completion |
 
 ### Badges
 | Feature | Status | Priority | Notes |
@@ -379,9 +357,7 @@ Using the platform itself to validate and shape future development.
 | Feature feedback via Build comments | 📋 Planned | 🔴 | Members can react to roadmap items |
 | Sprint tracking for development | 📋 Planned | 🟡 | Use platform Sprints for dev cycles |
 | Standup for solo/team check-ins | 📋 Planned | 🟡 | Use platform Standups |
-| **Advisory cohort program** | 📋 Planned | 🔴 | Circle of 5–10 early adopters run as a Program with Journeys containing polls, surveys, standups, and sprint reviews; validates backlog hypotheses before build |
-| Survey/poll to validate queue feature | 💡 Exploring | 🟡 | One-question survey: "Do you ever want to save something to do later but not add it to a course?" |
-| Survey/poll to validate micro-pathway | 💡 Exploring | 🟡 | "Would a 3-step challenge sequence motivate you to try something new?" |
+| Cohort / beta program Circle | 💡 Exploring | 🟡 | Early adopters in a Circle, run as a Program |
 
 ---
 
@@ -392,7 +368,6 @@ Do not build these until at least 3 conversations confirm the problem is real.
 
 | Idea | Hypothesis | What to ask in interviews |
 |---|---|---|
-| Favorites as action queue | Members save things to do but treat favorites as appreciation | "When you favorite something, do you go back and actually do it?" |
 | Section schema for Pages | Authors want enforced structure, not just a scaffold | "When you write course content, do you ever wish the format was locked?" |
 | Kanban view for Lists | Members use checklists as project boards, not just task lists | "How do you track work-in-progress on a project today?" |
 | Cross-instance content import | Users will run on multiple instances and want portability | "If you moved platforms, what content would you need to take with you?" |
@@ -401,7 +376,6 @@ Do not build these until at least 3 conversations confirm the problem is real.
 | Photos and Albums | Members want to share photo collections, not just individual images | "When would you upload a photo here rather than Instagram or Google Photos?" |
 | Public page URLs | Authors want to share a page outside the platform | "Have you ever wanted to link someone to a specific lesson from outside the app?" |
 | Email notifications | In-app notifications aren't enough for time-sensitive alerts | "What would make you miss something important if you didn't check the app?" |
-| Micro-pathway (3–5 steps) | Short challenge sequences drive action better than long pathways | "Would you start a pathway if it only had 3 steps and took 20 minutes?" |
 
 ---
 
@@ -426,7 +400,6 @@ Nothing should be scheduled against these until the blocker is resolved.
 
 | Topic | Document |
 |---|---|
-| Phased roadmap — what ships in which sprint | `PRODUCT_ROADMAP.md` |
 | User content features and sprint status | `USER_CONTENT_PLAN.md` |
 | Content expiry, renewal, community survival | `EXPIRE_AND_RENEW_PLAN.md` |
 | Pages content type — current and future phases | `PAGES_AND_TEMPLATES_PLAN.md` |
@@ -440,4 +413,3 @@ Nothing should be scheduled against these until the blocker is resolved.
 | Cloud storage integration (Drive, OneDrive, Dropbox) | `CLOUD_STORAGE_INTEGRATION_PLAN.md` |
 | Multi-instance deployment | `MULTI_INSTANCE_PLAN.md` |
 | Sessions, events, meetings architecture | `SESSIONS_EVENTS_MEETINGS_ARCHITECTURE.md` |
-| Pathway admin RLS — fix options and trade-offs | `PATHWAY_ADMIN_RLS_PLAN.md` |
