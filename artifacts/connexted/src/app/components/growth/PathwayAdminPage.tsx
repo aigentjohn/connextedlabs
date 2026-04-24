@@ -65,6 +65,7 @@ import {
   Star,
   ClipboardCheck,
   BarChart3,
+  StickyNote,
 } from 'lucide-react';
 
 // ============================================================================
@@ -205,6 +206,9 @@ const ACTIVITY_TYPES: Record<string, { label: string; icon: string; category: st
   use_playlist: { label: 'Use a Playlist', icon: 'ListMusic', category: 'Learning' },
   use_library: { label: 'Use a Library', icon: 'Library', category: 'Learning' },
   use_elevator: { label: 'Use an Elevator Pitch', icon: 'ArrowUpRight', category: 'Participation' },
+  read_page:    { label: 'Read a Page',           icon: 'StickyNote',   category: 'Learning'      },
+  view_pitch:   { label: 'View a Pitch',          icon: 'EyeMic',       category: 'Learning'      },
+  view_build:   { label: 'Explore a Build',       icon: 'EyeCompass',   category: 'Learning'      },
   custom: { label: 'Custom Activity', icon: 'Star', category: 'Other' },
 };
 
@@ -230,6 +234,9 @@ const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
   Library: <Library className="w-4 h-4 text-emerald-500" />,
   ArrowUpRight: <ArrowUpRight className="w-4 h-4 text-cyan-500" />,
   Star: <Star className="w-4 h-4 text-yellow-500" />,
+  StickyNote: <StickyNote className="w-4 h-4 text-indigo-500" />,
+  EyeMic: <Eye className="w-4 h-4 text-pink-500" />,
+  EyeCompass: <Eye className="w-4 h-4 text-amber-600" />,
 };
 
 function getActivityIcon(activityType?: string) {
@@ -258,7 +265,10 @@ const ACTIVITY_TABLE_MAP: Record<string, { table: string; titleField: string } |
   use_playlist:        { table: 'playlists',      titleField: 'title' },
   use_library:         { table: 'libraries',      titleField: 'name'  },
   use_elevator:        { table: 'elevators',      titleField: 'name'  },
-  watch_episode:       null,
+  watch_episode:       { table: 'episodes', titleField: 'title' },
+  read_page:           { table: 'pages',    titleField: 'title' },
+  view_pitch:          { table: 'pitches',  titleField: 'name'  },
+  view_build:          { table: 'builds',   titleField: 'name'  },
   post_moment:         null,
   add_portfolio_item:  null,
   custom:              null,
@@ -1491,7 +1501,16 @@ export default function PathwayAdminPage() {
 
                       {/* Title */}
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate block">{step.title}</span>
+                        <input
+                          value={step.title}
+                          onChange={(e) => {
+                            const newSteps = [...form.steps];
+                            newSteps[index] = { ...step, title: e.target.value };
+                            setForm(prev => ({ ...prev, steps: newSteps }));
+                          }}
+                          className="w-full text-sm font-medium bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-indigo-400 focus:outline-none px-0 py-0.5 truncate"
+                          placeholder="Step title"
+                        />
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
                             step.step_type === 'activity' ? 'text-green-600 border-green-300' : ''
@@ -1600,6 +1619,47 @@ export default function PathwayAdminPage() {
                         ))}
                       </div>
                     )}
+
+                    {/* Instructions for the learner */}
+                    <div className="mt-2 ml-10">
+                      {step.description ? (
+                        <div className="space-y-1">
+                          <textarea
+                            value={step.description}
+                            onChange={(e) => {
+                              const newSteps = [...form.steps];
+                              newSteps[index] = { ...step, description: e.target.value || null };
+                              setForm(prev => ({ ...prev, steps: newSteps }));
+                            }}
+                            rows={2}
+                            placeholder="Instructions shown to the learner for this step..."
+                            className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 resize-none focus:outline-none focus:border-indigo-400 bg-gray-50"
+                          />
+                          <button
+                            onClick={() => {
+                              const newSteps = [...form.steps];
+                              newSteps[index] = { ...step, description: null };
+                              setForm(prev => ({ ...prev, steps: newSteps }));
+                            }}
+                            className="text-[10px] text-red-400 hover:text-red-600"
+                          >
+                            Remove instructions
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            const newSteps = [...form.steps];
+                            newSteps[index] = { ...step, description: '' };
+                            setForm(prev => ({ ...prev, steps: newSteps }));
+                          }}
+                          className="text-[10px] text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add instructions for learner
+                        </button>
+                      )}
+                    </div>
 
                     {/* Inline instance assignment — for activity steps that have a table */}
                     {step.step_type === 'activity' && ACTIVITY_TABLE_MAP[step.activity_type || ''] && (
