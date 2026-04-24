@@ -181,28 +181,152 @@ the kind of reading assignment a course facilitator might assign.
 
 ---
 
-## 8. Series / Collection Concept
+## 8. Collection Hierarchy — Shelf, Playlist, Magazine, Library
 
-Today:
-- Multiple Episodes → grouped by **Playlist**
-- Multiple Blogs → grouped by **Magazine**
-- Multiple Books → no grouping concept
+The platform has a consistent single-item → collection pattern:
 
-A "series" of books (e.g. volumes 1–3 of a curriculum, or a seasonal anthology)
-has no home today.
+| Single item | Collection | Status |
+|---|---|---|
+| Book | **Shelf** | **Not built yet** |
+| Episode | **Playlist** | Built (`playlists` table) |
+| Blog | **Magazine** | Built (`magazines` + `magazine_items` tables) |
+| Document | **Library** | Built (`libraries` table, currently mislabeled as "Shelf" in the UI) |
 
-**Proposed: `book_series` table** (lower priority — the journey system partially
-fills this gap since multiple books can be sequential journey steps):
-- `id, title, description, cover_image, created_by, visibility, created_at`
-- Junction: `book_series_items (series_id, book_id, order_index)`
-- Series page: shows books in order with progress tracking across the series
-
-**Alternative simpler approach:** Add a `series_id` FK to `books` pointing to a
-lightweight `series` table. Less structured but achievable without a new UI.
+**Current naming problem in `journey-item-types.ts`:**
+The `shelf` type key exists but is labeled `Library`, mapped to the `libraries`
+table, and described as "Curated collections of documents." There is no Shelf
+(book collection) anywhere in the codebase. The `libraries` table is a document
+collection, not a book collection.
 
 ---
 
-## Relationship Between the Three Types (Clarified)
+### Shelf — Proposed Design
+
+A **Shelf** is a curated, ordered collection of Books — analogous to a Playlist
+for episodes or a Magazine for blogs.
+
+**Why a junction table (like Magazine), not an array (like Playlist):**
+- Books are long-form; reading status per book in the shelf is valuable
+  (Unread / Reading / Finished)
+- Manual ordering by curator (drag-to-reorder) requires a `position` column
+- A shelf may grow large — arrays on the parent row become unwieldy
+- Consistent with the Magazine pattern, which is the more mature design
+
+#### Proposed schema
+
+```sql
+CREATE TABLE public.shelves (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name            text        NOT NULL,
+  slug            text        UNIQUE NOT NULL,
+  tagline         text,                          -- short 1-line description
+  description     text,
+  cover_image_url text,
+  curator_id      uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  visibility      text        NOT NULL DEFAULT 'public'
+                              CHECK (visibility IN ('public','member','premium','private','unlisted')),
+  topic_ids       uuid[],
+  tags            text[],
+  allow_comments  boolean     NOT NULL DEFAULT true,
+  allow_reactions boolean     NOT NULL DEFAULT true,
+  allow_sharing   boolean     NOT NULL DEFAULT true,
+  is_featured     boolean     DEFAULT false,
+  -- journey context (same pattern as playlists)
+  program_id         uuid     REFERENCES public.programs(id) ON DELETE SET NULL,
+  program_journey_id uuid,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.shelf_items (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  shelf_id     uuid        NOT NULL REFERENCES public.shelves(id) ON DELETE CASCADE,
+  book_id      uuid        NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
+  position     integer     NOT NULL DEFAULT 0,   -- curator-controlled order
+  notes        text,                              -- curator's note about this book
+  added_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (shelf_id, book_id)
+);
+
+-- Per-member reading status within a shelf (optional, phase 2)
+CREATE TABLE public.shelf_reading_progress (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  shelf_id     uuid        NOT NULL REFERENCES public.shelves(id) ON DELETE CASCADE,
+  book_id      uuid        NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
+  user_id      uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  status       text        NOT NULL DEFAULT 'unread'
+                           CHECK (status IN ('unread','reading','finished')),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (shelf_id, book_id, user_id)
+);
+```
+
+#### UI — Create / Edit
+
+Fields (modelled on `CreateMagazineForm`):
+- Name (required)
+- Tagline (short pitch, optional)
+- Description (optional)
+- Cover image URL (optional)
+- Visibility (public / member / premium / private)
+- Topics (multi-select, up to 5)
+- Tags
+- Allow comments / reactions / sharing toggles
+
+#### UI — Detail page tabs
+
+```
+Shelf Detail
+├── About tab
+│   ├── Engagement bar (Like, Favorite, Rating, Share)
+│   ├── Tagline + description
+│   ├── Topics, tags
+│   └── Stats: book count, follower count, curator
+│
+├── Books tab
+│   ├── Ordered list of BookCard rows
+│   ├── Each row: cover thumbnail, title, chapter count, reading time, reading status badge
+│   ├── (Curator only) Drag-to-reorder handle + remove button
+│   ├── (Curator only) Add Books button → search panel (same pattern as Magazine)
+│   └── Reading status toggle per book (Unread / Reading / Finished) — phase 2
+│
+└── Manage tab (curator only)
+    ├── Edit metadata
+    ├── Subscribers list
+    └── Danger zone (archive / delete)
+```
+
+#### Journey integration
+
+Same pattern as Playlist:
+- `program_id` and `program_journey_id` columns on `shelves`
+- Register `shelf` in `journey-item-types.ts`:
+  ```typescript
+  shelf: {
+    icon: BookMarked,        // or Library icon
+    label: 'Shelf',
+    labelPlural: 'Shelves',
+    category: 'content',
+    tableName: 'shelves',
+    description: 'Curated collections of books'
+  }
+  ```
+- Journey inline viewer: shows shelf cover, book count, progress bar (X of Y finished)
+
+#### What changes to existing code
+
+1. `journey-item-types.ts` — update `shelf` entry: correct label, description, and `tableName` from `'libraries'` to `'shelves'`
+2. `journey-item-types.ts` — add a `library` entry for the existing `libraries` table (document collections)
+3. New pages to build (modelled on Magazine):
+   - `ShelvesPage` (browse/search)
+   - `CreateShelfPage`
+   - `ShelfDetailPage` (tabs: About, Books, Manage)
+   - `AddBookToShelfDialog` (search + add)
+4. New SQL migration: `shelves`, `shelf_items`, `shelf_reading_progress` tables + RLS
+
+---
+
+## Relationship Between Types (Clarified)
 
 | Use case | Best type today | Gap |
 |---|---|---|
@@ -213,6 +337,8 @@ lightweight `series` table. Less structured but achievable without a new UI.
 | Curate an external book / ebook | *(no type fits)* | Requires item 3 above |
 | Multi-part video series | Playlist of Episodes | No text or chapter structure |
 | Curated article collection | Magazine of Blogs | Cannot include books or episodes |
+| Curated book reading list | **Shelf** *(not built yet)* | Requires item 8 above |
+| Curated document collection | Library (`libraries` table) | Exists, mislabeled as "Shelf" in UI |
 
 ---
 
@@ -228,7 +354,8 @@ lightweight `series` table. Less structured but achievable without a new UI.
 | 6 | External URL option for Books | Medium | Schema + conditional detail page rendering |
 | 7 | Premium visibility on Books | Low | Enum update + RLS policy update |
 | 8 | Books in Magazines | Medium | `magazine_items` policy + magazine editor update |
-| 9 | Book Series | High | New table, new UI, new journey concept |
+| 9 | **Shelf** (book collection) | High | New tables (`shelves`, `shelf_items`), new pages modelled on Magazine; fix `shelf` type label in journey config |
+| 10 | Reading progress per book in Shelf | Medium | `shelf_reading_progress` table; Unread/Reading/Finished badge per member |
 
 ---
 
@@ -252,3 +379,10 @@ lightweight `series` table. Less structured but achievable without a new UI.
 4. **Blogs in journeys — completion tracking** — A blog is an external link. How do
    you mark it "done"? Options: (a) manual "Mark as read" button, (b) auto-complete
    on click, (c) no completion tracking. Manual button is safest.
+
+5. **Library label migration** — The existing `shelf` journey type is currently
+   labeled "Library" in the UI. When Shelf is built and the label is corrected,
+   any existing `journey_items` rows with `item_type = 'shelf'` will still point
+   to the old `libraries` table. A data migration will be needed to move those
+   items to the new `shelves` table, or the `libraries` table will need to be
+   repurposed as the shelves backing store. Decide before building Shelf.
