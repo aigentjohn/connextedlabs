@@ -64,7 +64,11 @@ export default function FriendCompanionsListPage() {
         .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('friend_companions query error:', error);
+        throw error;
+      }
+
       if (!rows || rows.length === 0) {
         setCompanions([]);
         setLoading(false);
@@ -72,15 +76,17 @@ export default function FriendCompanionsListPage() {
       }
 
       // 2. Collect friend IDs (the other participant)
-      const friendIds = rows.map(r =>
-        r.user_a_id === user.id ? r.user_b_id : r.user_a_id
-      );
+      const friendIds = Array.from(new Set(
+        rows.map(r => r.user_a_id === user.id ? r.user_b_id : r.user_a_id)
+      ));
 
       // 3. Single batched profile fetch for all friends
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('users')
         .select('id, name, avatar')
         .in('id', friendIds);
+
+      if (profilesError) console.error('profiles fetch error:', profilesError);
 
       const profileMap = Object.fromEntries(
         (profiles || []).map(p => [p.id, p])

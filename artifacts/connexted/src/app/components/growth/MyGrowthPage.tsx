@@ -161,37 +161,6 @@ function getStepItemLabel(step: PathwayStep): string | null {
   return null;
 }
 
-// ============================================================================
-// API HELPERS
-// ============================================================================
-
-async function fetchAPI(path: string, options?: RequestInit) {
-  const response = await fetch(`/api${path}`, {
-    method: options?.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    ...(options?.body ? { body: options.body } : {}),
-  });
-
-  if (!response.ok) {
-    let errorMsg = `API error: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorData.message || errorMsg;
-    } catch { /* ignore parse errors */ }
-    console.error(`Growth API ${path} error:`, errorMsg);
-    throw new Error(errorMsg);
-  }
-
-  const data = await response.json();
-
-  if (data && typeof data === 'object' && 'success' in data && !data.success) {
-    const msg = data.error || data.message || 'API error';
-    console.error(`Growth API ${path} error:`, msg, data);
-    throw new Error(msg);
-  }
-
-  return data;
-}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -217,20 +186,67 @@ export default function MyGrowthPage() {
   async function loadGrowthData() {
     setLoading(true);
     try {
-      const [enrollmentsRes, recommendationsRes] = await Promise.allSettled([
-        fetchAPI(`/pathways/user/enrollments?user_id=${profile!.id}`),
-        fetchAPI(`/pathways/user/recommended?user_id=${profile!.id}`),
-      ]);
+      // ── 1. Enrolled pathways (direct Supabase — no API server needed) ──────
+      const { data: enrollData, error: enrollError } = await supabase
+        .from('pathway_enrollments')
+        .select(`
+          pathway_id, enrolled_at, completed_at, progress_pct, status,
+          pathways:pathway_id (
+            id, name, slug, description, short_description, destination,
+            relevant_topics, relevant_tags, target_roles, target_career_stages,
+            completion_badge_type_id, estimated_hours, icon, color,
+            status, is_featured, enrollment_count, completion_count,
+            pathway_steps (*)
+          )
+        `)
+        .eq('user_id', profile!.id);
 
-      if (enrollmentsRes.status === 'fulfilled') {
-        setEnrolledPathways(enrollmentsRes.value.enrollments || []);
+      if (enrollError) console.error('Enrollment fetch error:', enrollError);
+
+      const enrolled: EnrolledPathway[] = (enrollData || [])
+        .filter((e: any) => e.pathways)
+        .map((e: any) => ({
+          enrollment: {
+            pathway_id: e.pathway_id,
+            user_id: profile!.id,
+            enrolled_at: e.enrolled_at,
+            completed_at: e.completed_at,
+            progress_pct: e.progress_pct ?? 0,
+            status: e.status ?? 'enrolled',
+          },
+          pathway: {
+            ...e.pathways,
+            steps: (e.pathways.pathway_steps || [])
+              .sort((a: any, b: any) => a.order_index - b.order_index),
+          },
+        }));
+      setEnrolledPathways(enrolled);
+
+      // ── 2. Recommendations — published pathways not yet enrolled in ────────
+      const enrolledIds = enrolled.map(e => e.pathway.id);
+      const { data: allPathways } = await supabase
+        .from('pathways')
+        .select('*, pathway_steps(*)')
+        .eq('status', 'published')
+        .order('is_featured', { ascending: false })
+        .limit(12);
+
+      if (allPathways) {
+        const recs = allPathways
+          .filter((p: any) => !enrolledIds.includes(p.id))
+          .map((p: any) => ({
+            pathway: {
+              ...p,
+              steps: (p.pathway_steps || [])
+                .sort((a: any, b: any) => a.order_index - b.order_index),
+            },
+            match_score: 0,
+            match_reasons: [],
+          }));
+        setRecommendations(recs);
       }
 
-      if (recommendationsRes.status === 'fulfilled') {
-        setRecommendations(recommendationsRes.value.recommendations || []);
-      }
-
-      // Load completed courses from Supabase directly
+      // ── 3. Completed courses ───────────────────────────────────────────────
       const { data: completed } = await supabase
         .from('course_enrollments')
         .select(`
@@ -255,10 +271,10 @@ export default function MyGrowthPage() {
   async function handleEnroll(pathwayId: string) {
     setEnrolling(pathwayId);
     try {
-      await fetchAPI(`/pathways/${pathwayId}/enroll`, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: profile!.id }),
-      });
+      const { error } = await supabase
+        .from('pathway_enrollments')
+        .insert({ pathway_id: pathwayId, user_id: profile!.id });
+      if (error) throw error;
       toast.success('Enrolled in pathway!');
       loadGrowthData();
     } catch (error: any) {
@@ -284,32 +300,12 @@ export default function MyGrowthPage() {
     }
   }
 
-  async function handleSkipStep(pathwayId: string, stepId: string) {
-    try {
-      await fetchAPI(`/pathways/${pathwayId}/skip-step`, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: profile!.id, step_id: stepId }),
-      });
-      toast.success('Step marked as known — moving ahead!');
-      loadGrowthData();
-    } catch (error: any) {
-      console.error('Error skipping step:', error);
-      toast.error(error.message || 'Failed to skip step');
-    }
+  function handleSkipStep(_pathwayId: string, _stepId: string) {
+    toast.info('Open the pathway to skip steps.');
   }
 
-  async function handleSelfReport(pathwayId: string, stepId: string, evidenceNote: string) {
-    try {
-      await fetchAPI(`/pathways/${pathwayId}/self-report`, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: profile!.id, step_id: stepId, evidence_note: evidenceNote }),
-      });
-      toast.success('Activity reported! Waiting for verification.');
-      loadGrowthData();
-    } catch (error: any) {
-      console.error('Error self-reporting step:', error);
-      toast.error(error.message || 'Failed to report activity');
-    }
+  function handleSelfReport(_pathwayId: string, _stepId: string, _evidenceNote: string) {
+    toast.info('Open the pathway to report activity.');
   }
 
   if (!profile) return null;

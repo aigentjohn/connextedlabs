@@ -471,16 +471,16 @@ export default function PathwayDetailPage() {
                     {/* Actions — right side */}
                     {!isCompleted && (
                       <div className="flex items-center gap-2 shrink-0">
-                        {/* Go button — navigate to the course/program/activity */}
+                        {/* Go button — opens in new tab so this pathway page stays open */}
                         {stepLink && (
                           <Button size="sm" asChild className={isCurrent ? '' : 'opacity-60'}>
-                            <Link to={stepLink}>
+                            <a href={stepLink} target="_blank" rel="noopener noreferrer">
                               {isCurrent ? (
                                 <>Start <ArrowRight className="w-3 h-3 ml-1" /></>
                               ) : (
                                 <>Go <ExternalLink className="w-3 h-3 ml-1" /></>
                               )}
-                            </Link>
+                            </a>
                           </Button>
                         )}
 
