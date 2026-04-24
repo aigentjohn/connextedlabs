@@ -394,7 +394,8 @@ export default function DecksPage() {
     const matchesSearch = deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       deck.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesMine = !filterMyContent || deck.created_by === profile?.id;
-    return matchesSearch && matchesMine;
+    const isVisible = deck.visibility !== 'private' || deck.created_by === profile?.id;
+    return matchesSearch && matchesMine && isVisible;
   });
 
   const sortedDecks = [...filteredDecks].sort((a, b) => {

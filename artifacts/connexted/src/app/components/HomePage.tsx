@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Award, ArrowRight, Zap, Briefcase,
   FolderKanban, GraduationCap, FileText, Compass, Ticket,
+  Link2, ClipboardList, AlertTriangle,
 } from 'lucide-react';
 import RecommendedCirclesWidget from '@/app/components/RecommendedCirclesWidget';
 import MyApplicationsWidget from '@/app/components/MyApplicationsWidget';
@@ -47,6 +48,7 @@ export default function HomePage() {
   const [portfolioItemsCount, setPortfolioItemsCount] = useState(0);
   const [momentsPostsCount, setMomentsPostsCount] = useState(0);
   const [documentsCount, setDocumentsCount] = useState(0);
+  const [linksCount, setLinksCount] = useState(0);
   const [ticketsCount, setTicketsCount] = useState(0);
 
   // Real badges count via the badge service
@@ -95,6 +97,7 @@ export default function HomePage() {
           portfolioResult,
           momentsResult,
           documentsResult,
+          linksResult,
         ] = await Promise.all([
           // Courses the user is enrolled in (via enrollments or circle overlap)
           supabase.from('courses').select('id', { count: 'exact', head: true })
@@ -104,14 +107,18 @@ export default function HomePage() {
             .eq('user_id', profile.id),
           // Portfolio items
           supabase.from('portfolio_items').select('id, portfolio_id', { count: 'exact', head: true })
-            .eq('portfolio_id', profile.id),  // Try via portfolio
+            .eq('portfolio_id', profile.id),
           // Moments posts by this user
           supabase.from('posts').select('id', { count: 'exact', head: true })
             .eq('author_id', profile.id)
             .not('moments_id', 'is', null),
           // Documents authored
           supabase.from('documents').select('id', { count: 'exact', head: true })
-            .eq('author_id', profile.id),
+            .eq('author_id', profile.id)
+            .is('deleted_at', null),
+          // Saved links
+          supabase.from('my_contents').select('id', { count: 'exact', head: true })
+            .eq('user_id', profile.id),
         ]);
 
         setCoursesCount(coursesResult.count || 0);
@@ -119,6 +126,7 @@ export default function HomePage() {
         setPortfolioItemsCount(portfolioResult.count || 0);
         setMomentsPostsCount(momentsResult.count || 0);
         setDocumentsCount(documentsResult.count || 0);
+        setLinksCount(linksResult.count || 0);
 
         // Fetch user's active tickets
         try {
@@ -274,6 +282,61 @@ export default function HomePage() {
           })}
         </div>
       </div>
+
+      {/* My Content Summary */}
+      <Card className="border-indigo-100">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-indigo-600" />
+              <CardTitle className="text-base">My Content</CardTitle>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-700">
+              <Link to="/my-content/audit">View Audit <ArrowRight className="ml-1 w-3 h-3" /></Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Link to="/my-documents" className="group">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-sky-50 hover:bg-sky-100 transition-colors">
+                <FileText className="w-5 h-5 text-sky-600 shrink-0" />
+                <div>
+                  <p className="text-xl font-bold text-sky-900">{documentsCount}</p>
+                  <p className="text-xs text-sky-700">Documents</p>
+                </div>
+              </div>
+            </Link>
+            <Link to="/my-contents" className="group">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-50 hover:bg-violet-100 transition-colors">
+                <Link2 className="w-5 h-5 text-violet-600 shrink-0" />
+                <div>
+                  <p className="text-xl font-bold text-violet-900">{linksCount}</p>
+                  <p className="text-xs text-violet-700">Saved Links</p>
+                </div>
+              </div>
+            </Link>
+            <Link to={`/moments/${profile.id}`} className="group">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-rose-50 hover:bg-rose-100 transition-colors">
+                <Zap className="w-5 h-5 text-rose-600 shrink-0" />
+                <div>
+                  <p className="text-xl font-bold text-rose-900">{momentsPostsCount}</p>
+                  <p className="text-xs text-rose-700">Moments</p>
+                </div>
+              </div>
+            </Link>
+            <Link to="/my-content/trash" className="group">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <AlertTriangle className="w-5 h-5 text-gray-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-700">Trash &amp; Audit</p>
+                  <p className="text-xs text-gray-500">Manage content</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}

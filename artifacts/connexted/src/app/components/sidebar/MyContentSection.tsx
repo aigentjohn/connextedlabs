@@ -17,6 +17,7 @@ import {
   FolderKanban,
   Star,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -74,6 +75,7 @@ export function MyContentSection({
               <span className="text-xs text-gray-500">({myReviewCount})</span>
             )}
           </Link>
+          <SideLink to="/my-content/trash" icon={Trash2} pathname={location.pathname} match="startsWith">Trash</SideLink>
         </div>
       )}
     </div>

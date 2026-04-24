@@ -209,6 +209,7 @@ const CollectionsPage = lazy(() => import('@/app/components/CollectionsPage'));
 const MembersPage = lazy(() => import('@/app/components/MembersPage'));
 const MyContentPage = lazy(() => import('@/app/components/MyContentPage'));
 const MyContentAuditPage = lazy(() => import('@/app/pages/MyContentAuditPage'));
+const TrashPage = lazy(() => import('@/app/pages/TrashPage'));
 const RecentActivitiesPage = lazy(() => import('@/app/components/RecentActivitiesPage'));
 const PricingPage = lazy(() => import('@/app/components/PricingPage'));
 
@@ -703,6 +704,7 @@ const router = createBrowserRouter([
           { path: '/my-subscriptions', element: <Navigate to="/my-content" replace /> },
           { path: '/my-content', element: <MyContentPage /> },
           { path: '/my-content/audit', element: <MyContentAuditPage /> },
+          { path: '/my-content/trash', element: <TrashPage /> },
           { path: '/my-content-admin', element: <MyContentAdminPage /> },
           { path: '/my-contents', element: <MyContentsPage /> },
           { path: '/members', element: <MembersPage /> },
