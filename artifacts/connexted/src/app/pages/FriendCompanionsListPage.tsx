@@ -1,16 +1,11 @@
 /**
  * FriendCompanionsListPage
  *
- * Lists all friend companions the current user is a participant in,
- * ordered by most recently updated (newest activity first).
+ * Lists all mutual friends alongside their companion status.
+ * Friends with an existing companion show item count + open date.
+ * Friends without a companion yet show a "Start" button.
  *
  * Route: /members/friends/companions
- *
- * Efficient loading strategy:
- *   1. Single query to friend_companions filtered by user (OR clause)
- *   2. One batched query for all friend profiles
- *   3. One batched count query for item counts per companion
- *   — avoids N+1 patterns from the individual companion/friends pages
  */
 
 import { useEffect, useState } from 'react';
@@ -20,26 +15,22 @@ import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Button } from '@/app/components/ui/button';
-import { MessageCircle, Users2, ArrowRight, Package } from 'lucide-react';
+import { Badge } from '@/app/components/ui/badge';
+import { MessageCircle, Users2, ArrowRight, Package, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-interface CompanionRow {
+interface FriendRow {
   id: string;
-  user_a_id: string;
-  user_b_id: string;
-  updated_at: string;
-  created_at: string;
+  name: string;
+  avatar: string | null;
+  companionId: string | null;
   itemCount: number;
-  friend: {
-    id: string;
-    name: string;
-    avatar: string | null;
-  } | null;
+  companionCreatedAt: string | null;
 }
 
 export default function FriendCompanionsListPage() {
   const { user } = useAuth();
-  const [companions, setCompanions] = useState<CompanionRow[]>([]);
+  const [friends, setFriends] = useState<FriendRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,76 +41,89 @@ export default function FriendCompanionsListPage() {
     if (!user) return;
     setLoading(true);
     try {
-      // 1. Fetch all companions for this user, with item count via embed
-      const { data: rows, error } = await supabase
-        .from('friend_companions')
-        .select(`
-          id,
-          user_a_id,
-          user_b_id,
-          updated_at,
-          created_at,
-          friend_companion_items(count)
-        `)
-        .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-        .order('updated_at', { ascending: false });
+      // 1. Get mutual friend IDs
+      const [{ data: followingData }, { data: followersData }] = await Promise.all([
+        supabase.from('user_connections').select('following_id').eq('follower_id', user.id),
+        supabase.from('user_connections').select('follower_id').eq('following_id', user.id),
+      ]);
 
-      if (error) {
-        console.error('friend_companions query error:', error);
-        throw error;
-      }
+      const followingIds = new Set((followingData || []).map(f => f.following_id));
+      const mutualIds = (followersData || [])
+        .map(f => f.follower_id)
+        .filter(id => followingIds.has(id));
 
-      if (!rows || rows.length === 0) {
-        setCompanions([]);
+      if (mutualIds.length === 0) {
+        setFriends([]);
         setLoading(false);
         return;
       }
 
-      // 2. Collect friend IDs (the other participant)
-      const friendIds = Array.from(new Set(
-        rows.map(r => r.user_a_id === user.id ? r.user_b_id : r.user_a_id)
-      ));
-
-      // 3. Single batched profile fetch for all friends
-      const { data: profiles, error: profilesError } = await supabase
+      // 2. Fetch friend profiles
+      const { data: profiles } = await supabase
         .from('users')
         .select('id, name, avatar')
-        .in('id', friendIds);
+        .in('id', mutualIds);
 
-      if (profilesError) console.error('profiles fetch error:', profilesError);
+      // 3. Fetch existing companions for this user (use created_at for ordering)
+      const { data: companionRows, error: compError } = await supabase
+        .from('friend_companions')
+        .select('id, user_a_id, user_b_id, created_at')
+        .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`);
 
-      const profileMap = Object.fromEntries(
-        (profiles || []).map(p => [p.id, p])
-      );
+      if (compError) console.error('friend_companions query error:', compError);
 
-      // 4. Assemble
-      const assembled: CompanionRow[] = rows.map(r => {
+      // 4. Fetch item counts for existing companions
+      const companionIds = (companionRows || []).map(r => r.id);
+      let itemCountMap: Record<string, number> = {};
+      if (companionIds.length > 0) {
+        const { data: itemRows } = await supabase
+          .from('friend_companion_items')
+          .select('companion_id')
+          .in('companion_id', companionIds);
+        (itemRows || []).forEach(r => {
+          itemCountMap[r.companion_id] = (itemCountMap[r.companion_id] || 0) + 1;
+        });
+      }
+
+      // Build a map: friendId → companion row
+      const companionByFriend: Record<string, { id: string; created_at: string }> = {};
+      (companionRows || []).forEach(r => {
         const friendId = r.user_a_id === user.id ? r.user_b_id : r.user_a_id;
-        const itemCountArr = (r as any).friend_companion_items;
-        const itemCount =
-          Array.isArray(itemCountArr) && itemCountArr[0]?.count != null
-            ? Number(itemCountArr[0].count)
-            : 0;
-        return {
-          id: r.id,
-          user_a_id: r.user_a_id,
-          user_b_id: r.user_b_id,
-          updated_at: r.updated_at,
-          created_at: r.created_at,
-          itemCount,
-          friend: profileMap[friendId] ?? null,
-        };
+        companionByFriend[friendId] = { id: r.id, created_at: r.created_at };
       });
 
-      setCompanions(assembled);
+      // 5. Assemble — all mutual friends, companion data merged in
+      const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+
+      const assembled: FriendRow[] = mutualIds
+        .map(friendId => {
+          const profile = profileMap[friendId];
+          if (!profile) return null;
+          const comp = companionByFriend[friendId] ?? null;
+          return {
+            id: friendId,
+            name: profile.name ?? 'Unknown member',
+            avatar: profile.avatar ?? null,
+            companionId: comp?.id ?? null,
+            itemCount: comp ? (itemCountMap[comp.id] ?? 0) : 0,
+            companionCreatedAt: comp?.created_at ?? null,
+          } satisfies FriendRow;
+        })
+        .filter((r): r is FriendRow => r !== null)
+        // Companions with items first, then companions without items, then no companion
+        .sort((a, b) => {
+          if (a.companionId && !b.companionId) return -1;
+          if (!a.companionId && b.companionId) return 1;
+          return (b.itemCount - a.itemCount) || a.name.localeCompare(b.name);
+        });
+
+      setFriends(assembled);
     } catch (err) {
       console.error('Failed to load friend companions:', err);
     } finally {
       setLoading(false);
     }
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -132,6 +136,9 @@ export default function FriendCompanionsListPage() {
     );
   }
 
+  const withCompanion = friends.filter(f => f.companionId);
+  const withoutCompanion = friends.filter(f => !f.companionId);
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Header */}
@@ -140,66 +147,100 @@ export default function FriendCompanionsListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Friend Companions</h1>
           <p className="text-sm text-gray-500">
-            {companions.length} shared space{companions.length !== 1 ? 's' : ''}
+            {friends.length} friend{friends.length !== 1 ? 's' : ''}
+            {withCompanion.length > 0 && ` · ${withCompanion.length} companion${withCompanion.length !== 1 ? 's' : ''} active`}
           </p>
         </div>
       </div>
 
-      {/* List */}
-      {companions.length > 0 ? (
-        <div className="space-y-2">
-          {companions.map(c => {
-            const friendId = c.user_a_id === user?.id ? c.user_b_id : c.user_a_id;
-            const name = c.friend?.name ?? 'Unknown member';
-            const initial = name.charAt(0).toUpperCase();
-            const timeAgo = formatDistanceToNow(new Date(c.updated_at), { addSuffix: true });
-
-            return (
-              <Link
-                key={c.id}
-                to={`/members/friends/${friendId}/companion`}
-                className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-sm transition-all group"
-              >
-                {/* Avatar */}
-                <Avatar className="w-12 h-12 shrink-0">
-                  <AvatarImage src={c.friend?.avatar || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-green-400 to-blue-500 text-white font-semibold">
-                    {initial}
-                  </AvatarFallback>
-                </Avatar>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{name}</p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Package className="w-3 h-3" />
-                      {c.itemCount} item{c.itemCount !== 1 ? 's' : ''}
-                    </span>
-                    <span className="text-xs text-gray-400">·</span>
-                    <span className="text-xs text-gray-400">{timeAgo}</span>
-                  </div>
-                </div>
-
-                {/* Arrow */}
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-green-500 transition-colors shrink-0" />
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
+      {friends.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-200">
           <Users2 className="w-14 h-14 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-base font-semibold text-gray-700 mb-1">No companions yet</h3>
+          <h3 className="text-base font-semibold text-gray-700 mb-1">No mutual friends yet</h3>
           <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">
-            Open a shared companion from your Friends list to create one.
+            Follow someone back who follows you to become friends and unlock a shared companion.
           </p>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/members/friends">
+            <Link to="/members/all">
               <Users2 className="w-4 h-4 mr-1.5" />
-              Go to Friends
+              Browse Members
             </Link>
           </Button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Active companions */}
+          {withCompanion.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">Active</p>
+              <div className="space-y-2">
+                {withCompanion.map(f => (
+                  <Link
+                    key={f.id}
+                    to={`/members/friends/${f.id}/companion`}
+                    className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-sm transition-all group"
+                  >
+                    <Avatar className="w-12 h-12 shrink-0">
+                      <AvatarImage src={f.avatar || undefined} />
+                      <AvatarFallback className="bg-gradient-to-br from-green-400 to-blue-500 text-white font-semibold">
+                        {f.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{f.name}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <Package className="w-3 h-3" />
+                          {f.itemCount} item{f.itemCount !== 1 ? 's' : ''}
+                        </span>
+                        {f.companionCreatedAt && (
+                          <>
+                            <span className="text-xs text-gray-400">·</span>
+                            <span className="text-xs text-gray-400">
+                              opened {formatDistanceToNow(new Date(f.companionCreatedAt), { addSuffix: true })}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-green-500 transition-colors shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Friends without a companion yet */}
+          {withoutCompanion.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">Not started yet</p>
+              <div className="space-y-2">
+                {withoutCompanion.map(f => (
+                  <div
+                    key={f.id}
+                    className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl"
+                  >
+                    <Avatar className="w-12 h-12 shrink-0">
+                      <AvatarImage src={f.avatar || undefined} />
+                      <AvatarFallback className="bg-gradient-to-br from-gray-300 to-gray-400 text-white font-semibold">
+                        {f.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-700 truncate">{f.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">No companion started</p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/members/friends/${f.id}/companion`}>
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5 text-green-500" />
+                        Start
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
