@@ -65,6 +65,7 @@ export default function ChecklistsPage() {
           *,
           creator:created_by(id, name, avatar)
         `)
+        .or(`visibility.eq.public,visibility.eq.member,created_by.eq.${profile?.id}`)
         .order('created_at', { ascending: false });
 
       if (checklistsError) {

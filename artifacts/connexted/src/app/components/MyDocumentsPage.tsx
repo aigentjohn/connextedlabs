@@ -345,12 +345,20 @@ export default function MyDocumentsPage() {
           <h1 className="text-3xl mb-2">My Documents</h1>
           <p className="text-gray-600">Organize and manage your personal and shared documents</p>
         </div>
-        <Link to="/documents/new">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Create Document
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/my-content/trash">
+            <Button variant="ghost" size="sm" className="gap-2 text-gray-500">
+              <Trash2 className="w-4 h-4" />
+              Trash
+            </Button>
+          </Link>
+          <Link to="/documents/new">
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Create Document
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search */}

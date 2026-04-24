@@ -394,7 +394,8 @@ export default function DecksPage() {
     const matchesSearch = deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       deck.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesMine = !filterMyContent || deck.created_by === profile?.id;
-    return matchesSearch && matchesMine;
+    const isVisible = deck.visibility !== 'private' || deck.created_by === profile?.id;
+    return matchesSearch && matchesMine && isVisible;
   });
 
   const sortedDecks = [...filteredDecks].sort((a, b) => {
@@ -456,6 +457,7 @@ export default function DecksPage() {
                     <Label htmlFor="deck-visibility" className="text-sm">Visibility</Label>
                     <div className="mt-1">
                       <PrivacySelector
+                        mode="content"
                         value={newDeck.visibility}
                         onChange={(value) => setNewDeck({ ...newDeck, visibility: value })}
                         contentType="deck"
@@ -529,6 +531,7 @@ export default function DecksPage() {
               <Label htmlFor="edit-deck-visibility" className="text-sm">Visibility</Label>
               <div className="mt-1">
                 <PrivacySelector
+                  mode="content"
                   value={editForm.visibility}
                   onChange={(value) => setEditForm({ ...editForm, visibility: value })}
                   contentType="deck"

@@ -578,6 +578,7 @@ export default function BooksPage() {
                   <Label htmlFor="book-visibility" className="text-sm">Visibility</Label>
                   <div className="mt-1">
                     <PrivacySelector
+                      mode="content"
                       value={newBook.visibility}
                       onChange={(value) => setNewBook({ ...newBook, visibility: value })}
                       contentType="book"
@@ -661,6 +662,7 @@ export default function BooksPage() {
               <Label htmlFor="edit-book-visibility" className="text-sm">Visibility</Label>
               <div className="mt-1">
                 <PrivacySelector
+                  mode="content"
                   value={editForm.visibility}
                   onChange={(value) => setEditForm({ ...editForm, visibility: value })}
                   contentType="book"

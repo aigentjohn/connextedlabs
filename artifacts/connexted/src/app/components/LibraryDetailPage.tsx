@@ -59,6 +59,7 @@ interface Library {
   owner_id: string | null;
   filter_rules: any;
   is_public: boolean;
+  visibility?: string;
   icon: string;
   created_at: string;
   updated_at: string;
@@ -435,14 +436,9 @@ export default function LibraryDetailPage() {
                 {library.type === 'auto_generated' && 'Auto-Generated'}
                 {library.type === 'manual' && 'Manual'}
               </Badge>
-              {library.is_public ? (
-                <Badge variant="outline" className="gap-1">
-                  <Eye className="w-3 h-3" />
-                  Public
-                </Badge>
-              ) : (
-                <Badge variant="outline">Private</Badge>
-              )}
+              <Badge variant="outline" className="gap-1 capitalize">
+                {library.visibility ?? (library.is_public ? 'public' : 'private')}
+              </Badge>
             </div>
             <p className="text-gray-600">{library.description}</p>
             <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">

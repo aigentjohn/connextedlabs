@@ -16,6 +16,8 @@ import {
   CheckSquare,
   FolderKanban,
   Star,
+  ClipboardList,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -52,6 +54,7 @@ export function MyContentSection({
 
       {isExpanded && (
         <div className="ml-6 mt-0.5 space-y-0.5">
+          <SideLink to="/my-content/audit" icon={ClipboardList} pathname={location.pathname} match="startsWith">Content Audit</SideLink>
           <SideLink to="/my-documents" icon={FileText} pathname={location.pathname}>My Documents</SideLink>
           <SideLink to="/books" icon={BookOpen} pathname={location.pathname}>My Books</SideLink>
           <SideLink to="/decks" icon={Layers} pathname={location.pathname} activeClass="bg-purple-50 text-purple-700">My Decks</SideLink>
@@ -72,6 +75,7 @@ export function MyContentSection({
               <span className="text-xs text-gray-500">({myReviewCount})</span>
             )}
           </Link>
+          <SideLink to="/my-content/trash" icon={Trash2} pathname={location.pathname} match="startsWith">Trash</SideLink>
         </div>
       )}
     </div>

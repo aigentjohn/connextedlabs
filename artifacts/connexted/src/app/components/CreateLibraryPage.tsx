@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { useContentAuth } from '@/lib/content-auth';
 import { supabase } from '@/lib/supabase';
-import { BookOpen, RefreshCw, FolderOpen, Plus, X, Tag, Globe, Lock, FileText } from 'lucide-react';
+import { BookOpen, RefreshCw, FolderOpen, Plus, X, Tag, FileText } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Checkbox } from '@/app/components/ui/checkbox';
+import { PrivacySelector } from '@/app/components/unified/PrivacySelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Badge } from '@/app/components/ui/badge';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
@@ -30,7 +31,7 @@ export default function CreateLibraryPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'manual' | 'auto_generated'>('manual');
-  const [isPublic, setIsPublic] = useState(false);
+  const [visibility, setVisibility] = useState('public');
   const [icon, setIcon] = useState('📚');
 
   // Auto-generated filter rules
@@ -99,7 +100,7 @@ export default function CreateLibraryPage() {
           type,
           owner_type: 'user',
           filter_rules: filterRules,
-          is_public: isPublic,
+          visibility,
           icon,
           ...ownerFields('libraries'),
           admin_ids: [userId],
@@ -232,25 +233,14 @@ export default function CreateLibraryPage() {
             </div>
           </div>
 
-          {/* Privacy */}
+          {/* Visibility */}
           <div className="space-y-2">
-            <Label>Privacy</Label>
-            <RadioGroup value={isPublic ? 'public' : 'private'} onValueChange={(value) => setIsPublic(value === 'public')}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="private" id="private" />
-                <label htmlFor="private" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <Lock className="w-4 h-4" />
-                  Private - Only you can see this library
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="public" id="public" />
-                <label htmlFor="public" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <Globe className="w-4 h-4" />
-                  Public - Everyone can see this library
-                </label>
-              </div>
-            </RadioGroup>
+            <Label>Visibility</Label>
+            <PrivacySelector
+              mode="container"
+              value={visibility}
+              onChange={setVisibility}
+            />
           </div>
         </div>
 
