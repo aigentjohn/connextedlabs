@@ -9,7 +9,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { toast } from 'sonner';
-import { Building2, LayoutGrid, ExternalLink, Users } from 'lucide-react';
+import { Building2, LayoutGrid, ExternalLink, Users, Plus } from 'lucide-react';
 
 interface AssociatedCompany {
   id: string;
@@ -113,12 +113,20 @@ export default function MyCompaniesPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Companies</h1>
           <p className="text-gray-500 mt-1">All companies you own or are a member of</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link to="/markets/all-companies">
-            <Building2 className="w-4 h-4 mr-2" />
-            Browse All
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/markets/all-companies">
+              <Building2 className="w-4 h-4 mr-2" />
+              Browse All
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/markets/create-company">
+              <Plus className="w-4 h-4 mr-2" />
+              New Company
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {loading ? (
