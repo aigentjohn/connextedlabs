@@ -191,6 +191,7 @@ The platform has a consistent single-item → collection pattern:
 | Episode | **Playlist** | Built (`playlists` table) |
 | Blog | **Magazine** | Built (`magazines` + `magazine_items` tables) |
 | Document | **Library** | Built (`libraries` table, currently mislabeled as "Shelf" in the UI) |
+| Photo / Image | **Album** | **Not built yet** — see `PHOTOS_ALBUMS_PLAN.md` |
 
 **Current naming problem in `journey-item-types.ts`:**
 The `shelf` type key exists but is labeled `Library`, mapped to the `libraries`
