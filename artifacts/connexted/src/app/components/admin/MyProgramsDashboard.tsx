@@ -321,6 +321,12 @@ export default function MyProgramsDashboard() {
               Programs you administer, organized by journeys
             </p>
           </div>
+          <Link to="/programs/new">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              New Program
+            </Button>
+          </Link>
         </div>
 
         {programs.length === 0 ? (
