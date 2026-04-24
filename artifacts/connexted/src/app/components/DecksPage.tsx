@@ -456,6 +456,7 @@ export default function DecksPage() {
                     <Label htmlFor="deck-visibility" className="text-sm">Visibility</Label>
                     <div className="mt-1">
                       <PrivacySelector
+                        mode="content"
                         value={newDeck.visibility}
                         onChange={(value) => setNewDeck({ ...newDeck, visibility: value })}
                         contentType="deck"
@@ -529,6 +530,7 @@ export default function DecksPage() {
               <Label htmlFor="edit-deck-visibility" className="text-sm">Visibility</Label>
               <div className="mt-1">
                 <PrivacySelector
+                  mode="content"
                   value={editForm.visibility}
                   onChange={(value) => setEditForm({ ...editForm, visibility: value })}
                   contentType="deck"
