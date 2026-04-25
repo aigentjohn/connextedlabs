@@ -1,14 +1,14 @@
 // Helper configurations for all journey item types
-import { 
+import {
   FileText, BookOpen, Presentation, Library, PlayCircle,
   Hammer, Users, TrendingUp, Calendar, CalendarClock, Handshake, MessageSquare,
-  Table as TableIcon, ExternalLink, Video, CheckSquare, type LucideIcon
+  Table as TableIcon, ExternalLink, Video, CheckSquare, StickyNote, type LucideIcon
 } from 'lucide-react';
 
-export type JourneyItemType = 
+export type JourneyItemType =
   | 'document' | 'book' | 'deck' | 'shelf' | 'playlist'
   | 'build' | 'pitch' | 'table' | 'elevator' | 'standup' | 'meetup' | 'sprint'
-  | 'magazine' | 'episode' | 'checklist'
+  | 'magazine' | 'episode' | 'checklist' | 'page'
   | 'event' | 'discussion' | 'resource' | 'container';
 
 export interface JourneyItemTypeConfig {
@@ -77,6 +77,14 @@ export const JOURNEY_ITEM_TYPES: Record<JourneyItemType, JourneyItemTypeConfig> 
     category: 'content',
     tableName: 'playlists',
     description: 'Video playlists and lessons'
+  },
+  page: {
+    icon: StickyNote,
+    label: 'Page',
+    labelPlural: 'Pages',
+    category: 'content',
+    tableName: 'pages',
+    description: 'Lightweight inline markdown page for courses and cohorts'
   },
 
   // CONTAINER TYPES (group activities)

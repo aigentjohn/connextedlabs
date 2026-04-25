@@ -761,6 +761,30 @@ function ActivityViewer({ data, activityType }: { data: any; activityType: strin
   );
 }
 
+function PageViewer({ data }: { data: any }) {
+  return (
+    <div className="space-y-3">
+      {data.description && (
+        <p className="text-sm text-gray-500 italic">{data.description}</p>
+      )}
+      {data.tags && data.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {data.tags.map((tag: string) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+      <div className="prose prose-sm max-w-none">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {data.content || '_No content._'}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
+}
+
 function MagazineViewer({ data }: { data: any }) {
   return (
     <div className="space-y-4">
@@ -813,6 +837,7 @@ function GenericViewer({ data }: { data: any }) {
 const FETCH_CONFIG: Record<string, { table: string; select: string }> = {
   document: { table: 'documents', select: 'id, title, description, url, tags, media_type, video_url, video_provider, duration_minutes, access_level, created_at' },
   book: { table: 'books', select: 'id, title, description, created_at' },
+  page: { table: 'pages', select: 'id, title, content, description, tags, visibility, updated_at' },
   deck: { table: 'decks', select: 'id, title, description, category, tags, created_at' },
   shelf: { table: 'libraries', select: 'id, name, description, icon, is_public, created_at' },
   playlist: { table: 'playlists', select: 'id, name, description, tags, visibility, created_at' },
@@ -890,6 +915,7 @@ export function JourneyInlineViewer({ itemType, itemId, title, onClose }: Journe
       checklist: `/checklists/${itemId}`,
       magazine: `/magazines/${itemId}`,
       event: `/events/${itemId}`,
+      page: `/my-pages`,
     };
 
     if (routeMap[itemType]) return routeMap[itemType];
@@ -922,6 +948,8 @@ export function JourneyInlineViewer({ itemType, itemId, title, onClose }: Journe
     }
 
     switch (itemType) {
+      case 'page':
+        return <PageViewer data={data} />;
       case 'document':
       case 'resource':
         return <DocumentViewer data={data} />;

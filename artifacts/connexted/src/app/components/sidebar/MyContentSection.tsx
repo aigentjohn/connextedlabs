@@ -18,6 +18,7 @@ import {
   Star,
   ClipboardList,
   Trash2,
+  StickyNote,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 
@@ -61,6 +62,7 @@ export function MyContentSection({
           <SideLink to="/checklists" icon={CheckSquare} pathname={location.pathname}>My Lists</SideLink>
           <SideLink to="/libraries" icon={Library} pathname={location.pathname}>My Libraries</SideLink>
           <SideLink to="/my-contents" icon={FolderKanban} pathname={location.pathname}>My Links</SideLink>
+          <SideLink to="/my-pages" icon={StickyNote} pathname={location.pathname}>My Pages</SideLink>
 
           <Link
             to="/my-reviews"
