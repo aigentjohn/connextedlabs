@@ -32,6 +32,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/app/components/ui/alert';
+import { Label } from '@/app/components/ui/label';
 
 // ---------------------------------------------------------------------------
 // Server route helpers — all privileged auth.admin operations go here.
@@ -64,6 +65,38 @@ async function adminFetch(path: string, options: RequestInit = {}): Promise<Resp
     clearTimeout(timeoutId);
   }
 }
+
+const INVITE_URL = `https://${projectId}.supabase.co/functions/v1/invite-user`;
+
+async function inviteFetch(body: object): Promise<Response> {
+  const token = await getAccessToken();
+  return fetch(INVITE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${publicAnonKey}`,
+      'X-User-Token': token,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+const MEMBERSHIP_TIERS = [
+  { value: 'free',     label: 'Free' },
+  { value: 'member',   label: 'Member' },
+  { value: 'founding', label: 'Founding Member' },
+  { value: 'professional', label: 'Professional' },
+  { value: 'sponsor',  label: 'Sponsor' },
+];
+
+const EMPTY_INVITE = {
+  email: '',
+  name: '',
+  user_class: 3,
+  membership_tier: 'free',
+  role: 'member',
+  circle_id: '',
+};
 
 // User class definitions — loaded from DB in fetchData(), used for tabs and display names.
 // Fallback values match the defaults in UserClassManagement.tsx initializeDefaultClasses().
@@ -151,6 +184,9 @@ export default function UserManagement() {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [invitingUser, setInvitingUser] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ ...EMPTY_INVITE });
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     if (profile?.role === 'admin' || profile?.role === 'super') {
@@ -369,6 +405,28 @@ export default function UserManagement() {
         return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       default:
         return 'bg-gray-100 text-gray-600 border-gray-200';
+    }
+  };
+
+  const handleInviteUser = async () => {
+    if (!inviteForm.email.trim() || !inviteForm.name.trim()) {
+      toast.error('Email and name are required');
+      return;
+    }
+    setInviting(true);
+    try {
+      const res = await inviteFetch(inviteForm);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Invite failed');
+      toast.success(`Invite sent to ${inviteForm.email}`);
+      setInviteOpen(false);
+      setInviteForm({ ...EMPTY_INVITE });
+      // Refresh user list so the new account appears
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send invite');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -1107,6 +1165,13 @@ export default function UserManagement() {
         {/* Export/Import Buttons */}
         <div className="flex flex-wrap gap-2">
           <Button
+            size="sm"
+            onClick={() => { setInviteForm({ ...EMPTY_INVITE }); setInviteOpen(true); }}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Invite User
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={exportUsersToCSV}
@@ -1729,6 +1794,125 @@ export default function UserManagement() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Invite User
+            </DialogTitle>
+            <DialogDescription>
+              Creates an account and sends a magic link login email. All settings can be changed later.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Email <span className="text-red-500">*</span></Label>
+              <Input
+                type="email"
+                placeholder="name@example.com"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Name <span className="text-red-500">*</span></Label>
+              <Input
+                placeholder="Full name"
+                value={inviteForm.name}
+                onChange={(e) => setInviteForm(f => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>User Class <span className="text-xs text-gray-400 font-normal">(controls feature access)</span></Label>
+              <Select
+                value={inviteForm.user_class.toString()}
+                onValueChange={(v) => setInviteForm(f => ({ ...f, user_class: parseInt(v) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {userClassDefs.map(cls => (
+                    <SelectItem key={cls.level} value={cls.level.toString()}>
+                      {cls.level} — {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Membership Tier <span className="text-xs text-gray-400 font-normal">(billing status)</span></Label>
+              <Select
+                value={inviteForm.membership_tier}
+                onValueChange={(v) => setInviteForm(f => ({ ...f, membership_tier: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEMBERSHIP_TIERS.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Platform Role <span className="text-xs text-gray-400 font-normal">(permissions)</span></Label>
+              <Select
+                value={inviteForm.role}
+                onValueChange={(v) => setInviteForm(f => ({ ...f, role: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_ROLES.map(r => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label} — <span className="text-gray-500">{r.description}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Onboarding Circle <span className="text-xs text-gray-400 font-normal">(optional — adds them on creation)</span></Label>
+              <Select
+                value={inviteForm.circle_id || 'none'}
+                onValueChange={(v) => setInviteForm(f => ({ ...f, circle_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {circles.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviting}>
+              Cancel
+            </Button>
+            <Button onClick={handleInviteUser} disabled={inviting}>
+              <Mail className="w-4 h-4 mr-2" />
+              {inviting ? 'Sending invite...' : 'Send Invite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
