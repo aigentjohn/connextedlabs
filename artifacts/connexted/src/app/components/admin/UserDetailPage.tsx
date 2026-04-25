@@ -271,15 +271,15 @@ export default function UserDetailPage() {
         },
       ];
 
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          role: newRole,
-          role_history: newRoleHistory,
-        })
-        .eq('id', userId);
+      const { error } = await supabase.rpc('admin_update_user', {
+        target_user_id: userId,
+        new_role: newRole,
+      });
 
       if (error) throw error;
+
+      // Best-effort update of role_history audit log
+      await supabase.from('users').update({ role_history: newRoleHistory }).eq('id', userId);
 
       toast.success(`User role updated to ${newRole}`);
       fetchUserDetails();
@@ -361,7 +361,7 @@ export default function UserDetailPage() {
     }
   };
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'super')) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">You don't have admin access</p>
@@ -746,10 +746,10 @@ export default function UserDetailPage() {
                   value={(user.user_class || 1).toString()}
                   onValueChange={async (value) => {
                     try {
-                      const { error } = await supabase
-                        .from('users')
-                        .update({ user_class: parseInt(value) })
-                        .eq('id', userId);
+                      const { error } = await supabase.rpc('admin_update_user', {
+                        target_user_id: userId,
+                        new_user_class: parseInt(value),
+                      });
                       if (error) throw error;
                       const def = userClassDefs.find(c => c.class_number === parseInt(value));
                       toast.success(`User class updated to ${def?.display_name ?? `Class ${value}`}`);
