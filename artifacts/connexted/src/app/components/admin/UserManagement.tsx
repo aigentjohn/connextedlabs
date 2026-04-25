@@ -279,16 +279,12 @@ export default function UserManagement() {
 
   const handleToggleRole = async (userId: string, currentRole: 'admin' | 'member') => {
     const newRole = currentRole === 'admin' ? 'member' : 'admin';
-    
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ role: newRole })
-        .eq('id', userId);
-
+      const { error } = await supabase.rpc('admin_update_user', {
+        target_user_id: userId,
+        new_role: newRole,
+      });
       if (error) throw error;
-
-      // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
       toast.success(`User role updated to ${newRole}`);
     } catch (error) {
@@ -298,21 +294,16 @@ export default function UserManagement() {
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
-    // Prevent users from changing their own role
     if (userId === profile?.id) {
       toast.error('You cannot change your own role');
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ role: newRole })
-        .eq('id', userId);
-
+      const { error } = await supabase.rpc('admin_update_user', {
+        target_user_id: userId,
+        new_role: newRole,
+      });
       if (error) throw error;
-
-      // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
       const roleLabel = USER_ROLES.find(r => r.value === newRole)?.label || newRole;
       toast.success(`User role updated to ${roleLabel}`);
@@ -328,14 +319,11 @@ export default function UserManagement() {
 
   const handleUpdateUserClass = async (userId: string, newClass: number) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ user_class: newClass })
-        .eq('id', userId);
-
+      const { error } = await supabase.rpc('admin_update_user', {
+        target_user_id: userId,
+        new_user_class: newClass,
+      });
       if (error) throw error;
-
-      // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, user_class: newClass } : u));
       const className = userClassDefs.find(c => c.level === newClass)?.name || `Class ${newClass}`;
       toast.success(`User class updated to ${className}`);
@@ -347,14 +335,11 @@ export default function UserManagement() {
 
   const handleUpdateTier = async (userId: string, newTier: string) => {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ membership_tier: newTier })
-        .eq('id', userId);
-
+      const { error } = await supabase.rpc('admin_update_user', {
+        target_user_id: userId,
+        new_membership_tier: newTier,
+      });
       if (error) throw error;
-
-      // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, membership_tier: newTier } : u));
       toast.success(`Billing tier updated to ${newTier}`);
     } catch (error) {
