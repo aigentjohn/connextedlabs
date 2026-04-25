@@ -45,17 +45,46 @@ serve(async (req) => {
       return json({ error: 'email and name are required' }, 400);
     }
 
-    // Create auth account and send magic link invite email
+    let userId: string;
+    let alreadyExisted = false;
+
+    // Try to invite as a new user
     const { data: inviteData, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(email.trim(), {
         data: { name: name.trim() },
       });
 
-    if (inviteError) return json({ error: inviteError.message }, 400);
+    if (inviteError) {
+      // If already registered, look up the existing auth user and update their profile
+      if (inviteError.message?.toLowerCase().includes('already been registered') ||
+          inviteError.message?.toLowerCase().includes('already registered')) {
+        const { data: listData, error: listError } =
+          await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
 
-    const userId = inviteData.user.id;
+        if (listError) return json({ error: listError.message }, 400);
 
-    // Pre-populate the profile row so the user lands in a configured state
+        const existing = listData?.users?.find(
+          (u) => u.email?.toLowerCase() === email.trim().toLowerCase(),
+        );
+
+        if (!existing) return json({ error: 'User exists in auth but could not be located' }, 400);
+
+        userId = existing.id;
+        alreadyExisted = true;
+
+        // Send a magic link so they can log in
+        await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: email.trim(),
+        });
+      } else {
+        return json({ error: inviteError.message }, 400);
+      }
+    } else {
+      userId = inviteData.user.id;
+    }
+
+    // Upsert the profile row with the admin-specified values
     await supabaseAdmin.from('users').upsert(
       {
         id: userId,
@@ -88,7 +117,7 @@ serve(async (req) => {
       }
     }
 
-    return json({ success: true, user_id: userId });
+    return json({ success: true, user_id: userId, already_existed: alreadyExisted });
   } catch (_err) {
     return json({ error: 'Internal server error' }, 500);
   }

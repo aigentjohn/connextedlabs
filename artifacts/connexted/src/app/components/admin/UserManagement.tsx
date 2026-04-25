@@ -425,7 +425,11 @@ export default function UserManagement() {
       const res = await inviteFetch(inviteForm);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Invite failed');
-      toast.success(`Invite sent to ${inviteForm.email}`);
+      if (json.already_existed) {
+        toast.success(`${inviteForm.email} already has an account — profile updated and magic link sent`);
+      } else {
+        toast.success(`Invite sent to ${inviteForm.email}`);
+      }
       setInviteOpen(false);
       setInviteForm({ ...EMPTY_INVITE });
       // Refresh user list so the new account appears
