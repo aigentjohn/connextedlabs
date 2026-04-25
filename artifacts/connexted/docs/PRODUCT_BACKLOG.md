@@ -90,17 +90,16 @@ Everything a user can see, manage, and act on about their own content.
 | Add documents to library | ✅ Live | — | — |
 | Expiration / renewal | 📋 Planned | 🟢 | — |
 
-### My Saved (Favorites Queue)
+### My Favorites
 | Feature | Status | Priority | Notes |
 |---|---|---|---|
 | `content_favorites` table + `useContentEngagement` hook | ✅ Live | — | Cross-type; works for any content type |
 | Like / Favorite buttons on browse pages | ✅ Live | — | Episodes, Decks, Circles, Tables, Meetups |
-| **My Saved page** (`/my-saved`) | 📋 Planned | 🔴 | Lists all `content_favorites` grouped by type; zero new infra needed |
-| "Save" action on Pathway steps | 📋 Planned | 🟡 | "Save for later" button on step cards; calls `toggleFavorite` |
-| "Save" action on Companion items | 📋 Planned | 🟡 | Companion panel → "Save to My Saved" |
-| "Save" action on Home / Notifications | 💡 Exploring | 🟢 | "Queue it" action on notification items |
-| Sidebar link to My Saved | 📋 Planned | 🔴 | Add to My Content section after page is built |
-| Sort by content type, date saved | 📋 Planned | 🟢 | Client-side sort; no new query |
+| My Favorites page (`/my-content`) | ✅ Live | — | `MyContentPage.tsx`; groups by type, remove button |
+| Sidebar link — "My Favorites" in Discover section | ✅ Live | — | `DiscoverSection.tsx`; shows count badge |
+| "Save" action on Pathway steps | 📋 Planned | 🟡 | Heart/bookmark on step cards; calls `toggleFavorite` |
+| "Save" action on Companion items | 📋 Planned | 🟡 | Companion panel → add to favorites |
+| Sort / filter by content type on My Favorites | 📋 Planned | 🟢 | Client-side; types already grouped |
 
 ### My Links
 | Feature | Status | Priority | Notes |
@@ -393,8 +392,7 @@ Do not build these until at least 3 conversations confirm the problem is real.
 
 | Idea | Hypothesis | What to ask in interviews |
 |---|---|---|
-| My Saved page (`/my-saved`) | Members save content but have nowhere to see it | "Have you ever clicked a bookmark/heart and then couldn't find it again?" |
-| Queue / watchlist intent | "Save for later" is action-oriented, not appreciation | "Do you save things you want to do, or things you liked?" |
+| Favorites as action queue | Members save things to do but treat favorites as appreciation | "When you favorite something, do you go back and actually do it?" |
 | Section schema for Pages | Authors want enforced structure, not just a scaffold | "When you write course content, do you ever wish the format was locked?" |
 | Kanban view for Lists | Members use checklists as project boards, not just task lists | "How do you track work-in-progress on a project today?" |
 | Cross-instance content import | Users will run on multiple instances and want portability | "If you moved platforms, what content would you need to take with you?" |
