@@ -15,28 +15,17 @@ interface Session {
   name: string;
   description: string;
   session_type: string;
-  start_date: string;
+  start_date: string | null;
   end_date?: string;
   duration_minutes?: number;
   location: string;
   virtual_link: string;
   status: string;
   max_capacity: number;
-  program_id: string;
+  program_id?: string | null;
+  circle_id?: string | null;
   program?: { name: string; slug: string };
-}
-
-interface CircleEvent {
-  id: string;
-  title: string;
-  description: string;
-  event_type: string;
-  start_time: string;
-  end_time: string;
-  location: string;
-  meeting_link: string;
-  circle_ids: string[];
-  circles?: { name: string }[];
+  circle?: { name: string; slug: string };
 }
 
 interface SessionRSVP {
@@ -52,8 +41,7 @@ export default function MySessionsPage() {
   const [loading, setLoading] = useState(true);
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [pastSessions, setPastSessions] = useState<Session[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<CircleEvent[]>([]);
-  const [pastEvents, setPastEvents] = useState<CircleEvent[]>([]);
+  const [proposedSessions, setProposedSessions] = useState<Session[]>([]);
   const [rsvpData, setRsvpData] = useState<Record<string, SessionRSVP>>({});
   const [submittingRsvp, setSubmittingRsvp] = useState<string | null>(null);
 
@@ -70,94 +58,101 @@ export default function MySessionsPage() {
       setLoading(true);
       const now = new Date().toISOString();
 
-      // Get all programs where user is a member
-      const { data: programs } = await supabase
-        .from('programs')
-        .select('id')
-        .contains('member_ids', [profile.id]);
+      const [{ data: programs }, { data: circles }] = await Promise.all([
+        supabase.from('programs').select('id').contains('member_ids', [profile.id]),
+        supabase.from('circles').select('id').contains('member_ids', [profile.id]),
+      ]);
 
       const programIds = programs?.map(p => p.id) || [];
-
-      // Get all circles where user is a member
-      const { data: circles } = await supabase
-        .from('circles')
-        .select('id')
-        .contains('member_ids', [profile.id]);
-
       const circleIds = circles?.map(c => c.id) || [];
 
-      // Fetch upcoming PROGRAM SESSIONS (attendance-tracked)
+      const allUpcoming: Session[] = [];
+      const allPast: Session[] = [];
+      const allProposed: Session[] = [];
+
+      const upcomingFilter = { gte: now, statuses: ['scheduled', 'in_progress'] };
+
+      // Program sessions
       if (programIds.length > 0) {
-        const { data: upcomingSessionsData, error: upcomingSessionsError } = await supabase
-          .from('sessions')
-          .select(`
-            *,
-            program:programs(name, slug)
-          `)
-          .in('program_id', programIds)
-          .gte('start_date', now)
-          .eq('status', 'scheduled')
-          .order('start_date', { ascending: true });
-
-        if (upcomingSessionsError) throw upcomingSessionsError;
-        setUpcomingSessions(upcomingSessionsData || []);
-
-        // Fetch past PROGRAM SESSIONS
-        const { data: pastSessionsData, error: pastSessionsError } = await supabase
-          .from('sessions')
-          .select(`
-            *,
-            program:programs(name, slug)
-          `)
-          .in('program_id', programIds)
-          .lt('start_date', now)
-          .in('status', ['completed', 'cancelled'])
-          .order('start_date', { ascending: false })
-          .limit(20);
-
-        if (pastSessionsError) throw pastSessionsError;
-        setPastSessions(pastSessionsData || []);
-
-        // Fetch session attendance/RSVP data
-        const allSessionIds = [...(upcomingSessionsData || []), ...(pastSessionsData || [])].map(s => s.id);
-        if (allSessionIds.length > 0) {
-          const { data: rsvpRecords } = await supabase
-            .from('session_attendance')
-            .select('*')
-            .in('session_id', allSessionIds)
-            .eq('user_id', profile.id);
-
-          const rsvpMap: Record<string, SessionRSVP> = {};
-          rsvpRecords?.forEach(record => {
-            rsvpMap[record.session_id] = record;
-          });
-          setRsvpData(rsvpMap);
-        }
+        const [upcoming, past, proposed] = await Promise.all([
+          supabase
+            .from('sessions')
+            .select('*, program:programs(name, slug)')
+            .in('program_id', programIds)
+            .gte('start_date', upcomingFilter.gte)
+            .in('status', upcomingFilter.statuses)
+            .order('start_date', { ascending: true }),
+          supabase
+            .from('sessions')
+            .select('*, program:programs(name, slug)')
+            .in('program_id', programIds)
+            .lt('start_date', now)
+            .in('status', ['completed', 'cancelled'])
+            .order('start_date', { ascending: false })
+            .limit(20),
+          supabase
+            .from('sessions')
+            .select('*, program:programs(name, slug)')
+            .in('program_id', programIds)
+            .eq('status', 'proposed')
+            .order('created_at', { ascending: false }),
+        ]);
+        allUpcoming.push(...(upcoming.data || []));
+        allPast.push(...(past.data || []));
+        allProposed.push(...(proposed.data || []));
       }
 
-      // Fetch upcoming CIRCLE EVENTS (RSVP-based)
+      // Circle sessions
       if (circleIds.length > 0) {
-        const { data: upcomingEventsData, error: upcomingEventsError } = await supabase
-          .from('events')
+        const [upcoming, past, proposed] = await Promise.all([
+          supabase
+            .from('sessions')
+            .select('*, circle:circles(name, slug)')
+            .in('circle_id', circleIds)
+            .gte('start_date', upcomingFilter.gte)
+            .in('status', upcomingFilter.statuses)
+            .order('start_date', { ascending: true }),
+          supabase
+            .from('sessions')
+            .select('*, circle:circles(name, slug)')
+            .in('circle_id', circleIds)
+            .lt('start_date', now)
+            .in('status', ['completed', 'cancelled'])
+            .order('start_date', { ascending: false })
+            .limit(20),
+          supabase
+            .from('sessions')
+            .select('*, circle:circles(name, slug)')
+            .in('circle_id', circleIds)
+            .eq('status', 'proposed')
+            .order('created_at', { ascending: false }),
+        ]);
+        allUpcoming.push(...(upcoming.data || []));
+        allPast.push(...(past.data || []));
+        allProposed.push(...(proposed.data || []));
+      }
+
+      // Sort merged upcoming list by start_date
+      allUpcoming.sort((a, b) =>
+        new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime()
+      );
+
+      setUpcomingSessions(allUpcoming);
+      setPastSessions(allPast);
+      setProposedSessions(allProposed);
+
+      // Fetch RSVP data for all sessions
+      const allIds = [...allUpcoming, ...allPast, ...allProposed].map(s => s.id);
+      if (allIds.length > 0) {
+        const { data: rsvpRecords } = await supabase
+          .from('session_attendance')
           .select('*')
-          .overlaps('circle_ids', circleIds)
-          .gte('start_time', now)
-          .order('start_time', { ascending: true });
+          .in('session_id', allIds)
+          .eq('user_id', profile.id);
 
-        if (upcomingEventsError) throw upcomingEventsError;
-        setUpcomingEvents(upcomingEventsData || []);
-
-        // Fetch past CIRCLE EVENTS
-        const { data: pastEventsData, error: pastEventsError } = await supabase
-          .from('events')
-          .select('*')
-          .overlaps('circle_ids', circleIds)
-          .lt('start_time', now)
-          .order('start_time', { ascending: false })
-          .limit(20);
-
-        if (pastEventsError) throw pastEventsError;
-        setPastEvents(pastEventsData || []);
+        const rsvpMap: Record<string, SessionRSVP> = {};
+        rsvpRecords?.forEach(r => { rsvpMap[r.session_id] = r; });
+        setRsvpData(rsvpMap);
       }
     } catch (error: any) {
       console.error('Error fetching schedule:', error);
@@ -173,23 +168,16 @@ export default function MySessionsPage() {
     try {
       setSubmittingRsvp(sessionId);
 
-      // Check if RSVP already exists
       const existingRsvp = rsvpData[sessionId];
 
       if (existingRsvp) {
-        // Update existing RSVP
         const { error } = await supabase
           .from('session_attendance')
-          .update({
-            rsvp_status: status,
-            rsvp_at: new Date().toISOString()
-          })
+          .update({ rsvp_status: status, rsvp_at: new Date().toISOString() })
           .eq('session_id', sessionId)
           .eq('user_id', profile.id);
-
         if (error) throw error;
       } else {
-        // Create new RSVP
         const { error } = await supabase
           .from('session_attendance')
           .insert({
@@ -198,15 +186,12 @@ export default function MySessionsPage() {
             rsvp_status: status,
             rsvp_at: new Date().toISOString(),
             expected: status === 'yes',
-            attended: false
+            attended: false,
           });
-
         if (error) throw error;
       }
 
       toast.success(`RSVP updated to: ${status === 'yes' ? 'Attending' : status === 'no' ? 'Not Attending' : 'Maybe'}`);
-      
-      // Refresh data
       fetchMySchedule();
     } catch (error: any) {
       console.error('Error submitting RSVP:', error);
@@ -226,8 +211,13 @@ export default function MySessionsPage() {
   const renderSessionCard = (session: Session, isPast: boolean = false) => {
     const rsvp = rsvpData[session.id];
     const isSubmitting = submittingRsvp === session.id;
-    const sessionDate = new Date(session.start_date);
-    const entityName = session.program?.name || 'Unknown';
+    const isProposed = !session.start_date || session.status === 'proposed';
+    const entityName = session.program?.name || session.circle?.name || 'Unknown';
+    const entityPath = session.program
+      ? `/programs/${session.program.slug}`
+      : session.circle
+      ? `/circles/${session.circle.slug}`
+      : null;
 
     return (
       <Card key={session.id} className={isPast ? 'opacity-75' : ''}>
@@ -241,6 +231,11 @@ export default function MySessionsPage() {
                     {session.session_type}
                   </Badge>
                 )}
+                {isProposed && (
+                  <Badge variant="outline" className="text-xs border-amber-400 text-amber-700 bg-amber-50">
+                    Date TBD
+                  </Badge>
+                )}
                 {rsvp?.rsvp_status && (
                   <div className="flex items-center gap-1">
                     {getRSVPIcon(rsvp.rsvp_status)}
@@ -248,7 +243,9 @@ export default function MySessionsPage() {
                 )}
               </div>
               <CardDescription>
-                {entityName}
+                {entityPath ? (
+                  <Link to={entityPath} className="hover:underline">{entityName}</Link>
+                ) : entityName}
               </CardDescription>
             </div>
             {!isPast && (
@@ -295,24 +292,27 @@ export default function MySessionsPage() {
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                {sessionDate.toLocaleDateString()} at {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {isProposed
+                  ? 'Date TBD'
+                  : `${new Date(session.start_date!).toLocaleDateString()} at ${new Date(session.start_date!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                }
               </span>
-              {(session.duration_minutes != null || session.end_date) && (
+              {!isProposed && (session.duration_minutes != null || session.end_date) && (
                 <span className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {session.duration_minutes != null
                     ? `${session.duration_minutes} min`
                     : session.end_date
-                      ? `${Math.round((new Date(session.end_date).getTime() - new Date(session.start_date).getTime()) / 60000)} min`
-                      : null}
+                    ? `${Math.round((new Date(session.end_date).getTime() - new Date(session.start_date!).getTime()) / 60000)} min`
+                    : null}
                 </span>
               )}
             </div>
-            
+
             {session.description && (
               <p className="text-sm text-gray-600 mt-2">{session.description}</p>
             )}
-            
+
             {(session.location || session.virtual_link) && (
               <div className="flex items-center gap-4 text-sm mt-2">
                 {session.location && (
@@ -360,14 +360,14 @@ export default function MySessionsPage() {
       <Breadcrumbs
         items={[
           { label: 'Dashboard', path: '/' },
-          { label: 'My Sessions', path: '/my-sessions' }
+          { label: 'My Sessions', path: '/my-sessions' },
         ]}
       />
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">My Sessions</h1>
         <p className="text-gray-600">
-          View and RSVP for your upcoming sessions
+          View and RSVP for your sessions across programs and circles
         </p>
       </div>
 
@@ -376,6 +376,11 @@ export default function MySessionsPage() {
           <TabsTrigger value="upcoming">
             Upcoming ({upcomingSessions.length})
           </TabsTrigger>
+          {proposedSessions.length > 0 && (
+            <TabsTrigger value="tbd">
+              Date TBD ({proposedSessions.length})
+            </TabsTrigger>
+          )}
           <TabsTrigger value="past">
             Past ({pastSessions.length})
           </TabsTrigger>
@@ -391,14 +396,25 @@ export default function MySessionsPage() {
                   You don't have any scheduled sessions at the moment
                 </p>
                 <Link to="/my-programs">
-                  <Button>
-                    View My Programs
-                  </Button>
+                  <Button>View My Programs</Button>
                 </Link>
               </CardContent>
             </Card>
           ) : (
             upcomingSessions.map(session => renderSessionCard(session, false))
+          )}
+        </TabsContent>
+
+        <TabsContent value="tbd" className="space-y-4">
+          {proposedSessions.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600">No unscheduled sessions</p>
+              </CardContent>
+            </Card>
+          ) : (
+            proposedSessions.map(session => renderSessionCard(session, false))
           )}
         </TabsContent>
 

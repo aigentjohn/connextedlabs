@@ -342,6 +342,7 @@ export default function HomePage() {
       {/* Active Pathways — only renders if user has active enrollments */}
       <ActivePathwaysWidget />
 
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
