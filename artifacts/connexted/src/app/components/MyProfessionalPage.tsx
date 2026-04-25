@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { ProfilePageShell } from '@/app/components/profile/ProfilePageShell';
+import { ProfileSectionIO } from '@/app/components/profile/ProfileSectionIO';
 
 // Tab components
 import { ProfessionalTab } from '@/app/components/profile/ProfessionalTab';
@@ -48,6 +49,7 @@ export default function MyProfessionalPage() {
           />
         </TabsContent>
       </Tabs>
+      <ProfileSectionIO section="professional" onUpdate={refreshProfile} />
     </ProfilePageShell>
   );
 }

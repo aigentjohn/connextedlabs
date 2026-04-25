@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { ProfileOnboardingWizard } from '@/app/components/profile/ProfileOnboardingWizard';
 import { ProfilePageShell } from '@/app/components/profile/ProfilePageShell';
+import { ProfileSectionIO } from '@/app/components/profile/ProfileSectionIO';
 import { toast } from 'sonner';
 
 // Tab components
@@ -68,6 +69,8 @@ export default function MyBasicsPage() {
           <PrivacyTab profile={profile} onUpdate={refreshProfile} />
         </TabsContent>
       </Tabs>
+
+      <ProfileSectionIO section="basics" onUpdate={refreshProfile} />
 
       {/* Profile Onboarding Wizard */}
       <ProfileOnboardingWizard

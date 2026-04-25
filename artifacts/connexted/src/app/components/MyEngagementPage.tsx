@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { ProfilePageShell } from '@/app/components/profile/ProfilePageShell';
+import { ProfileSectionIO } from '@/app/components/profile/ProfileSectionIO';
 
 // Tab components
 import { MemberStatusDashboard } from '@/app/components/profile/MemberStatusDashboard';
@@ -41,6 +42,7 @@ export default function MyEngagementPage() {
           <LookingForTab profile={profile} onUpdate={refreshProfile} />
         </TabsContent>
       </Tabs>
+      <ProfileSectionIO section="engagement" onUpdate={refreshProfile} />
     </ProfilePageShell>
   );
 }
