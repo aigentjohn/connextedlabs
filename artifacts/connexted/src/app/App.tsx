@@ -423,6 +423,7 @@ const ContainerMemberships = lazy(() => import('@/app/components/admin/Container
 const SubscriptionPackagesPage = lazy(() => import('@/app/components/admin/SubscriptionPackagesPage'));
 const PaymentManagement = lazy(() => import('@/app/components/admin/PaymentManagement'));
 const MembershipTiersManagement = lazy(() => import('@/app/components/admin/MembershipTiersManagement'));
+const MembershipTierPermissionsPage = lazy(() => import('@/app/components/admin/MembershipTierPermissionsPage'));
 const ContentModerationPage = lazy(() => import('@/app/components/admin/ContentModerationPage'));
 const FlaggedContentPage = lazy(() => import('@/app/components/admin/FlaggedContentPage'));
 const DeletedDocumentsPage = lazy(() => import('@/app/components/admin/DeletedDocumentsPage'));
@@ -826,6 +827,7 @@ const router = createBrowserRouter([
           { path: '/platform-admin/subscription-packages', element: <SubscriptionPackagesPage /> },
           { path: '/platform-admin/payment', element: <PaymentManagement /> },
           { path: '/platform-admin/membership-tiers', element: <MembershipTiersManagement /> },
+          { path: '/platform-admin/membership-tier-permissions', element: <MembershipTierPermissionsPage /> },
           { path: '/platform-admin/content-moderation', element: <ContentModerationPage /> },
           { path: '/platform-admin/flagged-content', element: <FlaggedContentPage /> },
           { path: '/platform-admin/deleted-documents', element: <DeletedDocumentsPage /> },

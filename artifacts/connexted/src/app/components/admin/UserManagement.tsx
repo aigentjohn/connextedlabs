@@ -81,7 +81,7 @@ async function inviteFetch(body: object): Promise<Response> {
   });
 }
 
-const MEMBERSHIP_TIERS = [
+const DEFAULT_MEMBERSHIP_TIERS = [
   { value: 'free',    label: 'Free' },
   { value: 'member',  label: 'Member' },
   { value: 'premium', label: 'Premium' },
@@ -185,6 +185,7 @@ export default function UserManagement() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({ ...EMPTY_INVITE });
   const [inviting, setInviting] = useState(false);
+  const [membershipTiers, setMembershipTiers] = useState(DEFAULT_MEMBERSHIP_TIERS);
 
   useEffect(() => {
     if (profile?.role === 'admin' || profile?.role === 'super') {
@@ -211,6 +212,14 @@ export default function UserManagement() {
 
       const resolvedDefaultClass = defaultClassData?.class_number ?? 3;
       setDefaultClass(resolvedDefaultClass);
+
+      const { data: tierData } = await supabase
+        .from('membership_tier_permissions')
+        .select('tier_id, tier_name')
+        .order('tier_order');
+      if (tierData && tierData.length > 0) {
+        setMembershipTiers(tierData.map((t: any) => ({ value: t.tier_id, label: t.tier_name })));
+      }
 
       const [usersData, circlesData, tablesData, elevatorsData, meetingsData, pitchesData, postsData, documentsData] = await Promise.all([
         supabase.from('users').select('*'),
@@ -1855,7 +1864,7 @@ export default function UserManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MEMBERSHIP_TIERS.map(t => (
+                  {membershipTiers.map(t => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
