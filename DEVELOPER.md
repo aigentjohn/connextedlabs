@@ -6,7 +6,7 @@ Technical onboarding for incoming developers and technical co-founders. Read thi
 
 ## Origin and Context
 
-This codebase was built by a solo product manager using AI-assisted development tools (Figma Make, Replit, Claude Code). It is a working prototype demonstrating the full product vision — approximately 76,000 lines of TypeScript across a React frontend and Express backend.
+This codebase was built by a solo product manager using AI-assisted development tools (Figma Make, Replit, Claude Code). It is a working prototype demonstrating the full product vision — approximately 258,000 lines of TypeScript across a React frontend and Express backend.
 
 What this means practically:
 - The product thinking and feature set are intentional and well-considered
@@ -45,7 +45,7 @@ Supabase Project A             Supabase Project B
 
 ```
 artifacts/connexted/      React 19 + Vite SPA
-                          ~75,000 lines, 264 routes
+                          ~258,000 lines, 311 routes
                           Connects directly to Supabase for most operations
 
 artifacts/api-server/     Express 5 Node server
@@ -90,6 +90,53 @@ Configuration lives in:
 - `artifacts/connexted/src/lib/content-auth.ts` (hook for create permission checks)
 
 **Important:** Classification is currently enforced at the UI layer only (nav visibility, create buttons). Database-level RLS enforcement per user class does not yet exist. See security section.
+
+---
+
+## Content Types
+
+The platform has two categories of content: **containers** (spaces users join) and **content** (items users create or consume).
+
+### Containers
+Circles, Programs, Courses, Events, Companies, Builds, Pitches — each has member management, visibility, and lifecycle state.
+
+### User Content Types
+
+| Type | Route | Table | Notes |
+|---|---|---|---|
+| Documents | `/my-documents` | `documents` | URL-based references; shareable links |
+| Books | `/books` | `books` + `book_chapters` | Chapters with markdown |
+| Decks | `/decks` | `decks` | Slide-style presentations |
+| Lists / Checklists | `/checklists` | `checklists` | Task and checklist management |
+| Libraries | `/libraries` | `libraries` | Collections of documents |
+| Links | `/my-contents` | `my_contents` | Saved URLs with metadata enrichment |
+| Pages | `/my-pages` | `pages` | Inline markdown content — stored in DB, not URL-based |
+| Episodes | — | `episodes` | Video/audio content with playlists |
+
+### Pages (added April 2026)
+Pages are the lightweight inline-markdown content type. Unlike Documents (which store a URL to an external file), Pages store their content directly in the database. Key characteristics:
+- Full CRUD at `/my-pages` with editor/preview toggle, `.md` import, `.md` export
+- Visibility: `public` / `member` / `private`
+- Fully integrated into the Journey system — can be added to any Journey via `AddJourneyContentDialog` and rendered inline via `JourneyInlineViewer`
+- Rendered with `react-markdown` + `remark-gfm`
+
+### Journey Integration
+Journeys (inside Programs and Courses) can contain any content type. The integration layer is:
+- `src/lib/journey-item-types.ts` — registry of all types (icon, label, table name, category)
+- `src/types/journey-item-content.ts` — TypeScript interfaces per type
+- `src/app/components/program/AddJourneyContentDialog.tsx` — picker UI (fetches from each type's table)
+- `src/app/components/journey/JourneyInlineViewer.tsx` — renders each type inline
+
+To add a new content type to Journeys, add entries in all four of these files.
+
+### Pathways
+Pathways sequence platform actions across the whole platform (not inside a single Program). They use activity steps that target specific content instances.
+
+Activity types are defined in `PathwayAdminPage.tsx` in the `ACTIVITY_TYPES` constant. The `ACTIVITY_TABLE_MAP` controls which Supabase table is queried to pick a specific target item for a step. Available activity verbs as of April 2026:
+
+**Participation:** `join_circle`, `attend_meeting`, `post_in_forum`, `post_moment`, `create_deck`, `create_build`, `create_pitch`, `mentor_session`, `complete_sprint`, `complete_standup`
+
+**Learning:** `enroll_course`, `complete_program`, `watch_episode`, `read_page`, `view_pitch`, `view_build`
 
 ---
 
@@ -153,9 +200,9 @@ Routes accept `user_id` from query params without verifying the caller owns that
 - Fix: Extract user identity from the verified JWT, not from the request params
 
 **3. Two stub endpoints that do nothing**
-`/self-report` and `/verify-report` return hardcoded success without touching the database.
-- File: `artifacts/api-server/src/routes/pathways.ts` (lines ~419, ~428)
-- Fix: Implement or remove
+`/self-report` and `/verify-report` in the Express API return hardcoded success without touching the database. Note: the frontend `PathwayDetailPage` self-report writes directly to Supabase (`pathway_enrollments`) and does not use these endpoints — they are dead code.
+- File: `artifacts/api-server/src/routes/pathways.ts`
+- Fix: Remove the stubs or implement them properly
 
 **4. No Zod validation on API request bodies**
 Routes accept any shape of data. Zod is installed and available.
@@ -166,41 +213,48 @@ Several migration-defined RLS policies allow any authenticated user to perform a
 - File: `supabase/migrations/20260407000001_add_missing_tables.sql`
 - Look for: `participants_update_admin` — should check `is_admin` flag, not just `auth.uid() IS NOT NULL`
 
+**6. Pathway admin RLS blocks writes**
+`PathwayAdminPage` cannot write pathway changes through the Supabase client because the pathway tables' RLS blocks non-service-role writes. The Express API is the correct path but has no auth (see issue #1). See `docs/PATHWAY_ADMIN_RLS_PLAN.md` for fix options.
+
 ### High Priority — First Sprint
 
-**6. Drizzle schema is empty**
+**7. Drizzle schema is empty**
 `lib/db/src/schema/index.ts` exports nothing. All table definitions exist only in Supabase migrations. The ORM layer is installed but unused.
 - Decision needed: populate Drizzle schema to match the actual database, or remove Drizzle from the stack
 
-**7. TypeScript strictness gaps**
+**8. TypeScript strictness gaps**
 `tsconfig.base.json` has `strictFunctionTypes: false`, `noUnusedLocals: false`, `skipLibCheck: true`.
 - Fix: Enable flags one at a time, work through resulting errors
 
-**8. Pervasive `any` in pathway routes**
+**9. Pervasive `any` in pathway routes**
 24+ uses of `(p: any)`, `(e: any)` in map/filter callbacks throughout `pathways.ts`.
 - Fix: Add proper types from the database schema
 
-**9. Raw error messages exposed to clients**
+**10. Raw error messages exposed to clients**
 `res.status(500).json({ error: err.message })` appears throughout the API server.
 - Fix: Return generic error messages to clients, log details server-side via Pino
 
-**10. `console.error` instead of structured logging**
+**11. `console.error` instead of structured logging**
 66 instances of `console.error` across the codebase. Pino is installed and configured.
 - Fix: Replace with `logger.error({ err }, 'description')`
 
 ### Medium Priority
 
-**11. App.tsx is a single large file**
-264 lazy-loaded routes in one file. Hard to navigate and maintain.
+**12. App.tsx is a single large file**
+311 lazy-loaded routes in one file. Hard to navigate and maintain.
 - Fix: Extract route groups into separate files (e.g., `routes/admin.tsx`, `routes/community.tsx`)
 
-**12. Template data hardcoded in TypeScript**
+**13. Template data hardcoded in TypeScript**
 `artifacts/connexted/src/data/` contains ~70KB of course and program templates as hardcoded TypeScript arrays.
 - Fix: Move to database for multi-instance configurability
 
-**13. `allowedHosts: true` in vite.config.ts**
+**14. `allowedHosts: true` in vite.config.ts**
 Overly permissive for production deployment.
 - Fix: Set to the actual deployment domain
+
+**15. No step-level completion tracking for Pathways**
+`pathway_enrollments` stores aggregate `progress_pct` only. There is no `pathway_step_completions` table, so it is impossible to query which specific steps a user has completed. Self-report writes update the aggregate but lose step identity.
+- Fix: Create `pathway_step_completions` table; see `docs/PRODUCT_BACKLOG.md` §4 Growth and Learning
 
 ---
 
@@ -212,6 +266,7 @@ Overly permissive for production deployment.
 - Event and ticket access has RLS
 - Service role key (Supabase admin) lives only in Railway environment — never in the browser
 - Frontend Supabase client uses the anon key — subject to RLS
+- RLS initplan fix applied (April 2026) — `auth.uid()` wrapped in `(select auth.uid())` across 49 policies for performance
 
 ### What Is Not Protected (Yet)
 
@@ -229,16 +284,26 @@ Never commit `.env` to source control. The `.env.example` file documents require
 
 | File | What it does |
 |---|---|
-| `artifacts/connexted/src/app/App.tsx` | All 264 route definitions |
-| `artifacts/connexted/src/lib/auth-context.tsx` | User session, class permissions, auth state |
+| `artifacts/connexted/src/app/App.tsx` | All 311 route definitions |
+| `artifacts/connexted/src/lib/auth-context.tsx` | User session, class permissions, auth state — exposes `useAuth()` |
 | `artifacts/connexted/src/lib/content-auth.ts` | `useContentAuth()` hook — who can create what |
 | `artifacts/connexted/src/lib/nav-config.ts` | Fallback navigation tier config |
+| `artifacts/connexted/src/lib/journey-item-types.ts` | Registry of all Journey content types |
+| `artifacts/connexted/src/types/journey-item-content.ts` | TypeScript interfaces for each Journey content type |
 | `artifacts/connexted/src/services/` | Business logic — access tickets, badges, enrollment |
-| `artifacts/connexted/src/hooks/` | Custom React hooks |
+| `artifacts/connexted/src/hooks/useContentEngagement.ts` | Cross-type likes + favorites (`content_likes`, `content_favorites`) |
+| `artifacts/connexted/src/hooks/` | All custom React hooks |
+| `artifacts/connexted/src/app/pages/MyPagesPage.tsx` | Pages CRUD — create, edit, import, export markdown |
+| `artifacts/connexted/src/app/components/ActivePathwaysWidget.tsx` | Home page widget — active pathway enrollments |
+| `artifacts/connexted/src/app/components/journey/JourneyInlineViewer.tsx` | Renders any content type inline inside a Journey |
+| `artifacts/connexted/src/app/components/program/AddJourneyContentDialog.tsx` | Picker for adding content to a Journey |
+| `artifacts/connexted/src/app/components/growth/PathwayAdminPage.tsx` | Pathway creation/editing — ACTIVITY_TYPES, ACTIVITY_TABLE_MAP |
 | `artifacts/api-server/src/routes/pathways.ts` | Pathway CRUD (highest priority for security fixes) |
 | `artifacts/api-server/src/lib/supabase.ts` | Supabase admin client setup |
 | `lib/db/src/schema/index.ts` | Drizzle schema (currently empty) |
 | `supabase/migrations/` | All database migrations |
+| `artifacts/connexted/docs/PRODUCT_BACKLOG.md` | Full feature inventory — status, priority, notes |
+| `artifacts/connexted/docs/PRODUCT_ROADMAP.md` | Phased delivery timeline — sprint themes and dependencies |
 
 ---
 
@@ -253,14 +318,19 @@ Tables and their owner columns — important for RLS and insert operations:
 | `documents` | `author_id` | |
 | `endorsements` | `author_id` | |
 | `libraries` | `created_by` + `owner_id` | Dual owner columns |
+| `pages` | `created_by` | Added April 2026; inline markdown content |
 | `users` | — | Profile table. Name col = `name`, avatar col = `avatar` |
 | `posts` | — | Only PLURAL array columns — null all feed columns then set target |
 | `pathways` | — | Managed via Express API server, not Supabase client |
 | `pathway_steps` | — | Same |
-| `pathway_enrollments` | — | Same |
+| `pathway_enrollments` | — | Same; stores aggregate `progress_pct` only — no per-step completion |
+| `content_likes` | `user_id` | Cross-type likes; use `useContentEngagement()` hook |
+| `content_favorites` | `user_id` | Cross-type saved items; viewable at `/my-content` |
 | `participants` | — | Member lifecycle state machine |
 
 `useContentAuth()` → `ownerFields('tableName')` returns the correct ownership fields for any table. Use this for all insert operations rather than hardcoding field names.
+
+**Always use `useAuth()` from `@/lib/auth-context` to get the current user profile.** There is no `useProfile` hook — it does not exist.
 
 ---
 
@@ -275,7 +345,8 @@ Tables and their owner columns — important for RLS and insert operations:
 ### When Adding a Feature
 
 - New API routes need Zod request validation and auth middleware (pattern TBD once middleware is implemented)
-- New Supabase tables need a migration file and an RLS policy
+- New Supabase tables need a migration file in `supabase/migrations/` and an RLS policy
+- New content types need entries in `journey-item-types.ts`, `journey-item-content.ts`, `AddJourneyContentDialog.tsx`, and `JourneyInlineViewer.tsx`
 - New services need a corresponding test file in `src/__tests__/services/`
 - Do not edit `lib/api-zod/` or `lib/api-client-react/` directly — regenerate from the OpenAPI spec
 
