@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -67,7 +67,7 @@ const EMPTY_FORM = {
 };
 
 export default function MyPagesPage() {
-  const { profile } = useProfile();
+  const { profile } = useAuth();
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
