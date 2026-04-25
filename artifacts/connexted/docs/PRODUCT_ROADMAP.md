@@ -54,16 +54,16 @@ can't see it in one place.
 
 **Unblocks:** Advisory cohort onboarding, queue validation, companion enhancements.
 
-### 2a. My Saved page  🔴 Critical
-Zero new infrastructure — `content_favorites` table is live, `useContentEngagement`
-hook is live. This sprint ships the view.
+### 2a. My Favorites — audit and extend  🟡 Medium
+My Favorites (`/my-content`) already exists: `MyContentPage.tsx` queries
+`content_favorites`, groups by type, and renders remove buttons.
+The Discover sidebar already links to it with a count badge.
 
 | Feature | Notes |
 |---------|-------|
-| `/my-saved` page — group by content type | Query `content_favorites` JOIN each type table |
-| Sidebar link — "My Saved" in My Content section | After StickyNote (My Pages) |
-| Remove from saved (inline unfavorite button) | Calls `toggleFavorite` |
-| Empty state with discovery prompt | "Nothing saved yet — explore and tap ♡ to save" |
+| Audit which content types are missing a favorite button | Compare `JOURNEY_ITEM_TYPES` list vs. pages that use `useContentEngagement` |
+| "Save" action on Pathway step cards | Heart/bookmark calls `toggleFavorite('pathway_step', step.id)` |
+| "Save" action on Companion items | Companion panel → add to favorites |
 
 ### 2b. Pathway admin RLS fix  🔴 Critical
 Admins cannot write pathway changes today. Blocks all pathway editing on production.
