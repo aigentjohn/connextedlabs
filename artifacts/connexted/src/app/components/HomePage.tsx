@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import RecommendedCirclesWidget from '@/app/components/RecommendedCirclesWidget';
 import MyApplicationsWidget from '@/app/components/MyApplicationsWidget';
+import ActivePathwaysWidget from '@/app/components/ActivePathwaysWidget';
 import { useUserBadges } from '@/hooks/useBadges';
 import { accessTicketService } from '@/services/accessTicketService';
 
@@ -337,6 +338,9 @@ export default function HomePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Active Pathways — only renders if user has active enrollments */}
+      <ActivePathwaysWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
