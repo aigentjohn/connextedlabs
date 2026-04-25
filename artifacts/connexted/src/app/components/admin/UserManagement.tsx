@@ -82,11 +82,9 @@ async function inviteFetch(body: object): Promise<Response> {
 }
 
 const MEMBERSHIP_TIERS = [
-  { value: 'free',     label: 'Free' },
-  { value: 'member',   label: 'Member' },
-  { value: 'founding', label: 'Founding Member' },
-  { value: 'professional', label: 'Professional' },
-  { value: 'sponsor',  label: 'Sponsor' },
+  { value: 'free',    label: 'Free' },
+  { value: 'member',  label: 'Member' },
+  { value: 'premium', label: 'Premium' },
 ];
 
 const EMPTY_INVITE = {
