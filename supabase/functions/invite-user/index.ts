@@ -58,18 +58,18 @@ serve(async (req) => {
       // If already registered, look up the existing auth user and update their profile
       if (inviteError.message?.toLowerCase().includes('already been registered') ||
           inviteError.message?.toLowerCase().includes('already registered')) {
-        const { data: listData, error: listError } =
-          await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        // Look up existing user by email from the users profile table (fast, indexed)
+        const { data: existingProfile, error: profileError } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('email', email.trim().toLowerCase())
+          .single();
 
-        if (listError) return json({ error: listError.message }, 400);
+        if (profileError || !existingProfile) {
+          return json({ error: 'User exists in auth but profile could not be located' }, 400);
+        }
 
-        const existing = listData?.users?.find(
-          (u) => u.email?.toLowerCase() === email.trim().toLowerCase(),
-        );
-
-        if (!existing) return json({ error: 'User exists in auth but could not be located' }, 400);
-
-        userId = existing.id;
+        userId = existingProfile.id;
         alreadyExisted = true;
 
         // Send a magic link so they can log in

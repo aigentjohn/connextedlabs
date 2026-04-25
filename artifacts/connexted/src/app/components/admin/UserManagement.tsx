@@ -70,15 +70,22 @@ const INVITE_URL = `https://${projectId}.supabase.co/functions/v1/invite-user`;
 
 async function inviteFetch(body: object): Promise<Response> {
   const token = await getAccessToken();
-  return fetch(INVITE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${publicAnonKey}`,
-      'X-User-Token': token,
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  try {
+    return await fetch(INVITE_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${publicAnonKey}`,
+        'X-User-Token': token,
+      },
+      body: JSON.stringify(body),
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 const DEFAULT_MEMBERSHIP_TIERS = [
@@ -435,7 +442,11 @@ export default function UserManagement() {
       // Refresh user list so the new account appears
       window.location.reload();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send invite');
+      if (err.name === 'AbortError') {
+        toast.error('Invite timed out — check that the Edge Function is deployed in Supabase');
+      } else {
+        toast.error(err.message || 'Failed to send invite');
+      }
     } finally {
       setInviting(false);
     }
