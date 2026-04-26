@@ -229,7 +229,7 @@ export default function UserManagement() {
       }
 
       const [usersData, circlesData, tablesData, elevatorsData, meetingsData, pitchesData, postsData, documentsData] = await Promise.all([
-        supabase.from('users').select('*'),
+        supabase.from('users').select('*').limit(5000),
         supabase.from('circles').select('*'),
         supabase.from('tables').select('*'),
         supabase.from('elevators').select('*'),
@@ -311,16 +311,16 @@ export default function UserManagement() {
   }
   
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.location && user.location.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch =
+      (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.location || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     
     const matchesUserClass = userClassFilter === 'all' || user.user_class === userClassFilter;
     
-    const matchesTier = tierFilter === 'all' || user.membership_tier === tierFilter;
+    const matchesTier = tierFilter === 'all' || (user.membership_tier || 'free') === tierFilter;
     
     const matchesAuthStatus = authStatusFilter === 'all' || (authStatusFilter === 'active' ? user.has_auth_account : !user.has_auth_account);
     
