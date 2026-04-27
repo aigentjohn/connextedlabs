@@ -277,8 +277,8 @@ Known UI dead-ends, orphaned files, and hardcoded stubs. Full detail in `artifac
 | `/tables` (create) | `CreateTablePage.tsx` missing | 1 day |
 | `/pitches` (create) | `CreatePitchPage.tsx` missing | 1 day |
 | `/builds` (create) | `CreateBuildPage.tsx` missing | 1 day |
-| `/markets/search` | `MarketSearchPage.tsx` missing; Markets landing links to it | 1 day |
-| `/help/discover` | Discover Guide — sidebar links to non-existent page | 2–4 hrs |
+| `/markets/search` | ~~`MarketSearchPage.tsx` missing~~ — **FIXED**: page created, lazy-imported, route registered | ✅ |
+| `/help/discover` | ~~Discover Guide — sidebar links to non-existent page~~ — **FIXED**: `DiscoverGuidePage.tsx` created, route registered | ✅ |
 
 ### Dead code — remove
 

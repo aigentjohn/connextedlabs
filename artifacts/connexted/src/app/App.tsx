@@ -186,6 +186,7 @@ const NotificationsPage = lazy(() => import('@/app/components/NotificationsPage'
 const HelpViewer = lazy(() => import('@/app/components/HelpViewer'));
 const SearchPage = lazy(() => import('@/app/components/SearchPage'));
 const RankingsPage = lazy(() => import('@/app/pages/RankingsPage'));
+const DiscoverGuidePage = lazy(() => import('@/app/pages/DiscoverGuidePage'));
 
 // Content
 const FeedPage = lazy(() => import('@/app/components/FeedPage'));
@@ -333,6 +334,7 @@ const SprintSettingsPage = lazy(() => import('@/app/components/SprintSettingsPag
 // Markets
 const MarketsPage = lazy(() => import('@/app/components/MarketsPage'));
 const MarketDetailPage = lazy(() => import('@/app/components/MarketDetailPage'));
+const MarketSearchPage = lazy(() => import('@/app/pages/MarketSearchPage'));
 const OfferingProfilePage = lazy(() => import('@/app/components/OfferingProfilePage'));
 const MarketsAllMarketsPage = lazy(() => import('@/app/components/MarketsAllMarketsPage'));
 const MarketsAllOfferingsPage = lazy(() => import('@/app/components/MarketsAllOfferingsPage'));
@@ -607,6 +609,7 @@ const router = createBrowserRouter([
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/help', element: <HelpViewer /> },
           { path: '/help/:type', element: <HelpViewer /> },
+          { path: '/help/discover', element: <DiscoverGuidePage /> },
           { path: '/rankings', element: <RankingsPage /> },
           { path: '/feed', element: <FeedPage /> },
           { path: '/blogs', element: <BlogsPage /> },
@@ -738,6 +741,7 @@ const router = createBrowserRouter([
           { path: '/sponsor/:slug/members', element: <SponsorManagePage /> },
           // Markets
           { path: '/markets', element: <MarketsPage /> },
+          { path: '/markets/search', element: <MarketSearchPage /> },
           { path: '/markets/all-markets', element: <MarketsAllMarketsPage /> },
           { path: '/markets/all-offerings', element: <MarketsAllOfferingsPage /> },
           { path: '/markets/all-companies', element: <MarketsAllCompaniesPage /> },
