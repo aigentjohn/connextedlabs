@@ -105,9 +105,21 @@ export default function LibrariesPage() {
 
             return { ...library, document_count: count || 0, folder_count: folderCount || 0 };
           } else if (library.type === 'auto_generated' && library.filter_rules) {
-            // For auto-generated, count documents matching filter rules
-            // TODO: Implement filter logic when we have documents with proper metadata
-            return { ...library, document_count: 0, folder_count: 0 };
+            const rules = library.filter_rules;
+            let countQuery = supabase.from('documents').select('*', { count: 'exact', head: true });
+            if (rules.document_type) {
+              countQuery = Array.isArray(rules.document_type)
+                ? countQuery.in('document_type', rules.document_type)
+                : countQuery.eq('document_type', rules.document_type);
+            }
+            if (rules.intended_audience) {
+              countQuery = countQuery.eq('intended_audience', rules.intended_audience);
+            }
+            if (rules.tags && Array.isArray(rules.tags) && rules.tags.length > 0) {
+              countQuery = countQuery.overlaps('tags', rules.tags);
+            }
+            const { count } = await countQuery;
+            return { ...library, document_count: count || 0, folder_count: 0 };
           } else if (library.type === 'system') {
             // For system libraries, count based on library name
             if (library.name === 'All Documents') {
