@@ -7,7 +7,7 @@
 > worked independently. Phase 1 and 2 items are pure wiring — no new pages required.
 > Phase 3 and 4 items require new components or non-trivial new logic.
 >
-> Last updated: April 2026 — Phases 1, 2, and 3 complete. Phase 4 is the active work queue.
+> Last updated: April 2026 — All phases complete. All 19 items resolved.
 
 ---
 
@@ -117,31 +117,24 @@ New items default to `is_public: true`. `UserProfilePage.tsx` already filtered o
 
 ---
 
-### P4-3 — Implement Moments comments
-**Files:** `src/app/components/MomentsPage.tsx`,
-`src/app/components/MomentsSettingsPage.tsx`
-**Issue:** The `allow_comments` flag exists on moment records in the database
-but no comment UI or data fetch is implemented. The setting is stored but
-has no effect on what the user sees.
-**Fix:** Build a `MomentComments` component — load `comments` table filtered
-to `content_type = 'moment'` and `content_id`, render threaded list, add reply
-input. Only show when `allow_comments = true`.
-**Effort:** 1–2 days
+### P4-3 — Implement Moments comments  ✅ Fixed
+**Files:** `src/app/components/MomentsPage.tsx`
+`allow_comments` flag now gates a visible comment section on each post card.
+Comments load lazily from the `comments` table (keyed by `post_id`) when the user
+clicks the MessageSquare / Comment toggle. Submitting inserts to `comments` with
+`post_id` + `author_id` + `content`. Enter key submits. The footer row combines
+reactions and comment toggle; both are hidden if both flags are off.
 
 ---
 
-### P4-4 — Implement Course Certificate of Completion
+### P4-4 — Implement Course Certificate of Completion  ✅ Fixed
 **File:** `src/app/components/CoursePlayerPage.tsx`
-**Issue:** "Certificate of completion" is advertised on course enrollment cards and
-the player sidebar shows a "Get Certificate" button on completion, but the button
-only marks `completed_at` — no certificate is generated or issued.
-**Options (in order of effort):**
-1. **Simple PDF generation:** Use a browser `window.print()` / `@react-pdf/renderer`
-   approach with a styled certificate template populated with user name, course name,
-   and completion date. No DB change needed.
-2. **Stored certificate record:** Add a `course_certificates` table, generate a
-   unique certificate ID, store it, and provide a shareable verification URL.
-**Effort:** Option 1: 1 day. Option 2: 2–3 days.
+Sidebar "Complete Course" button replaced with "Get Certificate" (visible only
+when `overallProgress === 100`). Clicking calls `handleGetCertificate()` which
+opens a new tab with a styled HTML certificate (user name, course title, completion
+date) and a "Print / Save as PDF" button — no new dependencies needed.
+`completed_at` added to the `Enrollment` interface so the date is pulled from the
+actual enrollment record when available.
 
 ---
 
@@ -160,14 +153,14 @@ program record (no circle, no journeys pre-created) and navigates to
 | **Phase 1** — Honest UI | P1-1 through P1-6 | ✅ All complete |
 | **Phase 2** — Real data | P2-1 through P2-5 | ✅ All complete |
 | **Phase 3** — Missing pages | P3-1 through P3-4 | ✅ All complete (2 were false alarms, 2 built) |
-| **Phase 4** — Missing features | P4-1 through P4-5 | 3 of 5 complete — 2 remaining |
+| **Phase 4** — Missing features | P4-1 through P4-5 | ✅ All complete |
 
 **Phase 4 status:**
 - ✅ P4-5 (Start from Scratch) — fixed April 2026
 - ✅ P4-2 (skills/credentials visibility toggle) — fixed April 2026
 - ✅ P4-1 (item reordering — up/down arrows) — fixed April 2026; 3 locations: EditCompanyPage, EventCompanionDetailPage, PlaylistSettingsPage
-- ❌ P4-3 (Moments comments) — 1–2 days; `allow_comments` flag exists, needs comment UI
-- ❌ P4-4 (Course certificate) — start with Option 1 (browser print/PDF, 1 day)
+- ✅ P4-3 (Moments comments) — fixed April 2026; lazy-loaded per post, gated by `allow_comments`
+- ✅ P4-4 (Course certificate) — fixed April 2026; print-to-PDF via `window.open` + styled HTML template
 
 ---
 

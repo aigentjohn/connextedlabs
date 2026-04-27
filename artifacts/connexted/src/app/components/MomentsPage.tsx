@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
+import { Input } from '@/app/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Badge } from '@/app/components/ui/badge';
 import {
@@ -54,6 +55,15 @@ interface MomentsPost {
   reactions: any;
 }
 
+interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  author: { id: string; name: string; avatar: string | null } | null;
+}
+
 interface UserData {
   id: string;
   name: string;
@@ -76,6 +86,10 @@ export default function MomentsPage() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [timeWindow, setTimeWindow] = useState<string>('all');
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, Comment[]>>({});
+  const [openCommentPosts, setOpenCommentPosts] = useState<Set<string>>(new Set());
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [submittingComment, setSubmittingComment] = useState<string | null>(null);
 
   const isOwner = currentUser?.id === userId;
 
@@ -268,6 +282,52 @@ export default function MomentsPage() {
     } catch (error) {
       console.error('Error updating reaction:', error);
       toast.error('Failed to update reaction');
+    }
+  };
+
+  const fetchPostComments = async (postId: string) => {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('id, post_id, author_id, content, created_at, author:users!comments_author_id_fkey(id, name, avatar)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+    if (!error) {
+      setCommentsByPost(prev => ({ ...prev, [postId]: (data as any) || [] }));
+    }
+  };
+
+  const toggleComments = (postId: string) => {
+    setOpenCommentPosts(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+        if (!commentsByPost[postId]) {
+          fetchPostComments(postId);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleSubmitComment = async (postId: string) => {
+    const text = (commentInputs[postId] || '').trim();
+    if (!text || !currentUser) return;
+    setSubmittingComment(postId);
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({ post_id: postId, author_id: currentUser.id, content: text })
+        .select('id, post_id, author_id, content, created_at, author:users!comments_author_id_fkey(id, name, avatar)')
+        .single();
+      if (error) throw error;
+      setCommentsByPost(prev => ({ ...prev, [postId]: [...(prev[postId] || []), data as any] }));
+      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+    } catch {
+      toast.error('Failed to post comment');
+    } finally {
+      setSubmittingComment(null);
     }
   };
 
@@ -545,18 +605,87 @@ export default function MomentsPage() {
                             {post.content}
                           </p>
 
-                          {/* Reactions */}
-                          {moments.allow_reactions && (
+                          {/* Reactions + Comments footer */}
+                          {(moments.allow_reactions || moments.allow_comments) && (
                             <div className="flex items-center gap-4 pt-2 border-t">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleReaction(post.id)}
-                                className={userReacted ? 'text-red-600' : 'text-gray-600'}
-                              >
-                                <Heart className={`w-4 h-4 mr-1 ${userReacted ? 'fill-current' : ''}`} />
-                                {reactionCount > 0 && reactionCount}
-                              </Button>
+                              {moments.allow_reactions && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleReaction(post.id)}
+                                  className={userReacted ? 'text-red-600' : 'text-gray-600'}
+                                >
+                                  <Heart className={`w-4 h-4 mr-1 ${userReacted ? 'fill-current' : ''}`} />
+                                  {reactionCount > 0 && reactionCount}
+                                </Button>
+                              )}
+                              {moments.allow_comments && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleComments(post.id)}
+                                  className="text-gray-600"
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  {(commentsByPost[post.id]?.length ?? 0) > 0 && `${commentsByPost[post.id].length} `}
+                                  {openCommentPosts.has(post.id) ? 'Hide' : 'Comment'}
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          {/* Comments panel */}
+                          {moments.allow_comments && openCommentPosts.has(post.id) && (
+                            <div className="mt-3 space-y-3 border-t pt-3">
+                              {(commentsByPost[post.id] || []).length === 0 && (
+                                <p className="text-sm text-gray-400 text-center py-2">No comments yet.</p>
+                              )}
+                              {(commentsByPost[post.id] || []).map(comment => (
+                                <div key={comment.id} className="flex items-start gap-2">
+                                  <Avatar className="w-7 h-7">
+                                    <AvatarImage src={comment.author?.avatar || undefined} />
+                                    <AvatarFallback className="text-xs">{comment.author?.name?.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold">{comment.author?.name}</span>
+                                      <span className="text-xs text-gray-400">
+                                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-800">{comment.content}</p>
+                                  </div>
+                                </div>
+                              ))}
+                              {currentUser && (
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="w-7 h-7">
+                                    <AvatarImage src={(currentUser as any).avatar || undefined} />
+                                    <AvatarFallback className="text-xs">{(currentUser as any).name?.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 flex gap-2">
+                                    <Input
+                                      value={commentInputs[post.id] || ''}
+                                      onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                      placeholder="Write a comment..."
+                                      className="h-8 text-sm"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          handleSubmitComment(post.id);
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="h-8"
+                                      disabled={!commentInputs[post.id]?.trim() || submittingComment === post.id}
+                                      onClick={() => handleSubmitComment(post.id)}
+                                    >
+                                      <Send className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </>
