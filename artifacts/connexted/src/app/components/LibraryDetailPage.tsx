@@ -263,10 +263,20 @@ export default function LibraryDetailPage() {
           return;
         }
       } else if (libraryData.name === 'Shared with Me') {
-        // Documents shared in circles/containers I'm in
-        // This would require joining with document_shares table
-        // For now, we'll just show all public documents
-        query = query.order('created_at', { ascending: false });
+        // Documents shared into circles the user belongs to (excluding their own)
+        const { data: memberCircles } = await supabase
+          .from('circles')
+          .select('id')
+          .contains('member_ids', [profile.id]);
+        const circleIds = (memberCircles || []).map((c: any) => c.id);
+        if (circleIds.length === 0) {
+          setAllDocuments([]);
+          return;
+        }
+        query = query
+          .neq('author_id', profile.id)
+          .overlaps('circle_ids', circleIds)
+          .order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;

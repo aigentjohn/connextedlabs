@@ -302,20 +302,46 @@ export default function MyAdminDashboard() {
 
       let recentActivity = 0;
       let pendingRequests = 0;
+
+      // Count from generic container membership events (tables, elevators, etc.)
       if (allContainerIds.length > 0) {
         const { count: activityCount } = await supabase
           .from('membership_states')
           .select('*', { count: 'exact', head: true })
           .in('entity_id', allContainerIds)
           .gte('applied_at', thirtyDaysAgo.toISOString());
-        recentActivity = activityCount || 0;
+        recentActivity += activityCount || 0;
 
         const { count: pendingCount } = await supabase
           .from('membership_states')
           .select('*', { count: 'exact', head: true })
           .in('entity_id', allContainerIds)
           .eq('state', 'applied');
-        pendingRequests = pendingCount || 0;
+        pendingRequests += pendingCount || 0;
+      }
+
+      // Also count circle join requests (stored in container_memberships)
+      const { data: adminCircles } = await supabase
+        .from('circles')
+        .select('id')
+        .contains('admin_ids', [profile.id]);
+      const adminCircleIds = (adminCircles || []).map((c: any) => c.id);
+      if (adminCircleIds.length > 0) {
+        const { count: circleActivityCount } = await supabase
+          .from('container_memberships')
+          .select('*', { count: 'exact', head: true })
+          .in('container_id', adminCircleIds)
+          .eq('container_type', 'circle')
+          .gte('applied_at', thirtyDaysAgo.toISOString());
+        recentActivity += circleActivityCount || 0;
+
+        const { count: circlePendingCount } = await supabase
+          .from('container_memberships')
+          .select('*', { count: 'exact', head: true })
+          .in('container_id', adminCircleIds)
+          .eq('container_type', 'circle')
+          .eq('status', 'pending');
+        pendingRequests += circlePendingCount || 0;
       }
 
       setStats({

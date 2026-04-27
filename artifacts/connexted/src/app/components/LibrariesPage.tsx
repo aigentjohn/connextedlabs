@@ -130,7 +130,20 @@ export default function LibrariesPage() {
                 .eq('content_type', 'document');
               return { ...library, document_count: count || 0, folder_count: 0 };
             } else if (library.name === 'Shared with Me') {
-              // For now just return 0, can implement shared logic later
+              // Documents shared into circles the user belongs to (excluding their own)
+              const { data: memberCircles } = await supabase
+                .from('circles')
+                .select('id')
+                .contains('member_ids', [profile.id]);
+              const circleIds = (memberCircles || []).map((c: any) => c.id);
+              if (circleIds.length > 0) {
+                const { count } = await supabase
+                  .from('documents')
+                  .select('*', { count: 'exact', head: true })
+                  .neq('author_id', profile.id)
+                  .overlaps('circle_ids', circleIds);
+                return { ...library, document_count: count || 0, folder_count: 0 };
+              }
               return { ...library, document_count: 0, folder_count: 0 };
             }
           }
