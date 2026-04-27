@@ -251,23 +251,23 @@ Known UI dead-ends, orphaned files, and hardcoded stubs. Full detail in `artifac
 
 ### Broken / deceptive UI — fix first
 
-| ID | Issue | File | Effort |
+| ID | Issue | File | Status |
 |---|---|---|---|
-| P1-1 | "Request to Join" fires a success toast but writes nothing to the DB | `src/hooks/useContainerActions.ts` | 30 min (honest stub) or 2–4 hrs (real write) |
-| P1-2 | My Links per-item actions "Enrich Metadata" and "Delete" have no click handlers | My Links / My Contents page | 2–3 hrs |
-| P1-3 | My Basics Contact tab tells user to click "Edit Profile" to change WhatsApp — button doesn't exist | `src/app/components/MyBasicsPage.tsx` | 1–2 hrs |
-| P1-4 | My Circles "Create Circle" button has no `onClick` for super admins | `src/app/components/MyCirclesPage.tsx` | 30 min |
-| P1-5 | Events RSVP `handleAttendEvent` has no body — clicking RSVP does nothing | `src/app/components/EventsPage.tsx` | 2–3 hrs |
-| P1-6 | Notifications "Load More" button has no handler | `src/app/components/NotificationsPage.tsx` | 1–2 hrs |
+| P1-1 | ~~"Request to Join" writes to wrong table~~ — **FIXED**: dead `useContainerActions.ts` hook deleted; migration `20260427000003` creates `circle_members` and `container_memberships` | — | ✅ |
+| P1-2 | ~~My Links Enrich/Delete have no handlers~~ — **FIXED**: `handleEnrichSingle` and `handleDeleteContent` present in `MyContentsPage.tsx` | — | ✅ |
+| P1-3 | ~~My Basics Contact tab missing Edit Profile button~~ — **FIXED**: `ContactTab.tsx` is itself an edit form with a Save button | — | ✅ |
+| P1-4 | ~~My Circles Create Circle has no onClick~~ — **FIXED**: button navigates to `/circle-admin` (CircleAdminPage with full create flow) | — | ✅ |
+| P1-5 | ~~Events RSVP does nothing~~ — **FIXED**: `RSVPActions` component handles RSVP with real DB writes to `session_attendance` / `events.attendee_ids` | — | ✅ |
+| P1-6 | ~~Notifications Load More has no handler~~ — **FIXED**: button calls `fetchNotifications(page + 1)` | — | ✅ |
 
 ### Hardcoded zeros / false values — real data needed
 
-| ID | Issue | File | Effort |
+| ID | Issue | File | Status |
 |---|---|---|---|
-| P2-2 | Library document counts hardcoded to `0`; "Shared with Me" returns all public docs not user-specific | Libraries pages | 2–4 hrs |
-| P2-3 | `recentActivity` hardcoded to `0` on admin dashboard and circle admin page | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | 2–3 hrs |
-| P2-4 | `isFavorited` hardcoded to `false` in My Documents — heart always shows unfilled | `src/app/components/MyDocumentsPage.tsx` | 1–2 hrs |
-| P2-5 | Editing a Book or Deck clears topics — form initialises with `topicIds: []` | `BooksPage.tsx`, `DecksPage.tsx` | 1–2 hrs each |
+| P2-2 | Library document counts hardcoded to `0`; "Shared with Me" returns all public docs not user-specific | Libraries pages | ❌ ~2–4 hrs |
+| P2-3 | `recentActivity` hardcoded to `0` on admin dashboard and circle admin page | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | ❌ ~2–3 hrs |
+| P2-4 | ~~`isFavorited` hardcoded to false~~ — **FIXED**: `favoritedDocIds` fetched from `content_favorites` in `MyDocumentsPage.tsx` | — | ✅ |
+| P2-5 | ~~Book edit clears topics~~ — **FIXED**: `handleEditBook` now awaits topic fetch before opening dialog; TopicSelector added to edit dialog; update always syncs topics | `BooksPage.tsx` | ✅ |
 
 ### Missing pages — routes exist but pages don't
 

@@ -330,28 +330,27 @@ export default function BooksPage() {
 
   const handleEditBook = async (book: Book) => {
     setEditingBook(book);
-    setEditForm({
-      title: book.title,
-      description: book.description || '',
-      visibility: book.visibility || 'public',
-      tags: book.tags || [],
-      topicIds: [],
-    });
-    setIsEditDialogOpen(true);
 
-    // Fetch existing topics for this book
+    let topicIds: string[] = [];
     try {
       const { data: topicData } = await supabase
         .from('content_topics')
         .select('topic_id')
         .eq('content_id', book.id)
         .eq('content_type', 'book');
-      if (topicData && topicData.length > 0) {
-        setEditForm(prev => ({ ...prev, topicIds: topicData.map((t: any) => t.topic_id) }));
-      }
+      if (topicData) topicIds = topicData.map((t: any) => t.topic_id);
     } catch (err) {
       console.error('Error fetching book topics:', err);
     }
+
+    setEditForm({
+      title: book.title,
+      description: book.description || '',
+      visibility: book.visibility || 'public',
+      tags: book.tags || [],
+      topicIds,
+    });
+    setIsEditDialogOpen(true);
   };
 
   const handleUpdateBook = async () => {
@@ -377,27 +376,25 @@ export default function BooksPage() {
 
       if (!response.ok) throw new Error('Failed to update book');
 
-      // Re-link topics if changed
-      if (editForm.topicIds.length > 0) {
-        try {
-          await fetch(
-            `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/topics/link`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${publicAnonKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                content_id: editingBook.id,
-                content_type: 'book',
-                topic_ids: editForm.topicIds,
-              }),
-            }
-          );
-        } catch (topicError) {
-          console.error('Error updating topics:', topicError);
-        }
+      // Always sync topics so removals are persisted too
+      try {
+        await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/topics/link`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${publicAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content_id: editingBook.id,
+              content_type: 'book',
+              topic_ids: editForm.topicIds,
+            }),
+          }
+        );
+      } catch (topicError) {
+        console.error('Error updating topics:', topicError);
       }
 
       toast.success('Book updated!');
@@ -684,9 +681,18 @@ export default function BooksPage() {
                 />
               </div>
             </div>
+            <div>
+              <Label className="text-sm">Topics</Label>
+              <div className="mt-1">
+                <TopicSelector
+                  value={editForm.topicIds}
+                  onChange={(topicIds) => setEditForm({ ...editForm, topicIds })}
+                />
+              </div>
+            </div>
             <div className="flex gap-2 pt-2">
-              <Button 
-                onClick={handleUpdateBook} 
+              <Button
+                onClick={handleUpdateBook}
                 className="flex-1"
                 disabled={!editForm.title.trim()}
               >
