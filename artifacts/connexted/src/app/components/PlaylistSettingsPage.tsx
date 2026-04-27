@@ -28,7 +28,6 @@ import {
   Save,
   Trash2,
   ArrowLeft,
-  GripVertical,
   Video,
   X,
   Globe,
@@ -545,10 +544,7 @@ export default function PlaylistSettingsPage() {
                     key={episode.id}
                     className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"
                   >
-                    <div className="flex items-center gap-2 cursor-move">
-                      <GripVertical className="w-4 h-4 text-gray-400" />
-                      <Badge variant="outline">{index + 1}</Badge>
-                    </div>
+                    <Badge variant="outline">{index + 1}</Badge>
                     
                     <Video className="w-4 h-4 text-purple-600" />
                     

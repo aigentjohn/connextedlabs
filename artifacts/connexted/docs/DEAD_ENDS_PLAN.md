@@ -94,17 +94,18 @@ section, quick-tips strip, and related areas row. Registered at `/help/discover`
 *Features that are visible in the UI or advertised to users but have no
 implementation beneath them.*
 
-### P4-1 — Implement drag-and-drop reordering
-Three places show a `GripVertical` drag handle icon with no drag logic:
-- Edit Company Companion view
-- Event Companions list
-- Playlists (`PlaylistDetailPage.tsx` / `PlaylistsPage.tsx`)
+### P4-1 — Implement reordering for companion/playlist items  ✅ Fixed
+Three places had a `GripVertical` drag handle icon with no logic:
+- Edit Company Companion view (`EditCompanyPage.tsx`)
+- Event Companions list (`EventCompanionDetailPage.tsx`)
+- Playlists (`PlaylistSettingsPage.tsx`)
 
-**Fix:** Implement using `@dnd-kit/core` (already a common React drag library) or
-`react-beautiful-dnd`. On drop, update `order_index` for the reordered items via
-an upsert. The `JourneyManagement` component likely already uses a drag pattern
-that can be referenced.
-**Effort:** 1–2 days (shared drag hook + wire into all three locations)
+**Fix applied:** Used up/down arrow buttons (consistent with `PathwayAdminPage` and
+`MarketsConfiguration` patterns already in the codebase — `react-dnd` was installed
+but never used anywhere). Each location now has a `moveItem` function that swaps
+`order_index` values between adjacent rows via two concurrent Supabase UPDATE calls,
+then re-sorts local state. `PlaylistSettingsPage` already had working `handleReorderEpisode`
+— only the decorative `GripVertical` wrapper was removed.
 
 ---
 
@@ -159,12 +160,12 @@ program record (no circle, no journeys pre-created) and navigates to
 | **Phase 1** — Honest UI | P1-1 through P1-6 | ✅ All complete |
 | **Phase 2** — Real data | P2-1 through P2-5 | ✅ All complete |
 | **Phase 3** — Missing pages | P3-1 through P3-4 | ✅ All complete (2 were false alarms, 2 built) |
-| **Phase 4** — Missing features | P4-1 through P4-5 | ❌ All outstanding — active work queue |
+| **Phase 4** — Missing features | P4-1 through P4-5 | 3 of 5 complete — 2 remaining |
 
 **Phase 4 status:**
 - ✅ P4-5 (Start from Scratch) — fixed April 2026
 - ✅ P4-2 (skills/credentials visibility toggle) — fixed April 2026
-- ❌ P4-1 (drag-and-drop reordering) — 1–2 days; 3 locations: Companion, Event Companions, Playlists
+- ✅ P4-1 (item reordering — up/down arrows) — fixed April 2026; 3 locations: EditCompanyPage, EventCompanionDetailPage, PlaylistSettingsPage
 - ❌ P4-3 (Moments comments) — 1–2 days; `allow_comments` flag exists, needs comment UI
 - ❌ P4-4 (Course certificate) — start with Option 1 (browser print/PDF, 1 day)
 
