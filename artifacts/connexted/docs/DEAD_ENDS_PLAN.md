@@ -108,15 +108,11 @@ that can be referenced.
 
 ---
 
-### P4-2 — Add `is_public` toggle for skills and credentials on profile
-**File:** `src/app/components/circle/CircleSettingsPage.tsx` and profile edit tabs
-**Issue:** The public profile page correctly filters out private skills and credentials
-where `is_public = false`, but there is no UI control anywhere that lets the user
-actually set this flag. Once a skill or credential is created, there is no way to
-make it private.
-**Fix:** Add an `is_public` toggle (switch or visibility selector) to the skill and
-credential edit/create forms in the profile edit tabs.
-**Effort:** 2–3 hours
+### P4-2 — Add `is_public` toggle for skills and credentials on profile  ✅ Fixed
+Eye/EyeOff toggle added to each skill row and credential card in `SkillsTab.tsx`.
+Calls `updateSkill` / `updateCredential` with `is_public: true/false` on click.
+New items default to `is_public: true`. `UserProfilePage.tsx` already filtered on
+`is_public = true` — the toggle takes effect immediately on the public profile.
 
 ---
 
@@ -148,15 +144,11 @@ only marks `completed_at` — no certificate is generated or issued.
 
 ---
 
-### P4-5 — Fix "Start from Scratch" for custom program/course creation
-**Files:** `src/app/components/unified/CreateMethodSelector.tsx`,
-`src/app/components/program/CreateProgramPage.tsx`
-**Issue:** Selecting "Start from Scratch" routes the user back to the template
-picker instead of opening a blank creation form. Users cannot create a custom
-program without starting from a template.
-**Fix:** The "Start from Scratch" path should bypass template selection and navigate
-directly to the program/course creation form with no pre-filled template data.
-**Effort:** 2–4 hours
+### P4-5 — Fix "Start from Scratch" for custom program creation  ✅ Fixed
+`CreateProgramPage.tsx`: "Create Custom Program" button now expands an inline
+name form instead of opening the template picker. On submit: inserts a minimal
+program record (no circle, no journeys pre-created) and navigates to
+`/program-admin/:id/setup` where the admin builds it out from scratch.
 
 ---
 
@@ -169,12 +161,12 @@ directly to the program/course creation form with no pre-filled template data.
 | **Phase 3** — Missing pages | P3-1 through P3-4 | ✅ All complete (2 were false alarms, 2 built) |
 | **Phase 4** — Missing features | P4-1 through P4-5 | ❌ All outstanding — active work queue |
 
-**Phase 4 recommended order:**
-1. P4-5 (Start from Scratch bug) — 2–4 hrs; blocks course/program creation without templates
-2. P4-2 (skills/credentials visibility toggle) — 2–3 hrs; data already stored, just needs UI
-3. P4-1 (drag-and-drop reordering) — 1–2 days; affects 3 places (Companion, Event Companions, Playlists)
-4. P4-3 (Moments comments) — 1–2 days; `allow_comments` flag exists, needs comment UI
-5. P4-4 (Course certificate) — start with Option 1 (browser print/PDF, 1 day) before considering Option 2
+**Phase 4 status:**
+- ✅ P4-5 (Start from Scratch) — fixed April 2026
+- ✅ P4-2 (skills/credentials visibility toggle) — fixed April 2026
+- ❌ P4-1 (drag-and-drop reordering) — 1–2 days; 3 locations: Companion, Event Companions, Playlists
+- ❌ P4-3 (Moments comments) — 1–2 days; `allow_comments` flag exists, needs comment UI
+- ❌ P4-4 (Course certificate) — start with Option 1 (browser print/PDF, 1 day)
 
 ---
 
