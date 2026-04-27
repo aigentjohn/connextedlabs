@@ -238,11 +238,59 @@ Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middlewa
 
 **14. `allowedHosts: true` in vite.config.ts**
 Overly permissive for production deployment.
-- Fix: Set to the actual deployment domain
+- Fix: Set to the actual deployment domain when deploying to a fixed domain outside Replit
 
-**15. No step-level completion tracking for Pathways**
-`pathway_enrollments` stores aggregate `progress_pct` only. There is no `pathway_step_completions` table, so it is impossible to query which specific steps a user has completed. Self-report writes update the aggregate but lose step identity.
-- Fix: Create `pathway_step_completions` table; see `docs/PRODUCT_BACKLOG.md` §4 Growth and Learning
+**15. ~~No step-level completion tracking for Pathways~~ — FIXED**
+Migration `20260427000002_pathway_step_completions.sql` and both API endpoints implemented. See item 3 above.
+
+---
+
+## Code Debt
+
+Known UI dead-ends, orphaned files, and hardcoded stubs. Full detail in `artifacts/connexted/docs/DEAD_ENDS_PLAN.md` and `artifacts/connexted/docs/CLEANUP_AND_DEVELOPMENT_NOTES.md`.
+
+### Broken / deceptive UI — fix first
+
+| ID | Issue | File | Effort |
+|---|---|---|---|
+| P1-1 | "Request to Join" fires a success toast but writes nothing to the DB | `src/hooks/useContainerActions.ts` | 30 min (honest stub) or 2–4 hrs (real write) |
+| P1-2 | My Links per-item actions "Enrich Metadata" and "Delete" have no click handlers | My Links / My Contents page | 2–3 hrs |
+| P1-3 | My Basics Contact tab tells user to click "Edit Profile" to change WhatsApp — button doesn't exist | `src/app/components/MyBasicsPage.tsx` | 1–2 hrs |
+| P1-4 | My Circles "Create Circle" button has no `onClick` for super admins | `src/app/components/MyCirclesPage.tsx` | 30 min |
+| P1-5 | Events RSVP `handleAttendEvent` has no body — clicking RSVP does nothing | `src/app/components/EventsPage.tsx` | 2–3 hrs |
+| P1-6 | Notifications "Load More" button has no handler | `src/app/components/NotificationsPage.tsx` | 1–2 hrs |
+
+### Hardcoded zeros / false values — real data needed
+
+| ID | Issue | File | Effort |
+|---|---|---|---|
+| P2-2 | Library document counts hardcoded to `0`; "Shared with Me" returns all public docs not user-specific | Libraries pages | 2–4 hrs |
+| P2-3 | `recentActivity` hardcoded to `0` on admin dashboard and circle admin page | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | 2–3 hrs |
+| P2-4 | `isFavorited` hardcoded to `false` in My Documents — heart always shows unfilled | `src/app/components/MyDocumentsPage.tsx` | 1–2 hrs |
+| P2-5 | Editing a Book or Deck clears topics — form initialises with `topicIds: []` | `BooksPage.tsx`, `DecksPage.tsx` | 1–2 hrs each |
+
+### Missing pages — routes exist but pages don't
+
+| Route | What's missing | Effort |
+|---|---|---|
+| `/standups/:id` | `StandupDetailPage.tsx` doesn't exist; link 404s | 2–3 days |
+| `/tables` (create) | `CreateTablePage.tsx` missing | 1 day |
+| `/pitches` (create) | `CreatePitchPage.tsx` missing | 1 day |
+| `/builds` (create) | `CreateBuildPage.tsx` missing | 1 day |
+| `/markets/search` | `MarketSearchPage.tsx` missing; Markets landing links to it | 1 day |
+| `/help/discover` | Discover Guide — sidebar links to non-existent page | 2–4 hrs |
+
+### Dead code — remove
+
+| Item | Action |
+|---|---|
+| `blogs.view_count` column | Drop or wire up real server-side tracking |
+| `blogs.click_count` column | Drop or build analytics query against `blog_clicks` table |
+| `episodes.views` column | Drop or wire up real server-side tracking |
+| `/episodes/:id/edit` route | Check `App.tsx` — remove if still present |
+| `/magazines/:id/settings` route | Absorbed into Manage tab; remove route + check if `MagazineSettingsPage.tsx` is orphaned |
+| `/playlists/:slug/settings` route | Same — absorbed; check `PlaylistSettingsPage.tsx` |
+| `views: number` field in `Episode` interface in `EpisodesPage.tsx` | Remove — no longer displayed |
 
 ---
 

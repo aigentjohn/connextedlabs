@@ -238,8 +238,8 @@ How members track their own development over time.
 | Activity type: `watch_episode` with specific instance | ✅ Live | — | Fixed Apr 2026; `ACTIVITY_TABLE_MAP` wired |
 | Activity types: `read_page`, `view_pitch`, `view_build` | ✅ Live | — | Added Apr 2026; learning/observation verbs |
 | Editable step title and instructions | ✅ Live | — | Added Apr 2026; inline edit in step card |
-| Pathway admin RLS fix | 🚫 Blocked | 🔴 | Admin writes blocked by RLS; see `PATHWAY_ADMIN_RLS_PLAN.md` |
-| Step-level completion tracking | 📋 Planned | 🟡 | `pathway_step_reports` table does not exist; only aggregate progress stored |
+| Pathway admin RLS fix | ✅ Live | — | Fixed — Express API uses service role key with `requireAdmin` middleware |
+| Step-level completion tracking | ✅ Live | — | `pathway_step_completions` table + self-report/verify-report API; built Apr 2026 |
 | Step targeting a specific item (pick from list) | ✅ Live | — | `activity_criteria.target_id` + search dialog |
 | Step instructions visible to learner | ✅ Live | — | `step.description` rendered in PathwayDetailPage |
 | Pathway templates (starter sequences) | 📋 Planned | 🟢 | Pre-built onboarding, mentorship, cohort sequences |
@@ -424,20 +424,34 @@ Nothing should be scheduled against these until the blocker is resolved.
 
 ## 12. Detail Documents Index
 
+### Product and feature plans
+
 | Topic | Document |
 |---|---|
-| Phased roadmap — what ships in which sprint | `PRODUCT_ROADMAP.md` |
-| User content features and sprint status | `USER_CONTENT_PLAN.md` |
+| Phased roadmap — sprint themes, delivery sequence | `PRODUCT_ROADMAP.md` |
+| Member retention strategy, KPIs, investor metrics | `MEMBER_RETENTION_AND_PROGRESSION.md` |
+| User content features, sprint status, blocked items | `USER_CONTENT_PLAN.md` |
 | Content expiry, renewal, community survival | `EXPIRE_AND_RENEW_PLAN.md` |
-| Pages content type — current and future phases | `PAGES_AND_TEMPLATES_PLAN.md` |
-| Books — episodes, blogs, shelf collections | `BOOKS_FUTURE_DEVELOPMENT.md` |
-| Lists — kanban, schedule, templates | `LISTS_FUTURE_DEVELOPMENT.md` |
-| Interactive content types (polls, ranking, etc.) | `INTERACTIVE_CONTENT_TYPES_PLAN.md` |
-| Photos and Albums | `PHOTOS_ALBUMS_PLAN.md` |
-| Visibility states, PrivacySelector, access checks | `VISIBILITY_AND_ACCESS_MODEL.md` |
-| Image upload specs, buckets, upload component | `IMAGE_SPECIFICATIONS.md` |
-| Storage philosophy — URL model vs. uploads | `STORAGE_AND_ASSETS_STRATEGY.md` |
-| Cloud storage integration (Drive, OneDrive, Dropbox) | `CLOUD_STORAGE_INTEGRATION_PLAN.md` |
+| Pages content type — current state and Phases 2–6 | `PAGES_AND_TEMPLATES_PLAN.md` |
+| Books — video chapters, shelf collections, engagement parity | `BOOKS_FUTURE_DEVELOPMENT.md` |
+| Lists — kanban, punchlist, schedule view, templates | `LISTS_FUTURE_DEVELOPMENT.md` |
+| Interactive content types — polls, assignments, reflections | `INTERACTIVE_CONTENT_TYPES_PLAN.md` |
+| Photos and Albums — placeholder design | `PHOTOS_ALBUMS_PLAN.md` |
 | Multi-instance deployment | `MULTI_INSTANCE_PLAN.md` |
-| Sessions, events, meetings architecture | `SESSIONS_EVENTS_MEETINGS_ARCHITECTURE.md` |
-| Pathway admin RLS — fix options and trade-offs | `PATHWAY_ADMIN_RLS_PLAN.md` |
+
+### Architecture and reference
+
+| Topic | Document |
+|---|---|
+| Visibility states, PrivacySelector, access checks | `VISIBILITY_AND_ACCESS_MODEL.md` |
+| Image upload specs, buckets, upload component plan | `IMAGE_SPECIFICATIONS.md` |
+| Storage philosophy — URL model vs. Supabase Storage | `STORAGE_AND_ASSETS_STRATEGY.md` |
+| Cloud storage integration (Drive, OneDrive, Dropbox) | `CLOUD_STORAGE_INTEGRATION_PLAN.md` |
+| Sessions, events, meetings — architecture decision record | `SESSIONS_EVENTS_MEETINGS_ARCHITECTURE.md` |
+
+### Code debt and cleanup
+
+| Topic | Document |
+|---|---|
+| Broken UI, hardcoded stubs, missing pages (4-phase plan) | `DEAD_ENDS_PLAN.md` |
+| Dead DB columns, dead routes, orphaned files | `CLEANUP_AND_DEVELOPMENT_NOTES.md` |
