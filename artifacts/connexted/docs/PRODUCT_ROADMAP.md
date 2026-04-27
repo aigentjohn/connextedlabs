@@ -43,6 +43,13 @@ Everything that was broken or partially built when this sprint started.
 | ✅ | Pathway steps — `read_page`, `view_pitch`, `view_build` verbs |
 | ✅ | Pathway steps — editable title + instructions per step |
 | ✅ | Pathway steps — `watch_episode` wired to specific instance |
+| ✅ | Pathway save hang fixed — `sort_order` removed, 15s timeout added |
+| ✅ | `circle_members` + `container_memberships` tables created (migration `20260427000003`) |
+| ✅ | Book edit — topic race condition fixed; TopicSelector in edit dialog |
+| ✅ | Library document counts — auto-generated filter_rules applied; Shared with Me fixed |
+| ✅ | Admin dashboard — real activity counts from `membership_states` + `container_memberships` |
+| ✅ | `/help/discover` — Discover Guide page built and registered |
+| ✅ | `/markets/search` — Market search page built and registered |
 
 ---
 
@@ -65,10 +72,10 @@ The Discover sidebar already links to it with a count badge.
 | "Save" action on Pathway step cards | Heart/bookmark calls `toggleFavorite('pathway_step', step.id)` |
 | "Save" action on Companion items | Companion panel → add to favorites |
 
-### 2b. Pathway admin RLS fix  🔴 Critical
-Admins cannot write pathway changes today. Blocks all pathway editing on production.
-See `PATHWAY_ADMIN_RLS_PLAN.md` for the three fix options; choose Option B (service
-role Edge Function) for the cleanest RLS boundary.
+### 2b. Pathway admin RLS fix  ✅ Done
+Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middleware.
+All pathway CRUD operations work. Step-level completion tracking also shipped early
+(`pathway_step_completions` table + `self-report` / `verify-report` endpoints).
 
 ### 2c. Circle shareable invite link  🔴 Critical
 Circle admins currently cannot generate their own invite links — only platform
@@ -137,12 +144,14 @@ If >50% → build micro-pathway creator in PathwayAdminPage.
 | Learner progress bar on Program dashboard | `completed / total` per journey |
 | Instructor view — completion per member | Admin-only tab on Program page |
 
-### 4b. Pathway step completion (durable)
-| Feature | Notes |
-|---------|-------|
-| `pathway_step_reports` table | `user_id`, `pathway_id`, `step_id`, `completed_at`, `evidence_url` |
-| Step-level completion marker | Shown in PathwayDetailPage |
-| Step completion → pathway progress rollup | Replaces current aggregate-only tracking |
+### 4b. Pathway step completion (durable)  ✅ Done early (shipped Sprint 1)
+| Feature | Status |
+|---------|--------|
+| `pathway_step_completions` table | ✅ `user_id`, `pathway_id`, `step_id`, `status`, `evidence_note`, admin review fields |
+| Step-level completion marker in PathwayDetailPage | ✅ Persists across page reloads |
+| `self-report` API endpoint | ✅ Upserts completion + recalculates `progress_pct` |
+| `verify-report` API endpoint (admin approve/reject) | ✅ Moves step to approved/rejected state |
+| "Pending Review" state for admin-verify steps | ✅ Amber clock icon; Done button hidden |
 
 ### 4c. Expiry on Documents, Books, Decks, Lists
 | Feature | Notes |
@@ -235,7 +244,7 @@ advisory cohort validation.
 | Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 4 |
 | Hard-delete cron | Account deletion flow | Sprint 2 |
 | Cloud folder import | OAuth app registration per provider | Post-MVP |
-| Pathway admin writes | RLS policy — service role Edge Function | Sprint 2 |
+| ~~Pathway admin writes~~ | ✅ Fixed — Express API + service role key | Done |
 
 ---
 
