@@ -96,9 +96,9 @@ Many forms across the platform are missing this prop — see individual section 
 | No visibility field in UI at all | Checklists |
 | No server-side visibility filter on browse query | Decks, Elevators, Playlists, most container browse pages |
 | `reviews` / `endorsements` table mismatch — `ReviewsPage` queries `reviews`, actual table is `endorsements` | Reviews browse, My Reviews, Browse Content reviews tab |
-| `StandupDetailPage` does not exist | Standups browse links go nowhere |
+| ~~`StandupDetailPage` does not exist~~ — **false alarm**: `src/app/components/standup/StandupDetailPage.tsx` exists and is registered at `/standups/:slug` | — |
 | `MyCirclesPage` only shows hosted/moderated circles, not plain member circles | My Circles |
-| Hardcoded `0` or `false` for stats | My Circles activity count, My Admin recent activity, isFavorited in My Documents, library document counts |
+| ~~Hardcoded `0` or `false` for stats~~ — **partially fixed April 2026**: My Admin recent activity ✅, isFavorited in My Documents ✅, library document counts ✅, "Shared with Me" count ✅. Remaining: My Circles activity count (still hardcoded 0 in default state, `CircleAdminPage` counts posts but `MyAdminDashboard` circle section not yet audited) | My Circles |
 | Platform Settings branding fields not editable via UI | Company name, product name, tagline |
 | `AdminDashboardTabbed` restricted to `super` role, blocking `admin` users from the hub | Platform Admin |
 | Dual enrollment stores (tickets + legacy `course_enrollments`) can diverge | Courses, My Courses |
@@ -107,7 +107,7 @@ Many forms across the platform are missing this prop — see individual section 
 | `ProgramJourneyNav` progress state never populated | Program detail |
 | Kit Commerce has hardcoded ConvertKit account subdomain | Kit Commerce button |
 | Two overlapping market models (enum-based and table-based) are inconsistent | Markets |
-| Markets search redirects to `/markets/search` but no page exists | Markets landing |
+| ~~Markets search redirects to `/markets/search` but no page exists~~ — **Fixed April 2026**: `MarketSearchPage.tsx` built and registered | — |
 | `CirclePeopleManager` only manages `admin_ids` — `moderator_ids` and `host_ids` have no management UI | Circle settings |
 
 ---

@@ -36,7 +36,7 @@ Markets is the platform's product and service directory. Community members creat
 - Click "Network Companies" → `/markets/network-companies`
 
 **Known issues / gaps:**
-- The `/markets/search` route is referenced in the search handler but there is no `SearchPage` component visible in the codebase — the search feature appears unimplemented.
+- ~~`/markets/search` unimplemented~~ — **Fixed April 2026**: `MarketSearchPage.tsx` built and registered at `/markets/search`. Searches across all market placements by name, tagline, offering type, and market name; deduplicates by offering; enriches with company/owner names.
 - Featured offerings section only shows up to 6 items; no controls to see more featured items.
 - N+1 query pattern: offering counts and featured offering details are fetched in per-item `Promise.all` loops (no batching).
 
@@ -388,6 +388,7 @@ markets (admin-defined categories)
 | Route | Component |
 |---|---|
 | `/markets` | `MarketsPage` |
+| `/markets/search` | `MarketSearchPage` *(built April 2026)* |
 | `/markets/:marketType` | `MarketDetailPage` |
 | `/markets/all-markets` | `MarketsAllMarketsPage` (legacy) |
 | `/markets/all-offerings` | `MarketsAllOfferingsPage` |

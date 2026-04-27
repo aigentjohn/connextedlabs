@@ -85,8 +85,8 @@ Sidebar items (in order):
 **Tabs / sub-views:** No tabs. Sections render conditionally based on data presence.
 
 **Known issues / gaps:**
-- **Step completion state is not loaded.** In `PathwayProgressCard`, the variables `isCompleted`, `isSkipped`, `isPending`, and `isCurrent` are all hardcoded to `false`. The step list renders correctly but every step appears as "not started" regardless of actual progress. This is a significant gap — the visual step tracker does not reflect reality.
-- The `progress_pct` value from the enrollment _is_ displayed correctly at the pathway level; the per-step indicators are the broken part.
+- ~~Step completion state not loaded — all step indicators hardcoded `false`~~ — **Fixed April 2026**: `pathway_step_completions` table created (migration `20260427000002`); `PathwayDetailPage` loads persisted completions on mount; each step shows correct state (completed / pending review / not started). Steps with `verification_method = admin_verify` show an amber "Pending Review" badge and hide the Done button to prevent double-submission.
+- The `progress_pct` value from the enrollment is displayed correctly at the pathway level; per-step state now also reflects reality.
 - Completion history only shows courses (not completed programs).
 - Completed courses are fetched from the legacy `course_enrollments` table, not via the tickets system.
 

@@ -36,7 +36,7 @@ This section is conditionally shown based on user role. It groups pages for mana
 - "Browse Sponsors" CTA shown to users who are not already a sponsor director/admin
 
 **Known issues / gaps:**
-- `recentActivity` stat is hardcoded to `0`; the original circle-dependent calculation was removed without a replacement
+- ~~`recentActivity` stat hardcoded to `0`~~ — **Fixed April 2026**: `MyAdminDashboard` now counts `membership_states` activity + `container_memberships` (circle join requests) in the last 30 days. `CircleAdminPage` counts posts across the admin's circles in the last 30 days.
 - No inline "create container" actions — creation happens through individual container settings pages
 - Episodes use `/episodes/{id}/settings` (by ID, not slug) while other containers use slugs — inconsistent routing
 - Checklists link to `/checklists/{id}` with a Settings icon rather than a dedicated checklist settings route

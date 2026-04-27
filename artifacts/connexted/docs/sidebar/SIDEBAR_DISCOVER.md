@@ -331,11 +331,15 @@ The section is implemented in `src/app/components/sidebar/DiscoverSection.tsx`. 
 
 ## Discover Guide (`/help/discover`)
 
-**Source:** Not yet found in the codebase.
+**Source:** `src/app/pages/DiscoverGuidePage.tsx` *(built April 2026)*
 
-**What it does:** Listed in the sidebar (`DiscoverSection.tsx`) as a help entry point with a `HelpCircle` icon. No corresponding page component was located during research.
+**What it does:** A static guide page explaining each area in the Discover section. Covers 7 sections — Explore, Explore Content, Topics, Tags, Rankings, Discovery Feed, Most Liked — each with a description, a "Go" button, and a tips panel. Includes a quick-tips strip at top and a "Related areas" row at the bottom (Browse Members, Link Library, My Saved Content). Listed in the sidebar (`DiscoverSection.tsx`) with a `HelpCircle` icon.
 
-**Known issues / gaps:** This route appears to be a planned but unimplemented page. Navigating to it will likely result in a 404 or blank route.
+**Data loaded:** None — fully static content.
+
+**User actions:** Click "Go" on any section card to navigate directly to that route.
+
+**Known issues / gaps:** None.
 
 ---
 
