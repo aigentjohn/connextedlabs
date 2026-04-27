@@ -398,42 +398,44 @@ pnpm run build
 
 ## Next Engineering Session — Pickup List
 
-Prioritised work remaining as of April 2026. Start from the top.
+Prioritised work as of April 2026. The full product plan lives in
+`artifacts/connexted/docs/PRODUCT_ROADMAP.md` — this list covers the
+engineering-quality work that sits alongside it.
 
-### 1. API Server hardening (1–2 hrs each)
-These are safety fixes before the API handles real user traffic:
+**Start here — must happen before Sprint 2 features go live in production.**
 
-| Task | File | Notes |
+### 0. Railway deployment (do first — ~3 hrs total)
+
+| Task | Effort | Notes |
 |---|---|---|
-| Replace `err.message` responses with generic messages | `artifacts/api-server/src/routes/*.ts` | Log details server-side; return `"Internal server error"` to client |
-| Type the 24+ `(p: any)` / `(e: any)` casts | `artifacts/api-server/src/routes/pathways.ts` | Add proper types from Supabase schema |
-| Replace 66 `console.error` calls with Pino | `artifacts/connexted/src/` (frontend) + API server | Pino is installed; use `logger.error({ err }, 'description')` |
+| Replace `err.message` with generic responses in all API routes | 1–2 hrs | `artifacts/api-server/src/routes/*.ts` — log details server-side, return `"Internal server error"` to client. Required before real users hit the API. |
+| Deploy current branch to Railway | 1 hr | Pathway completions + verify-report are built but not live yet. All Sprint 2 API work depends on this. |
 
-### 2. TypeScript strictness (3–5 hrs)
-Enable flags one at a time in `tsconfig.base.json`, fix resulting errors:
-1. `noUnusedLocals: true`
-2. `strictFunctionTypes: true`
-3. Remove `skipLibCheck: true` last (most noisy)
+### 1. Sprint 2 product work (see PRODUCT_ROADMAP.md Sprint 2 for full spec)
 
-### 3. Dead code removal (1–2 hrs)
-See "Dead code — remove" table above. Also audit:
-- `/episodes/:id/edit` — check if route still in `App.tsx`
-- `MagazineSettingsPage.tsx` and `PlaylistSettingsPage.tsx` — likely orphaned
+Order matters — follow this sequence:
 
-### 4. Platform readiness — needs product decision before starting
-| Item | Effort | Blocker |
+| Order | Task | Effort | API needed? |
+|---|---|---|---|
+| 1 | My Favorites audit + Save on Pathway/Companion | 2–3 hrs | No — Supabase client only |
+| 2 | Circle shareable invite link + token join flow | 3–4 hrs | No — migration + frontend |
+| 3 | Unified content view (extend Content Audit) | 3–4 hrs | No — Supabase client only |
+| 4 | Data export endpoint (`GET /account/export`) | 1–2 days | Yes — new Express route, deploy to Railway |
+| 5 | Account deletion flow + pg_cron hard-delete | 2–3 days | Yes — new Express routes + Supabase cron |
+
+### 2. Engineering quality (do between product items, not in a block)
+
+| Task | Effort | Notes |
 |---|---|---|
-| Account deletion + data export (GDPR) | 5–7 days | Product spec needed |
-| Supabase Storage setup | 1–2 days | Blocks image uploads + Assets tab in Content Audit |
-| Deploy API server to Railway | 1–2 hrs | Pathway completions + verify-report endpoints need to be live |
+| Type the 24+ `(p: any)` casts in `pathways.ts` | 2–3 hrs | `artifacts/api-server/src/routes/pathways.ts` |
+| Replace `console.error` with Pino (66 instances) | 2–3 hrs | Frontend + API; use `logger.error({ err }, 'description')` |
+| TypeScript strictness — `noUnusedLocals` first | 3–5 hrs | Enable flags one at a time in `tsconfig.base.json` |
+| Dead code removal | 1–2 hrs | See "Dead code — remove" table above; check orphaned routes |
 
-### 5. App.tsx route split (3–4 hrs)
-311 lazy-loaded routes in one 800+ line file. Extract into:
-- `src/app/routes/admin.tsx`
-- `src/app/routes/community.tsx`
-- `src/app/routes/content.tsx`
-- `src/app/routes/markets.tsx`
-- `src/app/routes/growth.tsx`
+### 3. Infrastructure (Sprint 6 on roadmap — schedule separately)
 
-### 6. Template data → database (1–2 days)
-`artifacts/connexted/src/data/` contains ~70 KB of hardcoded course/program templates. Move to a `templates` table for multi-instance configurability.
+| Task | Effort | Notes |
+|---|---|---|
+| Supabase Storage setup | 1–2 days | Blocks image uploads on every form + Assets tab in Content Audit. See `IMAGE_SPECIFICATIONS.md`. |
+| App.tsx route split | 3–4 hrs | 311 routes in one file; extract into `routes/admin.tsx`, `routes/content.tsx`, etc. |
+| Template data → database | 1–2 days | `src/data/` ~70 KB hardcoded; move to `templates` table for multi-instance use |
