@@ -53,10 +53,6 @@ artifacts/api-server/     Express 5 Node server
                           Used for pathway operations requiring service role key
                           (bypasses Supabase RLS — see security section)
 
-lib/db/                   Drizzle ORM config + PostgreSQL connection
-                          Schema is currently empty — all tables live in
-                          Supabase migrations, not Drizzle schema
-
 lib/api-spec/             OpenAPI spec (openapi.yaml) + Orval codegen config
                           Run codegen to regenerate lib/api-zod and
                           lib/api-client-react from the spec
@@ -189,38 +185,30 @@ These are documented gaps from the initial code review. Address them in this ord
 
 ### Critical — Fix Before Any Real Users
 
-**1. No authentication on Express API routes**
-All pathway routes are publicly accessible. No middleware verifies the caller's identity. The admin endpoint (`/api/pathways/admin/progress`) has no access control at all.
-- File: `artifacts/api-server/src/routes/pathways.ts`
-- Fix: Add JWT verification middleware that validates the Supabase auth token from the request header
+**1. ~~No authentication on Express API routes~~ — FIXED**
+`requireAuth` and `requireAdmin` middleware validate Supabase JWTs on all routes. Identity is extracted from the verified token, not request params.
 
-**2. User ID trusted from client**
-Routes accept `user_id` from query params without verifying the caller owns that ID.
-- Example: `GET /api/pathways/user/:userId/enrollments` — any caller can pass any userId
-- Fix: Extract user identity from the verified JWT, not from the request params
+**2. ~~User ID trusted from client~~ — FIXED**
+All routes use `(req as AuthRequest).userId` from the verified JWT. URL params are ignored for identity.
 
-**3. Two stub endpoints that do nothing**
-`/self-report` and `/verify-report` in the Express API return hardcoded success without touching the database. Note: the frontend `PathwayDetailPage` self-report writes directly to Supabase (`pathway_enrollments`) and does not use these endpoints — they are dead code.
-- File: `artifacts/api-server/src/routes/pathways.ts`
-- Fix: Remove the stubs or implement them properly
+**3. Self-report and verify-report endpoints not implemented**
+`/pathways/:id/self-report` and `/pathways/:id/verify-report` return `501 Not Implemented`.
+No `pathway_step_completions` table exists — step-level progress is not tracked.
+- Fix: Create migration for `pathway_step_completions`, implement both endpoints
 
-**4. No Zod validation on API request bodies**
-Routes accept any shape of data. Zod is installed and available.
-- Fix: Add `.parse()` or `.safeParse()` on `req.body` using schemas from `@workspace/api-zod`
+**4. ~~No Zod validation on API request bodies~~ — FIXED**
+All mutation routes (POST/PUT) validate with Zod schemas. GET routes take only path params.
 
-**5. RLS policies too permissive**
-Several migration-defined RLS policies allow any authenticated user to perform admin-level updates.
-- File: `supabase/migrations/20260407000001_add_missing_tables.sql`
-- Look for: `participants_update_admin` — should check `is_admin` flag, not just `auth.uid() IS NOT NULL`
+**5. ~~RLS policies too permissive~~ — FIXED**
+`participants_update_admin` policy corrected in `20260408000001` and `20260414000001` migrations to require `role IN ('admin', 'super')`.
 
-**6. Pathway admin RLS blocks writes**
-`PathwayAdminPage` cannot write pathway changes through the Supabase client because the pathway tables' RLS blocks non-service-role writes. The Express API is the correct path but has no auth (see issue #1). See `docs/PATHWAY_ADMIN_RLS_PLAN.md` for fix options.
+**6. ~~Pathway admin RLS blocks writes~~ — FIXED**
+Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middleware. Pathway CRUD works correctly.
 
 ### High Priority — First Sprint
 
-**7. Drizzle schema is empty**
-`lib/db/src/schema/index.ts` exports nothing. All table definitions exist only in Supabase migrations. The ORM layer is installed but unused.
-- Decision needed: populate Drizzle schema to match the actual database, or remove Drizzle from the stack
+**7. ~~Drizzle removed from stack~~ — DONE**
+`lib/db` package deleted. `drizzle-orm` removed from all package.json files and workspace catalog. All table definitions live in Supabase migrations only.
 
 **8. TypeScript strictness gaps**
 `tsconfig.base.json` has `strictFunctionTypes: false`, `noUnusedLocals: false`, `skipLibCheck: true`.
@@ -300,7 +288,6 @@ Never commit `.env` to source control. The `.env.example` file documents require
 | `artifacts/connexted/src/app/components/growth/PathwayAdminPage.tsx` | Pathway creation/editing — ACTIVITY_TYPES, ACTIVITY_TABLE_MAP |
 | `artifacts/api-server/src/routes/pathways.ts` | Pathway CRUD (highest priority for security fixes) |
 | `artifacts/api-server/src/lib/supabase.ts` | Supabase admin client setup |
-| `lib/db/src/schema/index.ts` | Drizzle schema (currently empty) |
 | `supabase/migrations/` | All database migrations |
 | `artifacts/connexted/docs/PRODUCT_BACKLOG.md` | Full feature inventory — status, priority, notes |
 | `artifacts/connexted/docs/PRODUCT_ROADMAP.md` | Phased delivery timeline — sprint themes and dependencies |

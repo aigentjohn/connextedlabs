@@ -4,6 +4,7 @@ import { logger } from '../lib/logger.js';
 
 export interface AuthRequest extends Request {
   userId: string;
+  isAdmin: boolean;
 }
 
 export async function requireAuth(
@@ -26,7 +27,9 @@ export async function requireAuth(
     return;
   }
 
-  (req as AuthRequest).userId = user.id;
+  const authReq = req as AuthRequest;
+  authReq.userId = user.id;
+  authReq.isAdmin = false; // set to true by requireAdmin if applicable
   next();
 }
 
@@ -52,5 +55,6 @@ export async function requireAdmin(
     return;
   }
 
+  (req as AuthRequest).isAdmin = true;
   next();
 }
