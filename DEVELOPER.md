@@ -236,9 +236,8 @@ Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middlewa
 `artifacts/connexted/src/data/` contains ~70KB of course and program templates as hardcoded TypeScript arrays.
 - Fix: Move to database for multi-instance configurability
 
-**14. `allowedHosts: true` in vite.config.ts**
-Overly permissive for production deployment.
-- Fix: Set to the actual deployment domain when deploying to a fixed domain outside Replit
+**14. ~~`allowedHosts: true` in vite.config.ts~~ — RESOLVED**
+Already conditional on `REPL_ID`: `allowedHosts: true` only when running on Replit (required for random subdomains); restricted to `['localhost', '127.0.0.1']` everywhere else. The `server` config is dev-only — Vercel serves the static build output and ignores it entirely.
 
 **15. ~~No step-level completion tracking for Pathways~~ — FIXED**
 Migration `20260427000002_pathway_step_completions.sql` and both API endpoints implemented. See item 3 above.
@@ -264,21 +263,23 @@ Known UI dead-ends, orphaned files, and hardcoded stubs. Full detail in `artifac
 
 | ID | Issue | File | Status |
 |---|---|---|---|
-| P2-2 | Library document counts hardcoded to `0`; "Shared with Me" returns all public docs not user-specific | Libraries pages | ❌ ~2–4 hrs |
-| P2-3 | `recentActivity` hardcoded to `0` on admin dashboard and circle admin page | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | ❌ ~2–3 hrs |
+| P2-2 | ~~Library document counts hardcoded to `0`; "Shared with Me" returns all public docs~~ — **FIXED**: auto-generated libraries apply `filter_rules` (document_type, intended_audience, tags) as a count query; "Shared with Me" queries user's member circle IDs and uses `overlaps` on `documents.circle_ids` | `LibrariesPage.tsx`, `LibraryDetailPage.tsx` | ✅ |
+| P2-3 | ~~`recentActivity` hardcoded to `0` on admin dashboard and circle admin page~~ — **FIXED**: `MyAdminDashboard` counts `membership_states` + `container_memberships` (circle joins) in last 30 days; `CircleAdminPage` counts posts across admin's circles in last 30 days | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | ✅ |
 | P2-4 | ~~`isFavorited` hardcoded to false~~ — **FIXED**: `favoritedDocIds` fetched from `content_favorites` in `MyDocumentsPage.tsx` | — | ✅ |
 | P2-5 | ~~Book edit clears topics~~ — **FIXED**: `handleEditBook` now awaits topic fetch before opening dialog; TopicSelector added to edit dialog; update always syncs topics | `BooksPage.tsx` | ✅ |
 
-### Missing pages — routes exist but pages don't
+### Missing pages — all resolved
 
-| Route | What's missing | Effort |
+All previously flagged missing pages exist and are registered in `App.tsx`:
+
+| Route | File | Status |
 |---|---|---|
-| `/standups/:id` | `StandupDetailPage.tsx` doesn't exist; link 404s | 2–3 days |
-| `/tables` (create) | `CreateTablePage.tsx` missing | 1 day |
-| `/pitches` (create) | `CreatePitchPage.tsx` missing | 1 day |
-| `/builds` (create) | `CreateBuildPage.tsx` missing | 1 day |
-| `/markets/search` | ~~`MarketSearchPage.tsx` missing~~ — **FIXED**: page created, lazy-imported, route registered | ✅ |
-| `/help/discover` | ~~Discover Guide — sidebar links to non-existent page~~ — **FIXED**: `DiscoverGuidePage.tsx` created, route registered | ✅ |
+| `/standups/:slug` | `src/app/components/standup/StandupDetailPage.tsx` | ✅ exists + registered |
+| `/tables/create` | `src/app/components/table/CreateTablePage.tsx` | ✅ exists + registered |
+| `/pitches/create` | `src/app/components/pitch/CreatePitchPage.tsx` | ✅ exists + registered |
+| `/builds/new` | `src/app/components/build/CreateBuildPage.tsx` | ✅ exists + registered |
+| `/markets/search` | `src/app/pages/MarketSearchPage.tsx` | ✅ created + registered |
+| `/help/discover` | `src/app/pages/DiscoverGuidePage.tsx` | ✅ created + registered |
 
 ### Dead code — remove
 
@@ -392,3 +393,47 @@ pnpm run typecheck
 pnpm -r run test
 pnpm run build
 ```
+
+---
+
+## Next Engineering Session — Pickup List
+
+Prioritised work remaining as of April 2026. Start from the top.
+
+### 1. API Server hardening (1–2 hrs each)
+These are safety fixes before the API handles real user traffic:
+
+| Task | File | Notes |
+|---|---|---|
+| Replace `err.message` responses with generic messages | `artifacts/api-server/src/routes/*.ts` | Log details server-side; return `"Internal server error"` to client |
+| Type the 24+ `(p: any)` / `(e: any)` casts | `artifacts/api-server/src/routes/pathways.ts` | Add proper types from Supabase schema |
+| Replace 66 `console.error` calls with Pino | `artifacts/connexted/src/` (frontend) + API server | Pino is installed; use `logger.error({ err }, 'description')` |
+
+### 2. TypeScript strictness (3–5 hrs)
+Enable flags one at a time in `tsconfig.base.json`, fix resulting errors:
+1. `noUnusedLocals: true`
+2. `strictFunctionTypes: true`
+3. Remove `skipLibCheck: true` last (most noisy)
+
+### 3. Dead code removal (1–2 hrs)
+See "Dead code — remove" table above. Also audit:
+- `/episodes/:id/edit` — check if route still in `App.tsx`
+- `MagazineSettingsPage.tsx` and `PlaylistSettingsPage.tsx` — likely orphaned
+
+### 4. Platform readiness — needs product decision before starting
+| Item | Effort | Blocker |
+|---|---|---|
+| Account deletion + data export (GDPR) | 5–7 days | Product spec needed |
+| Supabase Storage setup | 1–2 days | Blocks image uploads + Assets tab in Content Audit |
+| Deploy API server to Railway | 1–2 hrs | Pathway completions + verify-report endpoints need to be live |
+
+### 5. App.tsx route split (3–4 hrs)
+311 lazy-loaded routes in one 800+ line file. Extract into:
+- `src/app/routes/admin.tsx`
+- `src/app/routes/community.tsx`
+- `src/app/routes/content.tsx`
+- `src/app/routes/markets.tsx`
+- `src/app/routes/growth.tsx`
+
+### 6. Template data → database (1–2 days)
+`artifacts/connexted/src/data/` contains ~70 KB of hardcoded course/program templates. Move to a `templates` table for multi-instance configurability.
