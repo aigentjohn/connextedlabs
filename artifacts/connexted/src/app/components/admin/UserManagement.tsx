@@ -909,12 +909,11 @@ export default function UserManagement() {
   const handleDeleteUser = async (userId: string) => {
     try {
       setDeleting(true);
-      
-      // Step 1: Delete from database (will cascade to all content)
-      const { error: dbError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
+
+      // Step 1: Delete from database via SECURITY DEFINER RPC (bypasses RLS safely)
+      const { error: dbError } = await supabase.rpc('admin_delete_user', {
+        target_user_id: userId,
+      });
 
       if (dbError) {
         console.error('Database deletion error:', dbError);
@@ -1480,9 +1479,9 @@ export default function UserManagement() {
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">You</Badge>
                           )}
                           {!user.has_auth_account && (
-                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-300">
                               <AlertCircle className="w-3 h-3 mr-1" />
-                              No Auth Account
+                              Auth Unknown
                             </Badge>
                           )}
                         </div>
