@@ -79,10 +79,51 @@ const AdminCompleteSchema = z.object({
   step_id: z.string().uuid(),
 });
 
+const SelfReportSchema = z.object({
+  step_id: z.string().uuid(),
+  evidence_note: z.string().optional(),
+});
+
+const VerifyReportSchema = z.object({
+  step_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  action: z.enum(['approve', 'reject']),
+});
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function sortSteps(steps: Step[]): Step[] {
   return [...steps].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+}
+
+async function recalculateProgress(pathwayId: string, userId: string): Promise<void> {
+  const [{ count: approvedCount }, { count: totalSteps }] = await Promise.all([
+    supabaseAdmin
+      .from('pathway_step_completions')
+      .select('id', { count: 'exact', head: true })
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', userId)
+      .eq('status', 'approved'),
+    supabaseAdmin
+      .from('pathway_steps')
+      .select('id', { count: 'exact', head: true })
+      .eq('pathway_id', pathwayId),
+  ]);
+
+  const total = totalSteps ?? 1;
+  const done = approvedCount ?? 0;
+  const newPct = Math.min(100, Math.round((done / total) * 100));
+  const isComplete = done >= total;
+
+  await supabaseAdmin
+    .from('pathway_enrollments')
+    .update({
+      progress_pct: newPct,
+      status: isComplete ? 'completed' : 'active',
+      ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+    })
+    .eq('pathway_id', pathwayId)
+    .eq('user_id', userId);
 }
 
 function buildStepRows(steps: StepInput[], pathwayId: string) {
@@ -485,14 +526,94 @@ router.post('/pathways/:id/admin-complete', requireAuth, requireAdmin, async (re
   }
 });
 
-// These endpoints are not yet implemented.
-// TODO: persist self-report submissions and implement admin verification workflow.
-router.post('/pathways/:id/self-report', requireAuth, (_req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+router.post('/pathways/:id/self-report', requireAuth, async (req, res): Promise<void> => {
+  try {
+    const pathwayId = String(req.params.id);
+    const userId = (req as AuthRequest).userId;
+
+    const parsed = SelfReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    }
+    const { step_id, evidence_note } = parsed.data;
+
+    // Verify the step belongs to this pathway
+    const { data: step, error: stepError } = await supabaseAdmin
+      .from('pathway_steps')
+      .select('id, verification_method')
+      .eq('id', step_id)
+      .eq('pathway_id', pathwayId)
+      .single();
+
+    if (stepError || !step) {
+      return res.status(404).json({ error: 'Step not found in this pathway' });
+    }
+
+    // Verify the user is enrolled
+    const { data: enrollment } = await supabaseAdmin
+      .from('pathway_enrollments')
+      .select('id')
+      .eq('pathway_id', pathwayId)
+      .eq('user_id', userId)
+      .single();
+
+    if (!enrollment) {
+      return res.status(403).json({ error: 'Not enrolled in this pathway' });
+    }
+
+    const status = (step as { verification_method: string | null }).verification_method === 'admin_verify'
+      ? 'pending'
+      : 'approved';
+
+    const { error: upsertError } = await supabaseAdmin
+      .from('pathway_step_completions')
+      .upsert(
+        { pathway_id: pathwayId, step_id, user_id: userId, status, evidence_note: evidence_note ?? null },
+        { onConflict: 'pathway_id,step_id,user_id' },
+      );
+    if (upsertError) throw upsertError;
+
+    if (status === 'approved') {
+      await recalculateProgress(pathwayId, userId);
+    }
+
+    res.json({ success: true, status });
+  } catch (err) {
+    logger.error({ err }, 'POST /pathways/:id/self-report failed');
+    res.status(500).json({ error: 'Failed to submit report' });
+  }
 });
 
-router.post('/pathways/:id/verify-report', requireAuth, requireAdmin, (_req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+router.post('/pathways/:id/verify-report', requireAuth, requireAdmin, async (req, res): Promise<void> => {
+  try {
+    const pathwayId = String(req.params.id);
+    const adminId = (req as AuthRequest).userId;
+
+    const parsed = VerifyReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    }
+    const { step_id, user_id: targetUserId, action } = parsed.data;
+
+    const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+    const { error } = await supabaseAdmin
+      .from('pathway_step_completions')
+      .update({ status: newStatus, reviewed_by: adminId, reviewed_at: new Date().toISOString() })
+      .eq('pathway_id', pathwayId)
+      .eq('step_id', step_id)
+      .eq('user_id', targetUserId);
+    if (error) throw error;
+
+    if (action === 'approve') {
+      await recalculateProgress(pathwayId, targetUserId);
+    }
+
+    res.json({ success: true, status: newStatus });
+  } catch (err) {
+    logger.error({ err }, 'POST /pathways/:id/verify-report failed');
+    res.status(500).json({ error: 'Failed to verify report' });
+  }
 });
 
 export default router;

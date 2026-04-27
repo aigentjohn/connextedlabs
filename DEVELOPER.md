@@ -191,10 +191,10 @@ These are documented gaps from the initial code review. Address them in this ord
 **2. ~~User ID trusted from client~~ — FIXED**
 All routes use `(req as AuthRequest).userId` from the verified JWT. URL params are ignored for identity.
 
-**3. Self-report and verify-report endpoints not implemented**
-`/pathways/:id/self-report` and `/pathways/:id/verify-report` return `501 Not Implemented`.
-No `pathway_step_completions` table exists — step-level progress is not tracked.
-- Fix: Create migration for `pathway_step_completions`, implement both endpoints
+**3. ~~Self-report and verify-report endpoints not implemented~~ — FIXED**
+Migration `20260427000002_pathway_step_completions.sql` creates the `pathway_step_completions` table.
+Both endpoints are implemented: `self-report` upserts a completion record and recalculates progress; `verify-report` lets admins approve or reject pending submissions.
+`PathwayDetailPage` loads persisted completions on mount and shows a "Pending Review" state for admin-verify steps.
 
 **4. ~~No Zod validation on API request bodies~~ — FIXED**
 All mutation routes (POST/PUT) validate with Zod schemas. GET routes take only path params.
@@ -258,7 +258,6 @@ Overly permissive for production deployment.
 
 ### What Is Not Protected (Yet)
 
-- Express API routes have no auth middleware
 - User class gating is UI-only — no database enforcement
 - Admin routes (`/platform-admin/*`) are protected by navigation only, not by RLS
 
