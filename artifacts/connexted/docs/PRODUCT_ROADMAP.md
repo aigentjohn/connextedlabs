@@ -43,6 +43,13 @@ Everything that was broken or partially built when this sprint started.
 | ✅ | Pathway steps — `read_page`, `view_pitch`, `view_build` verbs |
 | ✅ | Pathway steps — editable title + instructions per step |
 | ✅ | Pathway steps — `watch_episode` wired to specific instance |
+| ✅ | Pathway save hang fixed — `sort_order` removed, 15s timeout added |
+| ✅ | `circle_members` + `container_memberships` tables created (migration `20260427000003`) |
+| ✅ | Book edit — topic race condition fixed; TopicSelector in edit dialog |
+| ✅ | Library document counts — auto-generated filter_rules applied; Shared with Me fixed |
+| ✅ | Admin dashboard — real activity counts from `membership_states` + `container_memberships` |
+| ✅ | `/help/discover` — Discover Guide page built and registered |
+| ✅ | `/markets/search` — Market search page built and registered |
 
 ---
 
@@ -54,40 +61,107 @@ can't see it in one place.
 
 **Unblocks:** Advisory cohort onboarding, queue validation, companion enhancements.
 
+---
+
+### Step 0 — Railway deployment gate  🔴 Must do first
+
+The Express API on Railway is running stale code. The pathway completions and
+`verify-report` endpoints exist in the repo but are not live in production yet.
+Nothing in 2c or 2d can go live until the API is deployed.
+
+**Do this before writing any new features:**
+
+| Task | Effort | Notes |
+|------|--------|-------|
+| Harden API error responses | 1–2 hrs | Replace `err.message` with generic messages; log details server-side. See `DEVELOPER.md` engineering item 1. Required before exposing the API to real users. |
+| Deploy current branch to Railway | 1–2 hrs | Push, set env vars, smoke-test pathway completions end-to-end in production |
+
+Once deployed, all subsequent API work in this sprint goes live with the next deploy.
+
+---
+
 ### 2a. My Favorites — audit and extend  🟡 Medium
+*Frontend only — no API server or deployment needed.*
+
 My Favorites (`/my-content`) already exists: `MyContentPage.tsx` queries
 `content_favorites`, groups by type, and renders remove buttons.
 The Discover sidebar already links to it with a count badge.
 
-| Feature | Notes |
-|---------|-------|
-| Audit which content types are missing a favorite button | Compare `JOURNEY_ITEM_TYPES` list vs. pages that use `useContentEngagement` |
-| "Save" action on Pathway step cards | Heart/bookmark calls `toggleFavorite('pathway_step', step.id)` |
-| "Save" action on Companion items | Companion panel → add to favorites |
+| Feature | File | Notes |
+|---------|------|-------|
+| Audit which content types are missing a favorite button | Compare `JOURNEY_ITEM_TYPES` vs pages using `useContentEngagement` | Client-side only |
+| "Save" action on Pathway step cards | `PathwayDetailPage.tsx` | Calls `toggleFavorite('pathway_step', step.id)` |
+| "Save" action on Companion items | Companion panel | Calls `toggleFavorite` |
 
-### 2b. Pathway admin RLS fix  🔴 Critical
-Admins cannot write pathway changes today. Blocks all pathway editing on production.
-See `PATHWAY_ADMIN_RLS_PLAN.md` for the three fix options; choose Option B (service
-role Edge Function) for the cleanest RLS boundary.
+### 2b. Pathway admin RLS fix  ✅ Done
+Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middleware.
+All pathway CRUD works. Step-level completion tracking shipped early
+(`pathway_step_completions` table + `self-report` / `verify-report` endpoints).
+**Needs Railway deployment (Step 0) to go live in production.**
 
 ### 2c. Circle shareable invite link  🔴 Critical
+*Frontend + migration — no API server needed.*
+
 Circle admins currently cannot generate their own invite links — only platform
 admins can. Blocks organic community growth.
 
 | Feature | Notes |
 |---------|-------|
-| "Copy invite link" button on Circle admin panel | Generates token stored in `circle_invites` |
-| Token-based join flow (`/join/:token`) | Validates token, adds member, redirects |
+| Migration: `circle_invites` table | `id`, `circle_id`, `token` (uuid), `created_by`, `expires_at`, `max_uses`, `use_count` |
+| "Copy invite link" button on Circle admin panel | Generates token, copies URL to clipboard |
+| Token-based join flow (`/join/:token`) | Validates token via Supabase client, adds to `circle_members`, redirects to circle |
 
-### 2d. Account deletion (GDPR/CCPA)  🔴 Critical
-Legal exposure without this. Must ship before any paid tier.
+### 2d. Unified content view  🟡 Medium
+*Frontend only — no API server needed. Build before the export.*
+
+A user today must visit 8+ separate pages to see all their content. The existing
+Content Audit (`/my-content/audit`) covers documents, links, posts, and tags —
+it needs to be extended to cover everything.
+
+**Architecture note:** All content tables have RLS policies that let users read
+their own rows. This is purely parallel Supabase client queries from the browser —
+the Express API is not involved.
 
 | Feature | Notes |
 |---------|-------|
-| Self-service account deletion request | Soft-delete with 30-day grace |
-| 30-day grace — cancel deletion | User can undo during grace period |
-| Hard-delete cron (post-grace) | pg_cron or nightly Edge Function |
-| Data export (GDPR ZIP) | All content + profile JSON + avatar |
+| Extend Content Audit with new tabs | Add: Pages, Books, Decks, Lists, Libraries |
+| Count badge per tab | Each tab shows total item count |
+| Quick actions per type | Edit / Delete / Change visibility inline |
+
+### 2e. Data export (GDPR)  🔴 Critical — requires API server
+*Express API route + Railway deployment. Build after Step 0 is done.*
+
+**Architecture note:** Export cannot run in the browser — ZIP generation is
+server-side, and the service role key guarantees complete retrieval across all
+tables regardless of RLS gaps. The browser sends a JWT; the API validates it,
+queries everything as service role filtered by `user_id`, streams a ZIP back.
+
+| Feature | File | Notes |
+|---------|------|-------|
+| `GET /account/export` route | New file: `api-server/src/routes/account.ts` | Validate JWT; query all 12+ content tables; package as JSON-per-type + ZIP |
+| Export button in Account Settings | `AccountSettings.tsx` or similar | Triggers download; shows progress spinner |
+| Auto-trigger export on deletion request | Part of 2f | Generate and store ZIP before any data is touched |
+| Register route in `api-server/src/routes/index.ts` | — | Mount `accountRouter` |
+
+Tables to include in export: `documents`, `pages`, `books` + `book_chapters`,
+`decks`, `checklists`, `libraries`, `my_contents`, `posts`, `episodes`,
+`playlists`, `builds`, `pitches`, `badges`, user profile.
+
+### 2f. Account deletion (GDPR/CCPA)  🔴 Critical — requires API server
+*Express API routes + pg_cron inside Supabase. Build after 2e is done.*
+
+**Architecture note:** The flow is split across two systems by design.
+The Express API handles user-triggered actions (soft-delete, cancel).
+The hard-delete cron runs inside Supabase on a schedule — it does not go
+through the Express API.
+
+| Step | Where | Feature |
+|------|-------|---------|
+| 1 | Express API | `POST /account/delete` — validate JWT, trigger export (2e), set `users.deleted_at = now()` |
+| 2 | Frontend | Account Settings: "Delete my account" button → confirmation dialog with 30-day grace warning |
+| 3 | Frontend | On login: if `deleted_at` is set, show "Your account is scheduled for deletion" + Cancel button |
+| 4 | Express API | `DELETE /account/delete` — validate JWT, clear `users.deleted_at` |
+| 5 | Supabase | pg_cron job: nightly, hard-delete users where `deleted_at < now() - interval '30 days'`; cascade across all content tables |
 
 ---
 
@@ -137,12 +211,14 @@ If >50% → build micro-pathway creator in PathwayAdminPage.
 | Learner progress bar on Program dashboard | `completed / total` per journey |
 | Instructor view — completion per member | Admin-only tab on Program page |
 
-### 4b. Pathway step completion (durable)
-| Feature | Notes |
-|---------|-------|
-| `pathway_step_reports` table | `user_id`, `pathway_id`, `step_id`, `completed_at`, `evidence_url` |
-| Step-level completion marker | Shown in PathwayDetailPage |
-| Step completion → pathway progress rollup | Replaces current aggregate-only tracking |
+### 4b. Pathway step completion (durable)  ✅ Done early (shipped Sprint 1)
+| Feature | Status |
+|---------|--------|
+| `pathway_step_completions` table | ✅ `user_id`, `pathway_id`, `step_id`, `status`, `evidence_note`, admin review fields |
+| Step-level completion marker in PathwayDetailPage | ✅ Persists across page reloads |
+| `self-report` API endpoint | ✅ Upserts completion + recalculates `progress_pct` |
+| `verify-report` API endpoint (admin approve/reject) | ✅ Moves step to approved/rejected state |
+| "Pending Review" state for admin-verify steps | ✅ Amber clock icon; Done button hidden |
 
 ### 4c. Expiry on Documents, Books, Decks, Lists
 | Feature | Notes |
@@ -235,7 +311,7 @@ advisory cohort validation.
 | Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 4 |
 | Hard-delete cron | Account deletion flow | Sprint 2 |
 | Cloud folder import | OAuth app registration per provider | Post-MVP |
-| Pathway admin writes | RLS policy — service role Edge Function | Sprint 2 |
+| ~~Pathway admin writes~~ | ✅ Fixed — Express API + service role key | Done |
 
 ---
 

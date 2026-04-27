@@ -191,10 +191,10 @@ These are documented gaps from the initial code review. Address them in this ord
 **2. ~~User ID trusted from client~~ — FIXED**
 All routes use `(req as AuthRequest).userId` from the verified JWT. URL params are ignored for identity.
 
-**3. Self-report and verify-report endpoints not implemented**
-`/pathways/:id/self-report` and `/pathways/:id/verify-report` return `501 Not Implemented`.
-No `pathway_step_completions` table exists — step-level progress is not tracked.
-- Fix: Create migration for `pathway_step_completions`, implement both endpoints
+**3. ~~Self-report and verify-report endpoints not implemented~~ — FIXED**
+Migration `20260427000002_pathway_step_completions.sql` creates the `pathway_step_completions` table.
+Both endpoints are implemented: `self-report` upserts a completion record and recalculates progress; `verify-report` lets admins approve or reject pending submissions.
+`PathwayDetailPage` loads persisted completions on mount and shows a "Pending Review" state for admin-verify steps.
 
 **4. ~~No Zod validation on API request bodies~~ — FIXED**
 All mutation routes (POST/PUT) validate with Zod schemas. GET routes take only path params.
@@ -236,13 +236,62 @@ Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middlewa
 `artifacts/connexted/src/data/` contains ~70KB of course and program templates as hardcoded TypeScript arrays.
 - Fix: Move to database for multi-instance configurability
 
-**14. `allowedHosts: true` in vite.config.ts**
-Overly permissive for production deployment.
-- Fix: Set to the actual deployment domain
+**14. ~~`allowedHosts: true` in vite.config.ts~~ — RESOLVED**
+Already conditional on `REPL_ID`: `allowedHosts: true` only when running on Replit (required for random subdomains); restricted to `['localhost', '127.0.0.1']` everywhere else. The `server` config is dev-only — Vercel serves the static build output and ignores it entirely.
 
-**15. No step-level completion tracking for Pathways**
-`pathway_enrollments` stores aggregate `progress_pct` only. There is no `pathway_step_completions` table, so it is impossible to query which specific steps a user has completed. Self-report writes update the aggregate but lose step identity.
-- Fix: Create `pathway_step_completions` table; see `docs/PRODUCT_BACKLOG.md` §4 Growth and Learning
+**15. ~~No step-level completion tracking for Pathways~~ — FIXED**
+Migration `20260427000002_pathway_step_completions.sql` and both API endpoints implemented. See item 3 above.
+
+---
+
+## Code Debt
+
+Known UI dead-ends, orphaned files, and hardcoded stubs. Full detail in `artifacts/connexted/docs/DEAD_ENDS_PLAN.md` and `artifacts/connexted/docs/CLEANUP_AND_DEVELOPMENT_NOTES.md`.
+
+### Broken / deceptive UI — fix first
+
+| ID | Issue | File | Status |
+|---|---|---|---|
+| P1-1 | ~~"Request to Join" writes to wrong table~~ — **FIXED**: dead `useContainerActions.ts` hook deleted; migration `20260427000003` creates `circle_members` and `container_memberships` | — | ✅ |
+| P1-2 | ~~My Links Enrich/Delete have no handlers~~ — **FIXED**: `handleEnrichSingle` and `handleDeleteContent` present in `MyContentsPage.tsx` | — | ✅ |
+| P1-3 | ~~My Basics Contact tab missing Edit Profile button~~ — **FIXED**: `ContactTab.tsx` is itself an edit form with a Save button | — | ✅ |
+| P1-4 | ~~My Circles Create Circle has no onClick~~ — **FIXED**: button navigates to `/circle-admin` (CircleAdminPage with full create flow) | — | ✅ |
+| P1-5 | ~~Events RSVP does nothing~~ — **FIXED**: `RSVPActions` component handles RSVP with real DB writes to `session_attendance` / `events.attendee_ids` | — | ✅ |
+| P1-6 | ~~Notifications Load More has no handler~~ — **FIXED**: button calls `fetchNotifications(page + 1)` | — | ✅ |
+
+### Hardcoded zeros / false values — real data needed
+
+| ID | Issue | File | Status |
+|---|---|---|---|
+| P2-2 | ~~Library document counts hardcoded to `0`; "Shared with Me" returns all public docs~~ — **FIXED**: auto-generated libraries apply `filter_rules` (document_type, intended_audience, tags) as a count query; "Shared with Me" queries user's member circle IDs and uses `overlaps` on `documents.circle_ids` | `LibrariesPage.tsx`, `LibraryDetailPage.tsx` | ✅ |
+| P2-3 | ~~`recentActivity` hardcoded to `0` on admin dashboard and circle admin page~~ — **FIXED**: `MyAdminDashboard` counts `membership_states` + `container_memberships` (circle joins) in last 30 days; `CircleAdminPage` counts posts across admin's circles in last 30 days | `MyAdminDashboard.tsx`, `CircleAdminPage.tsx` | ✅ |
+| P2-4 | ~~`isFavorited` hardcoded to false~~ — **FIXED**: `favoritedDocIds` fetched from `content_favorites` in `MyDocumentsPage.tsx` | — | ✅ |
+| P2-5 | ~~Book edit clears topics~~ — **FIXED**: `handleEditBook` now awaits topic fetch before opening dialog; TopicSelector added to edit dialog; update always syncs topics | `BooksPage.tsx` | ✅ |
+
+### Missing pages — all resolved
+
+All previously flagged missing pages exist and are registered in `App.tsx`:
+
+| Route | File | Status |
+|---|---|---|
+| `/standups/:slug` | `src/app/components/standup/StandupDetailPage.tsx` | ✅ exists + registered |
+| `/tables/create` | `src/app/components/table/CreateTablePage.tsx` | ✅ exists + registered |
+| `/pitches/create` | `src/app/components/pitch/CreatePitchPage.tsx` | ✅ exists + registered |
+| `/builds/new` | `src/app/components/build/CreateBuildPage.tsx` | ✅ exists + registered |
+| `/markets/search` | `src/app/pages/MarketSearchPage.tsx` | ✅ created + registered |
+| `/help/discover` | `src/app/pages/DiscoverGuidePage.tsx` | ✅ created + registered |
+
+### Dead code — remove
+
+| Item | Action |
+|---|---|
+| `blogs.view_count` column | Drop or wire up real server-side tracking |
+| `blogs.click_count` column | Drop or build analytics query against `blog_clicks` table |
+| `episodes.views` column | Drop or wire up real server-side tracking |
+| `/episodes/:id/edit` route | Check `App.tsx` — remove if still present |
+| `/magazines/:id/settings` route | Absorbed into Manage tab; remove route + check if `MagazineSettingsPage.tsx` is orphaned |
+| `/playlists/:slug/settings` route | Same — absorbed; check `PlaylistSettingsPage.tsx` |
+| `views: number` field in `Episode` interface in `EpisodesPage.tsx` | Remove — no longer displayed |
 
 ---
 
@@ -258,7 +307,6 @@ Overly permissive for production deployment.
 
 ### What Is Not Protected (Yet)
 
-- Express API routes have no auth middleware
 - User class gating is UI-only — no database enforcement
 - Admin routes (`/platform-admin/*`) are protected by navigation only, not by RLS
 
@@ -345,3 +393,49 @@ pnpm run typecheck
 pnpm -r run test
 pnpm run build
 ```
+
+---
+
+## Next Engineering Session — Pickup List
+
+Prioritised work as of April 2026. The full product plan lives in
+`artifacts/connexted/docs/PRODUCT_ROADMAP.md` — this list covers the
+engineering-quality work that sits alongside it.
+
+**Start here — must happen before Sprint 2 features go live in production.**
+
+### 0. Railway deployment (do first — ~3 hrs total)
+
+| Task | Effort | Notes |
+|---|---|---|
+| Replace `err.message` with generic responses in all API routes | 1–2 hrs | `artifacts/api-server/src/routes/*.ts` — log details server-side, return `"Internal server error"` to client. Required before real users hit the API. |
+| Deploy current branch to Railway | 1 hr | Pathway completions + verify-report are built but not live yet. All Sprint 2 API work depends on this. |
+
+### 1. Sprint 2 product work (see PRODUCT_ROADMAP.md Sprint 2 for full spec)
+
+Order matters — follow this sequence:
+
+| Order | Task | Effort | API needed? |
+|---|---|---|---|
+| 1 | My Favorites audit + Save on Pathway/Companion | 2–3 hrs | No — Supabase client only |
+| 2 | Circle shareable invite link + token join flow | 3–4 hrs | No — migration + frontend |
+| 3 | Unified content view (extend Content Audit) | 3–4 hrs | No — Supabase client only |
+| 4 | Data export endpoint (`GET /account/export`) | 1–2 days | Yes — new Express route, deploy to Railway |
+| 5 | Account deletion flow + pg_cron hard-delete | 2–3 days | Yes — new Express routes + Supabase cron |
+
+### 2. Engineering quality (do between product items, not in a block)
+
+| Task | Effort | Notes |
+|---|---|---|
+| Type the 24+ `(p: any)` casts in `pathways.ts` | 2–3 hrs | `artifacts/api-server/src/routes/pathways.ts` |
+| Replace `console.error` with Pino (66 instances) | 2–3 hrs | Frontend + API; use `logger.error({ err }, 'description')` |
+| TypeScript strictness — `noUnusedLocals` first | 3–5 hrs | Enable flags one at a time in `tsconfig.base.json` |
+| Dead code removal | 1–2 hrs | See "Dead code — remove" table above; check orphaned routes |
+
+### 3. Infrastructure (Sprint 6 on roadmap — schedule separately)
+
+| Task | Effort | Notes |
+|---|---|---|
+| Supabase Storage setup | 1–2 days | Blocks image uploads on every form + Assets tab in Content Audit. See `IMAGE_SPECIFICATIONS.md`. |
+| App.tsx route split | 3–4 hrs | 311 routes in one file; extract into `routes/admin.tsx`, `routes/content.tsx`, etc. |
+| Template data → database | 1–2 days | `src/data/` ~70 KB hardcoded; move to `templates` table for multi-instance use |

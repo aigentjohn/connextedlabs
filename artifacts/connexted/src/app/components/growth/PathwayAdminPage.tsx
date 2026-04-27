@@ -714,7 +714,6 @@ export default function PathwayAdminPage() {
           title:                s.title,
           description:          s.description,
           order_index:          i,
-          sort_order:           i,
           step_type:            s.step_type,
           step_id:              s.step_id || null,
           activity_type:        s.activity_type || null,
@@ -728,20 +727,27 @@ export default function PathwayAdminPage() {
 
       const { steps: stepPayload, ...pathwayData } = payload as { steps: any[] } & Record<string, unknown>;
 
+      const withTimeout = <T,>(promise: Promise<T>, ms = 15000): Promise<T> => {
+        const timer = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out — Supabase may be starting up. Try again in a moment.')), ms)
+        );
+        return Promise.race([promise, timer]);
+      };
+
       let pathwayId = form.id;
       if (pathwayId) {
-        const { error } = await supabase.from('pathways').update(pathwayData).eq('id', pathwayId);
+        const { error } = await withTimeout(supabase.from('pathways').update(pathwayData).eq('id', pathwayId));
         if (error) throw error;
-        await supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId);
+        await withTimeout(supabase.from('pathway_steps').delete().eq('pathway_id', pathwayId));
       } else {
-        const { data, error } = await supabase.from('pathways').insert(pathwayData).select('id').single();
+        const { data, error } = await withTimeout(supabase.from('pathways').insert(pathwayData).select('id').single());
         if (error) throw error;
         pathwayId = (data as any).id;
       }
 
       if (stepPayload && stepPayload.length > 0) {
         const stepRows = stepPayload.map((s: any) => ({ ...s, pathway_id: pathwayId }));
-        const { error } = await supabase.from('pathway_steps').insert(stepRows);
+        const { error } = await withTimeout(supabase.from('pathway_steps').insert(stepRows));
         if (error) throw error;
       }
 

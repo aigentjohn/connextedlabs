@@ -120,6 +120,7 @@ export default function PathwayDetailPage() {
   const [pathway, setPathway] = useState<Pathway | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [completedStepIds, setCompletedStepIds] = useState<Set<string>>(new Set());
+  const [pendingStepIds, setPendingStepIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [notEnrolled, setNotEnrolled] = useState(false);
 
@@ -197,6 +198,20 @@ export default function PathwayDetailPage() {
         (programCompletions || []).forEach((p: any) => completed.add(p.program_id));
       }
 
+      // Fetch persisted activity step completions
+      const { data: stepCompletions } = await supabase
+        .from('pathway_step_completions')
+        .select('step_id, status')
+        .eq('pathway_id', pathwayId)
+        .eq('user_id', user.id);
+
+      const pending = new Set<string>();
+      (stepCompletions || []).forEach((c: { step_id: string; status: string }) => {
+        if (c.status === 'approved') completed.add(c.step_id);
+        else if (c.status === 'pending') pending.add(c.step_id);
+      });
+
+      setPendingStepIds(pending);
       setCompletedStepIds(completed);
     } catch (err) {
       console.error('Failed to load pathway:', err);
@@ -210,32 +225,56 @@ export default function PathwayDetailPage() {
     if (!user || !pathway) return;
     setSubmitting(true);
     try {
-      // Update progress_pct on the enrollment
-      const totalSteps = pathway.steps.length;
-      const currentCompleted = completedStepIds.size + 1; // count this one
-      const newPct = Math.min(100, Math.round((currentCompleted / totalSteps) * 100));
-      const isComplete = newPct >= 100;
+      const isPendingReview = step.verification_method === 'admin_verify';
+      const status = isPendingReview ? 'pending' : 'approved';
 
-      await supabase
-        .from('pathway_enrollments')
-        .update({
+      // Persist the step completion record
+      const { error: completionError } = await supabase
+        .from('pathway_step_completions')
+        .upsert(
+          {
+            pathway_id: pathway.id,
+            step_id: step.id,
+            user_id: user.id,
+            status,
+            evidence_note: evidenceNote || null,
+          },
+          { onConflict: 'pathway_id,step_id,user_id' },
+        );
+      if (completionError) throw completionError;
+
+      if (status === 'approved') {
+        // Calculate progress from current completed set + this new step
+        const newCompleted = new Set([...completedStepIds, step.id]);
+        const completedCount = pathway.steps.filter(
+          s => newCompleted.has(s.step_id || s.id)
+        ).length;
+        const newPct = Math.min(100, Math.round((completedCount / pathway.steps.length) * 100));
+        const isComplete = newPct >= 100;
+
+        await supabase
+          .from('pathway_enrollments')
+          .update({
+            progress_pct: newPct,
+            status: isComplete ? 'completed' : 'active',
+            ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+          })
+          .eq('pathway_id', pathway.id)
+          .eq('user_id', user.id);
+
+        setCompletedStepIds(newCompleted);
+        setEnrollment(prev => prev ? {
+          ...prev,
           progress_pct: newPct,
           status: isComplete ? 'completed' : 'active',
-          ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
-        })
-        .eq('pathway_id', pathway.id)
-        .eq('user_id', user.id);
-
-      // Mark step as complete locally for instant feedback
-      setCompletedStepIds(prev => new Set([...prev, step.step_id || step.id]));
-      setEnrollment(prev => prev ? {
-        ...prev,
-        progress_pct: newPct,
-        status: isComplete ? 'completed' : 'active',
-      } : prev);
+        } : prev);
+      } else {
+        // Pending: show in pending set without affecting progress
+        setPendingStepIds(prev => new Set([...prev, step.id]));
+      }
 
       toast.success(
-        step.verification_method === 'admin_verify'
+        isPendingReview
           ? 'Report submitted — an admin will review it.'
           : 'Step marked as done!'
       );
@@ -364,8 +403,9 @@ export default function PathwayDetailPage() {
 
         {steps.map((step, index) => {
           const isCompleted = completedStepIds.has(step.step_id || step.id);
-          const isCurrent = !isCompleted && index === currentStepIndex;
-          const isUpcoming = !isCompleted && !isCurrent;
+          const isPending = !isCompleted && pendingStepIds.has(step.id);
+          const isCurrent = !isCompleted && !isPending && index === currentStepIndex;
+          const isUpcoming = !isCompleted && !isPending && !isCurrent;
           const isActivity = step.step_type === 'activity';
           const isReporting = reportingStepId === step.id;
           const stepLink = getStepLink(step);
@@ -376,12 +416,14 @@ export default function PathwayDetailPage() {
               <Card
                 className={`overflow-hidden transition-shadow ${
                   isCurrent ? 'ring-2 ring-indigo-400 shadow-md' :
+                  isPending ? 'ring-1 ring-amber-300' :
                   isCompleted ? 'opacity-75' : ''
                 }`}
               >
                 {/* Step type colour strip */}
                 <div className={`h-0.5 ${
                   isCompleted ? 'bg-green-400' :
+                  isPending ? 'bg-amber-400' :
                   isCurrent ? 'bg-indigo-400' : 'bg-gray-200'
                 }`} />
 
@@ -392,6 +434,8 @@ export default function PathwayDetailPage() {
                     <div className="mt-0.5 shrink-0">
                       {isCompleted ? (
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : isPending ? (
+                        <Clock className="w-5 h-5 text-amber-500" />
                       ) : isCurrent ? (
                         <div className="w-5 h-5 rounded-full border-2 border-indigo-500 flex items-center justify-center">
                           <div className="w-2 h-2 rounded-full bg-indigo-500" />
@@ -413,6 +457,11 @@ export default function PathwayDetailPage() {
                         {isCurrent && (
                           <Badge className="text-[10px] px-1.5 py-0 bg-indigo-100 text-indigo-700 border-0">
                             Up Next
+                          </Badge>
+                        )}
+                        {isPending && (
+                          <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-0">
+                            Pending Review
                           </Badge>
                         )}
 
@@ -469,7 +518,7 @@ export default function PathwayDetailPage() {
                     </div>
 
                     {/* Actions — right side */}
-                    {!isCompleted && (
+                    {!isCompleted && !isPending && (
                       <div className="flex items-center gap-2 shrink-0">
                         {/* Go button — opens in new tab so this pathway page stays open */}
                         {stepLink && (
@@ -521,7 +570,7 @@ export default function PathwayDetailPage() {
                   </div>
 
                   {/* Self-report form — expands inline below */}
-                  {isReporting && (
+                  {isReporting && !isPending && (
                     <div className="mt-3 ml-8 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
                       <label className="text-xs font-medium text-gray-600 block">
                         What did you do? <span className="text-gray-400">(optional)</span>

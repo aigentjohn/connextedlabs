@@ -36,7 +36,7 @@ The **My Content** section is the user's personal content workspace. It surfaces
 Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 
 **Known issues / gaps:**
-- `isFavorited` is hardcoded `false` on line 185 with the comment `// Favorites are now tracked in content_favorites table`. The favorites count shown in the card footer (`favorites_count`) comes from the `documents` row itself, not from `content_favorites`. The two sources are never reconciled — favorites are not re-fetched from the junction table.
+- ~~`isFavorited` hardcoded `false`~~ — **Fixed April 2026**: `MyDocumentsPage` now fetches `favoritedDocIds` from `content_favorites` on mount and uses it to set the favorited state on each document card.
 - There is no pagination or infinite scroll; all documents are loaded at once.
 - The empty-state "Pro Tip" card cross-links to `/my-contents` (My Links), which is good UX but is the only place that relationship is surfaced.
 - The `access_level` field (`public` / `member` / `unlisted` / `private`) is displayed as a badge but is **not editable** from this page — users would need to go into the document detail view.
@@ -60,7 +60,7 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 
 **User actions:**
 - **Create** — "Create Book" dialog (inline in this page) accepts title, description, visibility, topics (up to 3), and tags (up to 10). Topics are linked via a separate `POST /topics/link` Edge Function call after book creation.
-- **Edit** — "Edit Book" dialog (inline in this page) updates title, description, visibility, and tags. Topic editing on existing books is stubbed with `topicIds: []` — existing topic links are not loaded or preserved.
+- **Edit** — "Edit Book" dialog (inline in this page) updates title, description, visibility, tags, and topics. ~~Topic editing was stubbed with `topicIds: []`~~ — **Fixed April 2026**: `handleEditBook` now awaits a fetch of existing topic links from `content_topics` before opening the dialog; `TopicSelector` added to the edit form; update always syncs topics via the Edge Function.
 - **Delete** — `DELETE /books/:id` via Edge Function. Uses `window.confirm` (no modal confirmation).
 - **Like / Unlike** — Toggles a row in `content_likes`. Optimistic UI with rollback on error.
 - **Favorite / Unfavorite** — Toggles a row in `content_favorites`. Optimistic UI with rollback on error.
@@ -73,7 +73,7 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 
 **Known issues / gaps:**
 - `book.author_id` is used in the ownership check on line 749 (`isOwner = book.author_id === profile.id`) but the `Book` interface defines the field as `created_by`, not `author_id`. This means `canEdit` will always be `false` for the current user unless they are a `super` admin — the edit and delete buttons will not appear for normal book owners.
-- Topic editing in the edit dialog is not implemented: `topicIds` is always reset to `[]` and the existing linked topics are not fetched before opening the dialog.
+- ~~Topic editing in the edit dialog not implemented~~ — **Fixed April 2026**: existing topics are fetched before the dialog opens; `TopicSelector` in the edit form; save always calls the topic sync endpoint.
 - No setup redirect: if the `books` table is missing (`PGRST205`), the page redirects to `/books/setup`, but a `BooksSetupPage` is the only recovery path — there is no in-page notice.
 - The page loads **all** books platform-wide on mount (not just the user's own), which will be a performance issue at scale.
 
@@ -166,8 +166,8 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
   - System "All Documents": count from `documents`.
   - System "My Documents": count from `documents` where `author_id = profile.id`.
   - System "Saved Documents": count from `content_favorites` where `content_type = 'document'`.
-  - System "Shared with Me": hardcoded `0` (not implemented).
-  - Auto-generated: hardcoded `0` with a `// TODO` comment.
+  - System "Shared with Me": ~~hardcoded `0`~~ — **Fixed April 2026**: queries user's member circle IDs, counts `documents` with overlapping `circle_ids`, excludes user's own docs.
+  - Auto-generated: ~~hardcoded `0`~~ — **Fixed April 2026**: applies `filter_rules` (document_type, intended_audience, tags) as a count query against `documents`.
 - `content_likes` — counts and current user state for `content_type = 'library'`.
 
 **User actions:**
@@ -182,8 +182,8 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 - **Discover** — Split into "Smart Views" (system libraries) and "Community Libraries" (public libraries from other users).
 
 **Known issues / gaps:**
-- `auto_generated` library document counts are hardcoded `0` with a `// TODO: Implement filter logic` comment. Auto-generated libraries show no content counts.
-- "Shared with Me" system library document count is hardcoded `0` — not implemented.
+- ~~`auto_generated` library document counts hardcoded `0`~~ — **Fixed April 2026**: `filter_rules` (document_type, intended_audience, tags[]) applied as a live count query against `documents`.
+- ~~"Shared with Me" count hardcoded `0`~~ — **Fixed April 2026**: user's member circle IDs fetched, then `documents.circle_ids` queried with `overlaps`, excluding the user's own docs. Same fix applied in `LibraryDetailPage` for the document list itself.
 - `initializeSystemLibraries()` is called on every mount as long as `initialized` state is `false`. This triggers one run per page load per session, which may cause redundant DB writes if system libraries already exist.
 - No delete or edit action from the list page for user-owned libraries.
 - Like button is not rendered on library cards (data is fetched but unused in the UI).
