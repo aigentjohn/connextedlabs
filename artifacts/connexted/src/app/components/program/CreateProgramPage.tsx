@@ -2,24 +2,30 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
 import { ProgramTemplatePicker } from '@/app/components/ProgramTemplates';
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
 } from '@/app/components/ui/breadcrumb';
-import { Home, Rocket, Sparkles } from 'lucide-react';
+import { Home, Rocket, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { canManagePrograms } from '@/lib/constants/roles';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function CreateProgramPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showScratchForm, setShowScratchForm] = useState(false);
+  const [scratchName, setScratchName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (profile && !canManagePrograms(profile.role)) {
@@ -30,8 +36,43 @@ export default function CreateProgramPage() {
 
   const handleProgramCreated = (programId: string, slug: string) => {
     setShowTemplatePicker(false);
-    // Navigate to setup dashboard with programId so admins can add journeys/sessions
     navigate(`/program-admin/${programId}/setup`);
+  };
+
+  const handleCreateFromScratch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scratchName.trim() || !profile) return;
+    setCreating(true);
+    try {
+      const base = scratchName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const suffix = Math.random().toString(36).slice(2, 7);
+      const slug = `${base}-${suffix}`;
+
+      const { data: program, error } = await supabase
+        .from('programs')
+        .insert({
+          community_id: profile.community_id,
+          name: scratchName.trim(),
+          slug,
+          admin_ids: [profile.id],
+          member_ids: [],
+          status: 'not-started',
+          created_by: profile.id,
+          visibility: 'members-only',
+          tags: [],
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      toast.success(`Program "${scratchName.trim()}" created`);
+      navigate(`/program-admin/${program.id}/setup`);
+    } catch (err) {
+      console.error('Error creating program:', err);
+      toast.error('Failed to create program');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -109,24 +150,40 @@ export default function CreateProgramPage() {
 
               {/* Custom Option */}
               <div className="p-6 border-2 border-gray-200 bg-gray-50 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      Start from Scratch
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Build a completely custom program from the ground up. You'll define your own 
-                      journeys, content structure, and learning paths. Recommended for advanced users.
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowTemplatePicker(true)} // Still opens picker with blank option
-                  className="w-full sm:w-auto"
-                >
-                  Create Custom Program
-                </Button>
+                <h3 className="font-semibold text-gray-900 mb-1">Start from Scratch</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Build a completely custom program from the ground up. You'll define your own
+                  journeys, content structure, and learning paths. Recommended for advanced users.
+                </p>
+                {!showScratchForm ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowScratchForm(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    Create Custom Program
+                  </Button>
+                ) : (
+                  <form onSubmit={handleCreateFromScratch} className="flex items-end gap-3 mt-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="scratch-name" className="text-xs text-gray-600">Program name</Label>
+                      <Input
+                        id="scratch-name"
+                        value={scratchName}
+                        onChange={(e) => setScratchName(e.target.value)}
+                        placeholder="e.g., Q3 Accelerator Cohort"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={creating || !scratchName.trim()}>
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => { setShowScratchForm(false); setScratchName(''); }}>
+                      Cancel
+                    </Button>
+                  </form>
+                )}
               </div>
             </div>
 
