@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
+import { Textarea } from '@/app/components/ui/textarea';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -26,13 +28,17 @@ import {
   Clock,
   Link as LinkIcon,
   AlertCircle,
+  BarChart2,
+  PenLine,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface JourneyInlineViewerProps {
   itemType: string;
   itemId: string;
   title: string;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
 // ──────── Embedded URL utilities ────────
@@ -832,6 +838,228 @@ function GenericViewer({ data }: { data: any }) {
   );
 }
 
+// ──────── Interactive type viewers ────────
+
+function PollViewer({ data, onComplete }: { data: any; onComplete?: () => void }) {
+  const { profile } = useAuth();
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [myVote, setMyVote] = useState<string | null>(null);
+  const [allResponses, setAllResponses] = useState<any[]>([]);
+  const [selectedOption, setSelectedOption] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => { loadPollData(); }, [data.id]);
+
+  const loadPollData = async () => {
+    try {
+      const [questionsRes, myRes, allRes] = await Promise.all([
+        supabase.from('survey_questions').select('*').eq('survey_id', data.id).order('order_index').limit(1),
+        profile
+          ? supabase.from('survey_responses').select('answers').eq('survey_id', data.id).eq('user_id', profile.id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        supabase.from('survey_responses').select('answers, user_id').eq('survey_id', data.id),
+      ]);
+      const q = (questionsRes.data || [])[0];
+      setQuestions(questionsRes.data || []);
+      setAllResponses(allRes.data || []);
+      if (myRes.data && q) {
+        setMyVote((myRes.data.answers as any)[q.id] || null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const question = questions[0];
+  if (loading) return <div className="text-center py-6 text-sm text-gray-500"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading poll...</div>;
+  if (!question) return <p className="text-sm text-gray-500 italic">Poll question not configured yet.</p>;
+
+  const options: Array<{ id: string; text: string }> = question.options || [];
+  const hasVoted = myVote !== null;
+  const totalVotes = allResponses.length;
+  const getCount = (optId: string) => allResponses.filter(r => (r.answers as any)[question.id] === optId).length;
+
+  const handleVote = async () => {
+    if (!selectedOption || !profile) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('survey_responses').upsert({
+        survey_id: data.id,
+        user_id: profile.id,
+        answers: { [question.id]: selectedOption },
+      });
+      if (error) throw error;
+      setMyVote(selectedOption);
+      setAllResponses(prev => [
+        ...prev.filter(r => r.user_id !== profile.id),
+        { answers: { [question.id]: selectedOption }, user_id: profile.id },
+      ]);
+      toast.success('Vote submitted!');
+      onComplete?.();
+    } catch {
+      toast.error('Failed to submit vote');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="font-medium text-gray-900">{question.text}</p>
+      {!hasVoted ? (
+        <div className="space-y-2">
+          {options.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => setSelectedOption(opt.id)}
+              className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-sm ${
+                selectedOption === opt.id
+                  ? 'border-violet-500 bg-violet-50 font-medium'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              {opt.text}
+            </button>
+          ))}
+          <Button
+            disabled={!selectedOption || submitting}
+            onClick={handleVote}
+            className="mt-2 bg-violet-600 hover:bg-violet-700"
+            size="sm"
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            <BarChart2 className="w-4 h-4 mr-2" />
+            Submit Vote
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500">{totalVotes} vote{totalVotes !== 1 ? 's' : ''} total</p>
+          {options.map(opt => {
+            const count = getCount(opt.id);
+            const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+            const isMyVote = myVote === opt.id;
+            return (
+              <div key={opt.id}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className={isMyVote ? 'font-semibold text-violet-700' : 'text-gray-800'}>
+                    {opt.text}{isMyVote && ' ✓'}
+                  </span>
+                  <span className="text-gray-500 tabular-nums">{count} ({pct}%)</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${isMyVote ? 'bg-violet-500' : 'bg-gray-400'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReflectionViewer({ data, onComplete }: { data: any; onComplete?: () => void }) {
+  const { profile } = useAuth();
+  const [content, setContent] = useState('');
+  const [hasExistingResponse, setHasExistingResponse] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  useEffect(() => { loadResponse(); }, [data.id]);
+
+  const loadResponse = async () => {
+    if (!profile) { setLoading(false); return; }
+    const { data: r } = await supabase
+      .from('reflection_responses')
+      .select('content, updated_at')
+      .eq('reflection_id', data.id)
+      .eq('user_id', profile.id)
+      .maybeSingle();
+    if (r) {
+      setContent(r.content);
+      setSavedAt(r.updated_at);
+      setHasExistingResponse(true);
+    }
+    setLoading(false);
+  };
+
+  const handleSave = async () => {
+    if (!profile || !content.trim()) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('reflection_responses').upsert({
+        reflection_id: data.id,
+        user_id: profile.id,
+        content: content.trim(),
+        updated_at: now,
+      });
+      if (error) throw error;
+      setSavedAt(now);
+      toast.success('Reflection saved');
+      if (!hasExistingResponse) {
+        setHasExistingResponse(true);
+        onComplete?.();
+      }
+    } catch {
+      toast.error('Failed to save reflection');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const prompt = data.prompt || data.description;
+
+  return (
+    <div className="space-y-4">
+      {prompt && (
+        <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <PenLine className="w-4 h-4 text-teal-700" />
+            <span className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Reflection Prompt</span>
+          </div>
+          <p className="text-sm text-teal-900 leading-relaxed">{prompt}</p>
+        </div>
+      )}
+      {loading ? (
+        <div className="text-center py-4 text-sm text-gray-500"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading...</div>
+      ) : (
+        <>
+          <Textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Write your reflection here... This is private to you."
+            rows={6}
+            className="resize-none"
+          />
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSave}
+              disabled={saving || !content.trim()}
+              size="sm"
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {hasExistingResponse ? 'Update Reflection' : 'Save Reflection'}
+            </Button>
+            {savedAt && (
+              <span className="text-xs text-gray-500">
+                Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ──────── Table config for fetching ────────
 
 const FETCH_CONFIG: Record<string, { table: string; select: string }> = {
@@ -854,11 +1082,13 @@ const FETCH_CONFIG: Record<string, { table: string; select: string }> = {
   magazine: { table: 'magazines', select: 'id, name, description, cover_image, category, created_at' },
   discussion: { table: 'discussions', select: 'id, title, description, tags, created_at' },
   resource: { table: 'documents', select: 'id, title, description, url, tags, created_at' },
+  poll: { table: 'surveys', select: 'id, name, description, show_results_before_vote' },
+  reflection: { table: 'reflections', select: 'id, title, prompt, description' },
 };
 
 // ──────── Main Inline Viewer ────────
 
-export function JourneyInlineViewer({ itemType, itemId, title, onClose }: JourneyInlineViewerProps) {
+export function JourneyInlineViewer({ itemType, itemId, title, onClose, onComplete }: JourneyInlineViewerProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1001,6 +1231,10 @@ export function JourneyInlineViewer({ itemType, itemId, title, onClose }: Journe
         );
       case 'discussion':
         return <GenericViewer data={data} />;
+      case 'poll':
+        return <PollViewer data={data} onComplete={onComplete} />;
+      case 'reflection':
+        return <ReflectionViewer data={data} onComplete={onComplete} />;
       default:
         return <GenericViewer data={data} />;
     }

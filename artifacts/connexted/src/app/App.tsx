@@ -246,6 +246,11 @@ const MagazinesPage = lazy(() => import('@/app/components/MagazinesPage'));
 const CreateMagazineForm = lazy(() => import('@/app/components/magazines/CreateMagazineForm'));
 const MagazineDetailPage = lazy(() => import('@/app/components/magazines/MagazineDetailPage'));
 
+// Journey interactive pages
+const AssignmentPage = lazy(() => import('@/app/components/journey/AssignmentPage'));
+const FaqPage = lazy(() => import('@/app/components/journey/FaqPage'));
+const SchedulePickerPage = lazy(() => import('@/app/components/journey/SchedulePickerPage'));
+
 // Courses
 const CoursesPage = lazy(() => import('@/app/components/CoursesPage'));
 const CourseLandingPage = lazy(() => import('@/app/components/CourseLandingPage'));
@@ -639,6 +644,10 @@ const router = createBrowserRouter([
           { path: '/documents/:id/edit', element: <AddDocumentForm /> },
           { path: '/my-documents', element: <MyDocumentsPage /> },
           { path: '/my-sessions', element: <MySessionsPage /> },
+          // Journey interactive pages
+          { path: '/assignments/:id', element: <AssignmentPage /> },
+          { path: '/faqs/:id', element: <FaqPage /> },
+          { path: '/schedule/:id', element: <SchedulePickerPage /> },
           // Courses
           { path: '/courses', element: <CoursesPage /> },
           { path: '/courses/:slug', element: <CourseLandingPage /> },
