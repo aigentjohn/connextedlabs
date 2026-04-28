@@ -22,7 +22,6 @@ interface Episode {
   category: string;
   video_platform: string;
   visibility: 'public' | 'member' | 'premium' | 'private';
-  views: number;
   favorites: string[];
   is_published: boolean;
   created_at: string;
