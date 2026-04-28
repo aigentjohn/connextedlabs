@@ -1,4 +1,4 @@
-CREATE TABLE public.circle_invites (
+CREATE TABLE IF NOT EXISTS public.circle_invites (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   circle_id   uuid NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
   token       uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
@@ -10,6 +10,11 @@ CREATE TABLE public.circle_invites (
 );
 
 ALTER TABLE public.circle_invites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "authenticated_read_circle_invites"    ON public.circle_invites;
+DROP POLICY IF EXISTS "circle_admins_insert_circle_invites"  ON public.circle_invites;
+DROP POLICY IF EXISTS "circle_admins_update_circle_invites"  ON public.circle_invites;
+DROP POLICY IF EXISTS "circle_admins_delete_circle_invites"  ON public.circle_invites;
 
 -- Authenticated users can read invites (needed to validate token in the join flow)
 CREATE POLICY "authenticated_read_circle_invites"
