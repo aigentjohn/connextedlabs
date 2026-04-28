@@ -2,20 +2,23 @@
 import {
   FileText, BookOpen, Presentation, Library, PlayCircle,
   Hammer, Users, TrendingUp, Calendar, CalendarClock, Handshake, MessageSquare,
-  Table as TableIcon, ExternalLink, Video, CheckSquare, StickyNote, type LucideIcon
+  Table as TableIcon, ExternalLink, Video, CheckSquare, StickyNote,
+  BarChart2, PenLine, ClipboardList, HelpCircle, CalendarDays,
+  type LucideIcon
 } from 'lucide-react';
 
 export type JourneyItemType =
   | 'document' | 'book' | 'deck' | 'shelf' | 'playlist'
   | 'build' | 'pitch' | 'table' | 'elevator' | 'standup' | 'meetup' | 'sprint'
   | 'magazine' | 'episode' | 'checklist' | 'page'
-  | 'event' | 'discussion' | 'resource' | 'container';
+  | 'event' | 'discussion' | 'resource' | 'container'
+  | 'poll' | 'reflection' | 'assignment' | 'faq' | 'schedule_picker';
 
 export interface JourneyItemTypeConfig {
   icon: LucideIcon;
   label: string;
   labelPlural: string;
-  category: 'content' | 'container' | 'other';
+  category: 'content' | 'container' | 'other' | 'interactive';
   tableName: string;
   description: string;
 }
@@ -187,11 +190,53 @@ export const JOURNEY_ITEM_TYPES: Record<JourneyItemType, JourneyItemTypeConfig> 
     category: 'container',
     tableName: '',
     description: 'Legacy - use specific container type instead'
-  }
+  },
+
+  // INTERACTIVE TYPES (journey-only, created inline in the journey builder)
+  poll: {
+    icon: BarChart2,
+    label: 'Poll',
+    labelPlural: 'Polls',
+    category: 'interactive',
+    tableName: 'surveys',
+    description: 'Single-question vote with live results'
+  },
+  reflection: {
+    icon: PenLine,
+    label: 'Reflection',
+    labelPlural: 'Reflections',
+    category: 'interactive',
+    tableName: 'reflections',
+    description: 'Private journaling prompt for learners'
+  },
+  assignment: {
+    icon: ClipboardList,
+    label: 'Assignment',
+    labelPlural: 'Assignments',
+    category: 'interactive',
+    tableName: 'assignments',
+    description: 'Structured submission with optional feedback'
+  },
+  faq: {
+    icon: HelpCircle,
+    label: 'FAQ',
+    labelPlural: 'FAQs',
+    category: 'interactive',
+    tableName: 'faqs',
+    description: 'Curated Q&A accordion'
+  },
+  schedule_picker: {
+    icon: CalendarDays,
+    label: 'Schedule Picker',
+    labelPlural: 'Schedule Pickers',
+    category: 'interactive',
+    tableName: 'schedule_polls',
+    description: 'Doodle-style availability grid'
+  },
 };
 
 // Helper to get items by category
-export function getItemTypesByCategory(category: 'content' | 'container' | 'other'): JourneyItemType[] {
+export function getItemTypesByCategory(category: 'content' | 'container' | 'other' | 'interactive'): JourneyItemType[] {
   return Object.entries(JOURNEY_ITEM_TYPES)
     .filter(([_, config]) => config.category === category && _ !== 'container')
     .map(([type]) => type as JourneyItemType);
