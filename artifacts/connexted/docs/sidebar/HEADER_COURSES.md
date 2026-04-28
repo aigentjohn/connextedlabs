@@ -1,6 +1,34 @@
 # Feature: Courses
 
-Courses are self-paced, instructor-led learning experiences structured as ordered modules (journeys) with tracked completion. Each course has a landing page for discovery and enrollment, a player UI for learners working through content, and a separate administrative surface for course leaders and platform admins. Access is controlled by a unified ticket system (`access_tickets`) with a legacy `course_enrollments` table maintained as a fallback. Paid courses delegate checkout to ConvertKit Commerce; free courses enroll instantly via the enrollment bridge. Completing a course triggers a badge award and fires a pathway completion hook so any enrollment pathways that include the course are advanced automatically.
+Last updated: April 2026
+
+Courses are **self-paced, individually-enrolled learning experiences** structured as ordered modules (journeys) with tracked completion. A learner enrolls on their own schedule and progresses at their own pace — there is no cohort start date, no application, and no group lifecycle.
+
+**Courses vs. Programs (Cohort Programs):** Programs are cohort-based — members apply, are accepted into a cohort with a fixed start date, and progress together as a group with a facilitator managing their lifecycle states (at_risk, inactive, completed). Courses are the opposite: open enrollment, self-paced, no cohort grouping. The `EnrollButton` label reflects this distinction ("Enroll" for courses, "Join Program" for programs).
+
+Each course has:
+- A **landing page** for discovery and enrollment
+- A **player UI** for learners working through content
+- An **admin surface** for course leaders and platform admins
+- A **JSON export/import/duplicate** system for course portability
+
+Access is controlled by a unified ticket system (`access_tickets`) with a legacy `course_enrollments` table maintained as a fallback. Paid courses delegate checkout to ConvertKit Commerce; free courses enroll instantly. Completing a course triggers a badge award and fires a pathway completion hook so any enrolled learning pathways that include the course are advanced automatically.
+
+---
+
+## Journey Item Types Available in Courses
+
+Course modules (journeys) support all platform item types grouped into four categories. The **Core** set is most relevant for self-paced courses.
+
+| Category | Types | Notes |
+|----------|-------|-------|
+| **Core content** | `page`, `episode`, `document`, `book`, `deck` | Lessons, video, reading, flashcards |
+| **Interactive** | `poll`, `reflection`, `assignment`, `faq`, `schedule_picker` | Engagement, submissions, Q&A |
+| **Collections** | `playlist`, `magazine`, `shelf` (library) | Curated content groups |
+| **Containers** | `checklist`, `build`, `pitch`, `table`, `elevator`, `standup`, `meetup`, `sprint` | Project activities, cohort-style tools |
+| **Other** | `event`, `discussion`, `resource` | Live sessions, external links |
+
+> **Note:** `AddJourneyContentDialog` (used in the program journey builder, `src/app/components/program/AddJourneyContentDialog.tsx`) does not include the interactive types (poll, reflection, assignment, faq, schedule_picker). Those are available in the separate `AddContentDialog` used in `JourneyManagement`. Both dialogs are used in the admin setup surface.
 
 ---
 
@@ -9,9 +37,9 @@ Courses are self-paced, instructor-led learning experiences structured as ordere
 **What it does:** The public course catalog — browse and discover all published courses.
 
 **Data loaded:**
-- `courses` table (published only): `id`, `slug`, `title`, `description`, `instructor_name`, `instructor_avatar_url`, `pricing_type`, `price_cents`, `is_published`, `featured`, `circle_ids`, `created_at`
-- `course_enrollments` (current user): fetches enrolled `course_id` values to power the "My Courses" filter
-- `content_likes` (content_type = `course`): populates like counts and per-user liked state
+- `courses` (published only): `id`, `slug`, `title`, `description`, `instructor_name`, `instructor_avatar_url`, `pricing_type`, `price_cents`, `is_published`, `featured`, `circle_ids`, `created_at`
+- `course_enrollments` (current user): enrolled `course_id` values for the "My Courses" filter
+- `content_likes` (`content_type = 'course'`): like counts and per-user liked state
 
 **User actions:**
 - Search by title, description, or instructor name
@@ -22,278 +50,403 @@ Courses are self-paced, instructor-led learning experiences structured as ordere
 - Click through to the course landing page
 
 **Tabs / sub-views:**
-- Featured Courses section (courses where `featured = true`) rendered above a general "All Courses" grid
+- Featured Courses section (`featured = true`) rendered above a general "All Courses" grid
 
 **Enrollment / access model:**
-- No access gate on browse — all published courses are visible to everyone
-- Enrollment check is done at the landing page and player level
-- Circle-scoped variant: if the route includes a `circleId` param, results are filtered to courses whose `circle_ids` array contains that circle
+- No access gate on browse — all published courses visible to everyone
+- Enrollment check at landing page and player level only
+- Circle-scoped variant: `circleId` URL param filters to courses whose `circle_ids` array contains that circle
 
 **Known issues / gaps:**
-- "My Courses" filter reads from legacy `course_enrollments` only, not the unified `access_tickets` table, so users enrolled via the ticket system may not see their courses ticked
+- "My Courses" filter reads only `course_enrollments`, not `access_tickets` — users enrolled via the ticket system may not appear as enrolled
+- No profile-based course matching — `career_stage`, `looking_for`, `interests`, and `tags` on the user's profile are not used to surface relevant courses; a "Recommended for you" section is planned (client-side tag overlap scoring, no schema change needed)
 - No pagination — all published courses load at once
-- `course_enrollments` table absence (PGRST116 / 42P01) is caught gracefully and shows a "coming soon" toast; the catalog still renders
+- No topic filter — courses have `topic_links` but the browse page has no topic facet
 
 ---
 
 ## CourseLandingPage (`/courses/:slug`)
 
-**What it does:** The public detail page for a single course. Shows full description, syllabus (module list), instructor bio, pricing, and an enrollment / checkout card.
+**What it does:** Public detail page for a single course — full description, syllabus, instructor bio, pricing, and enrollment card.
 
 **Data loaded:**
-- `courses` (by slug, published): title, description, pricing, instructor fields, `convertkit_product_id`
+- `courses` (by slug, published): all fields including `convertkit_product_id`
 - `program_journeys` (by `course_id`): module titles, descriptions, `order_index`
 - `journey_items` count per journey (for "N lessons" badge on each module card)
-- `checkAccess` via `enrollmentBridge`: determines whether the current user already has access (ticket first, legacy fallback)
-- `templateApi.forContainer('course', courseId)`: loads a linked `TicketTemplate` if one is configured, to display a waitlist block
+- `checkAccess` via `enrollmentBridge`: determines current user access (ticket first, legacy fallback)
+- `templateApi.forContainer('course', courseId)`: loads linked `TicketTemplate` for waitlist block
 
-**User actions (unauthenticated):**
-- View course title, description, syllabus preview, pricing, and instructor bio
-- No enrollment available — shown "Sign in to enroll" note
+**User actions (unauthenticated):** View only; "Sign in to enroll" shown.
 
 **User actions (authenticated, not enrolled):**
-- Free courses: click "Enroll Now" — triggers `enrollInCourse` (creates access ticket + legacy enrollment row), then redirects to player
-- Paid courses: redirected to ConvertKit Commerce checkout via `convertkit_product_id`
-- Members-only courses: shows informational toast; no purchase flow implemented
-- "Have a code?" link: opens `RedeemCodeDialog` for access-code redemption
-- Waitlist: shown when a linked `TicketTemplate` is present
+- Free: "Enroll Now" → `enrollInCourse` (ticket + legacy row) → redirect to player
+- Paid: redirect to ConvertKit Commerce via `convertkit_product_id`
+- Members-only: informational toast; no purchase flow implemented
+- "Have a code?": opens `RedeemCodeDialog`
+- Waitlist shown when a linked `TicketTemplate` is present
 
-**User actions (authenticated, enrolled):**
-- "Continue Learning" button — navigates to `/courses/:slug/learn`
-
-**Tabs / sub-views:**
-- Hero section (left: course info + module/lesson stats; right: enrollment card)
-- Course Syllabus card listing all journeys as numbered modules
-- Course Leader sidebar card
-
-**Enrollment / access model:**
-- `checkAccess` (enrollmentBridge): checks `access_tickets` first, falls back to `course_enrollments`
-- Free enrollment: `enrollInCourse` writes to both `access_tickets` and `course_enrollments`
-- Paid enrollment: delegates entirely to ConvertKit; no in-app payment processing
+**User actions (enrolled):** "Continue Learning" → `/courses/:slug/learn`
 
 **Known issues / gaps:**
-- Members-only pricing type has no actual enforcement — shows a toast but does not gate access based on `users.membership_tier`
-- "Certificate of completion" is listed as a feature bullet on the enrollment card but is not implemented
-- SEO schema (`generateCourseSchema`) hardcodes `https://connexted.app` as the base URL
+- Members-only pricing has no enforcement — shows toast but does not check `users.membership_tier`
+- "Certificate of completion" listed as a feature bullet on the enrollment card but not implemented on this page
+- SEO schema hardcodes `https://connexted.app` as the base URL
 
 ---
 
-## MyCoursesPage (`/my-courses` or `/my-learning`)
+## MyCoursesPage (`/my-courses`)
 
-**What it does:** Shows the current user's enrolled courses grouped by progress status: In Progress, Start Learning (0%), and Completed.
+**What it does:** Current user's enrolled courses grouped by progress status.
 
 **Data loaded (dual-source, deduped via Map):**
-1. `access_tickets` via `accessTicketService.getUserTicketsByType(userId, 'course')` → fetches matching `courses` rows
-2. Legacy `course_enrollments` (fallback for any courses not already found via tickets) → fetches matching `courses` rows
+1. `access_tickets` via `accessTicketService.getUserTicketsByType(userId, 'course')` → matching `courses` rows
+2. Legacy `course_enrollments` (fallback) → matching `courses` rows
 
-Each enrollment record carries: `progress_percentage`, `enrolled_at`, `last_accessed_at`, `completed_at`, `source` ('ticket' | 'legacy').
+Each enrollment carries: `progress_percentage`, `enrolled_at`, `last_accessed_at`, `completed_at`, `source` ('ticket' | 'legacy').
 
 **User actions:**
-- Click any course card to navigate directly to `/courses/:slug/learn` (bypasses landing page)
-- "Browse Courses" button links to `/courses`
+- Click any course card → navigates to `/courses/:slug/learn`
+- "Browse Courses" links to `/courses`
 
 **Tabs / sub-views:**
-- Summary stat cards: Total Enrolled / In Progress / Completed
-- "Continue Learning" section (0% < progress < 100%)
-- "Start Learning" section (progress = 0%)
-- "Completed" section (progress = 100%)
-
-**Enrollment / access model:**
-- Requires authentication (`profile?.id`); renders empty state if not logged in
-- No additional access check — presence in either tickets or enrollments is sufficient
+- Summary stats: Total Enrolled / In Progress / Completed
+- "Continue Learning" (0% < progress < 100%)
+- "Start Learning" (progress = 0%)
+- "Completed" (progress = 100%)
 
 **Known issues / gaps:**
-- Progress percentage on ticket-sourced enrollments comes from `ticket.progress_percentage`; on legacy enrollments it comes from `enrollment.progress_percentage`. These values may diverge if progress is written only to one store
-- No way to unenroll from this page
-- Ticket source field is tracked in component state but not surfaced in the UI
+- Progress on ticket-sourced enrollments comes from `ticket.progress_percentage`; on legacy enrollments from `enrollment.progress_percentage` — these may diverge
+- No unenroll action
+- No course companion access from this page (planned)
 
 ---
 
 ## CoursePlayerPage (`/courses/:slug/learn`)
 
-**What it does:** The full-screen course learning experience. Left sidebar lists all modules with completion status and progress bars; main content area renders the currently selected module via `JourneyDetailView`.
+**What it does:** Full-screen course learning experience. Left sidebar lists all modules with completion status and progress bars; main content renders the selected module via `JourneyDetailView`.
 
 **Data loaded:**
 - `courses` (by slug)
-- `checkAccess` via `enrollmentBridge`: gates entry — unenrolled users are redirected to the landing page
-- `course_enrollments` (legacy): loaded for progress write-back and `last_accessed_at` tracking
-- `access_tickets` via `accessTicketService.recordAccess`: records a visit timestamp on the ticket
+- `checkAccess` via `enrollmentBridge`: gates entry — unenrolled users redirect to landing page
+- `course_enrollments` (legacy): progress write-back and `last_accessed_at` tracking
+- `access_tickets` via `accessTicketService.recordAccess`: records a visit timestamp
 - `program_journeys` (by `course_id`): all modules in order
 - `journey_items` count per journey (total items)
 - `journey_item_completions` count per journey per user (completed items)
 
 **User actions (enrolled learner):**
-- Toggle sidebar open/close via hamburger menu
-- Navigate modules with Previous / Next buttons or by clicking module list items
-- Mark individual journey items complete via `JourneyDetailView` (which calls back `onProgressChange`)
-- Auto-resumes: player opens at the first incomplete module on each visit
+- Toggle sidebar open/close (hamburger menu)
+- Navigate modules with Previous / Next buttons or by clicking module list
+- Mark journey items complete via `JourneyDetailView` (calls back `onProgressChange`)
+- Auto-resumes at first incomplete module on each visit
 
 **Completion flow:**
-1. When all modules reach 100%, `fireCourseCompletion` is called (guarded by a `useRef` flag to fire only once per session)
-2. Marks `course_enrollments.completed_at` and sets `progress_percentage = 100`
-3. POSTs to `pathways/completion-hook` Edge Function to advance any enrolled learning pathways
+1. All modules reach 100% → `fireCourseCompletion` fires (guarded by `useRef` to fire once per session)
+2. Marks `course_enrollments.completed_at`, sets `progress_percentage = 100`
+3. POSTs to `pathways/completion-hook` Edge Function to advance enrolled pathways
 4. Calls `issueCourseCompletionBadge` (non-blocking)
-5. Sidebar shows a "Congratulations / Complete Course" panel with a manual trigger button
-
-**Tabs / sub-views:**
-- Sliding sidebar: course title, overall progress bar, module list with per-module status icons and progress
-- Main content: top bar (module counter + Prev/Next nav) + `JourneyDetailView` for current module
-
-**Enrollment / access model:**
-- Hard gate: `checkAccess` runs before any content is shown; unauthorized users redirected
-- Access is recorded on both the ticket (`recordAccess`) and the legacy enrollment (`last_accessed_at`)
+5. Sidebar shows "Congratulations / Complete Course" panel
 
 **Known issues / gaps:**
-- Progress is computed as the average of all module completion percentages, so a course with an empty module artificially depresses progress to 0 for that module
-- `fireCourseCompletion` button in the sidebar's congratulations panel calls the function again even though it's already been fired by `handleProgressChange`; the `useRef` guard prevents double-writes but it's inconsistent UX
-- Progress is written back to `course_enrollments` but not to the ticket's `progress_percentage` field
-- Sidebar is always hidden off-screen on load (mobile-first) with no memory of user preference
+- Progress is averaged across modules — an empty module depresses progress to 0
+- `fireCourseCompletion` button in the congratulations panel can re-trigger even though the `useRef` guard prevents double-writes
+- Progress written to `course_enrollments` only, not to `access_tickets.progress_percentage`
+- Sidebar hidden on load with no memory of user preference (always starts closed on mobile)
+- No "Message instructor" entry point — course companion not yet built
 
 ---
 
 ## CreateCoursePage (`/courses/create`)
 
-**What it does:** Form for creating a new course. Restricted to users with `canManagePrograms` role. On success, navigates to the course admin setup page.
-
-**Data loaded:**
-- None on mount (checks `profile.role` for redirect guard)
+**What it does:** Form for creating a new course. Restricted to `canManagePrograms` role. On success navigates to course admin setup.
 
 **User actions:**
-- Fill in: title (required), description, pricing type (Free / Paid / Members-only), price (USD, shown when paid), visibility (Public / Members Only / Unlisted / Private), course leader name and bio
+- Fill in: title (required), description, pricing type (Free / Paid / Members-only), price (USD), visibility, course leader name and bio
 - Select topics (up to 5) via `TopicSelector`
 - Add tags via `TagSelector`
-- For paid courses: enter a ConvertKit Product ID to link checkout
-- Submit: creates `courses` row with `is_published = false`, then calls `/topics/link` Edge Function if topics selected, then redirects to `/course-admin/:id/setup`
-
-**Tabs / sub-views:** None — single card form
-
-**Access model:** `canManagePrograms(profile.role)` — redirects to `/courses` if check fails
+- Paid courses: enter ConvertKit Product ID
+- Submit: creates `courses` row (`is_published = false`), calls `/topics/link` Edge Function if topics selected, redirects to `/course-admin/:id/setup`
 
 **Known issues / gaps:**
-- Slug uniqueness check queries the DB with `.single()` which throws on zero results; should use `.maybeSingle()` to avoid potential error swallowing
-- "Start from Scratch" option on `CreateProgramPage` both route to the template picker — courses do not have an equivalent blank-start flow
-- `difficulty_level` is hardcoded to `'beginner'`; no UI field exposed
+- Slug uniqueness check uses `.single()` which throws on zero results — should use `.maybeSingle()`
+- No "Start from template" option — template picker (`course-template-exports.ts` has full content templates) not surfaced at creation time
+- `difficulty_level` hardcoded to `'beginner'`; no UI field
+- No "Build from prompt" / AI scaffold option (planned — same JSON prompt pattern as profile section import)
 
 ---
 
 ## CourseAdminSetupPage (`/course-admin/:courseId/setup`)
 
-**Component:** `src/app/components/admin/ProgramSetupDashboard.tsx`
-**Note:** This component is shared between courses (`/course-admin/:courseId/setup`) and programs (`/program-admin/:programId/setup`). It detects which context it is in from the URL param name (`courseId` vs `programId`) and adjusts labels, data sources, and available tabs accordingly.
+**Component:** `src/app/components/admin/ProgramSetupDashboard.tsx` (shared with programs; detects context from URL param)
 
-**Access:** Course instructor (`instructor_id` or `created_by` matches `profile.id`) or `role >= admin`. Unauthorized users see an access-denied card; no redirect.
-
-**What it does:** The main content-building workspace for a course. Reached after creating a course or via the "Content" button in `InstructorCourseManagement`. Organises all course-building tasks into five tabs.
-
-**Stats displayed (header):**
-- Status (published / draft badge)
-- Students (from `courses.enrollment_count` — may be stale)
-- Journeys (count from `program_journeys`)
-- Course Leader (always 1 for courses)
+**Access:** Course instructor (`instructor_id` or `created_by`) or `role >= admin`.
 
 **Tabs:**
 
 ### Overview tab
-- Displays course description and ordered list of journeys with status badges
-- Quick-action buttons linking to the Journeys, Analytics, and Audit tabs
-- Info cards explaining the journey-based structure and progress tracking model
+- Course description and ordered journey list with status badges
+- Quick-action buttons linking to Journeys, Analytics, Audit tabs
 
 ### Journeys tab — `JourneyManagement` component
-The primary course-building surface. Manages the module (journey) and lesson (journey item) structure.
+Primary course-building surface. Manages modules (journeys) and lessons (journey items).
 
-**Journey-level actions:**
-- Create journey: title, description, status (not-started / in-progress / completed), optional linked circle
-- Edit journey (inline dialog)
-- Delete journey (with confirmation)
-- Expand/collapse journey to view its items
+**Journey actions:** create, edit (inline dialog), delete, expand/collapse.
 
-**Journey item types supported:**
-`document`, `book`, `deck`, `shelf`, `playlist`, `build`, `pitch`, `table`, `elevator`, `standup`, `meetup`, `sprint`, `event`, `discussion`, `resource`, `container`
+**Journey item types supported in the admin `AddContentDialog`:**
+`document`, `book`, `deck`, `shelf`, `playlist`, `magazine`, `episode`, `page`, `checklist`, `build`, `pitch`, `table`, `elevator`, `standup`, `meetup`, `sprint`, `event`, `discussion`, `resource`
+Plus interactive types (via separate tab): `poll`, `reflection`, `assignment`, `faq`, `schedule_picker`
 
-**Journey item actions:**
-- Add content to a journey via `AddContentDialog` — search existing containers/content by type
-- Create a new container inline via `CreateContainerDialog`
-- Each item stores: `item_type`, `item_id`, `title`, `description`, `order_index`, `is_published`, `icon`, `estimated_time`
-- Delete item (with confirmation)
-
-**Data managed:** `program_journeys` table (`course_id` or `program_id` FK), `journey_items` table
+> `AddJourneyContentDialog` (program journey builder path) does not include interactive types — use `AddContentDialog` in the Journeys tab for full type coverage.
 
 ### Progress & Analytics tab
-- **For courses:** Renders a "Coming Soon" placeholder — `JourneyProgressAnalytics` is not wired up for courses, only for programs
-- **For programs:** Renders `JourneyProgressAnalytics` with per-journey progress breakdown
+- **Courses:** "Coming Soon" placeholder — `JourneyProgressAnalytics` not wired for courses
+- **Programs:** Full `JourneyProgressAnalytics` component
 
-### Backup & Restore tab — `ExportImportManager` component
-- Export course structure (journeys and items) as JSON
-- Import from a previously exported JSON file
-- Works for both courses and programs
+### Backup & Restore tab — `CourseExportImport` / `ExportImportManager`
+- Export course structure + journeys + items as JSON (own format, version `1.0.0`)
+- Import from a previously exported JSON file (creates new course, does not overwrite)
+- Duplicate course (export + import with new slug/title)
+- **Note:** Export captures journey structure and item references but not the item content bodies (e.g. a Page's markdown is not embedded — the `item_id` reference is preserved)
 
 ### Audit tab
-- **For courses:** Renders a "Coming Soon" placeholder — `ProgramAuditView` is not wired up for courses
-- **For programs:** Renders `ProgramAuditView` with data integrity checks
+- **Courses:** "Coming Soon" placeholder
+- **Programs:** `ProgramAuditView` with data integrity checks
 
 **Known issues / gaps:**
-- Progress & Analytics tab is a placeholder for courses — no course-level analytics exist; program analytics (`JourneyProgressAnalytics`) are not reused for courses
-- Audit tab is a placeholder for courses — `ProgramAuditView` exists for programs only
-- `enrollment_count` stat in the header reads from the `courses` table column which may be stale (not a live join)
-- "Manage Sessions" quick action in the Overview tab is only rendered for programs (`programId` check), not courses
-- The component uses `courses.enrollment_count` for the Students stat but the column is not reliably updated when enrollments are managed via `access_tickets`
-- Comment in source: "Split candidate: ~572 lines — consider extracting SetupStepsChecklist, ProgramOverviewCard, and SetupActionPanel into sub-components"
-
----
-
-## CoursesManagement (`/platform-admin/courses` or similar)
-
-**What it does:** Platform admin and instructor view listing all courses on the platform (admins see all; instructors see only their own). Provides links to view, set up, manage settings, and delete courses.
-
-**Data loaded:**
-- `courses` table — all columns
-  - Platform admins (`role === 'super' | 'admin'`): no filter
-  - Instructors: filtered to `instructor_id = profile.id OR created_by = profile.id`
-
-**User actions:**
-- Search by title, description, or instructor name
-- View any course (links to `/courses/:slug`)
-- Open course content setup (links to `/course-admin/:id/setup`)
-- Open instructor settings (links to `/instructor/courses/:slug`)
-- Platform admins only: delete a course via the `admin/delete-container` Edge Function (with confirmation dialog)
-- Create new course (links to `/courses/create`)
-
-**Tabs / sub-views:**
-- Summary stats card: total courses, published count, total enrollments
-- Course grid (1–3 columns)
-
-**Access model:** Any authenticated user can access this component — the data query self-limits by role, but there is no hard route guard.
-
-**Known issues / gaps:**
-- No hard route guard — a plain member who navigates directly to this path would see an empty or partial list rather than a redirect
-- `enrollment_count` stat is taken from the `courses` table column (not a live join), so it may be stale if enrollments are managed via tickets without writing back to the column
-- Delete button only shown to `role === 'super' | 'admin'`; instructors cannot delete their own courses here (must use InstructorCourseManagement)
+- Analytics and Audit tabs are stubs for courses
+- `enrollment_count` stat in the header reads from the `courses` column (not a live join) — may be stale
+- "Manage Sessions" quick action in Overview only renders for programs, not courses
 
 ---
 
 ## InstructorCourseManagement (`/instructor/courses/:slug`)
 
-**What it does:** Per-course edit and settings page for the course leader (instructor or admin). Provides tabbed editing of metadata, pricing/visibility, content pointer, and advanced settings including publish toggle and delete.
+**What it does:** Per-course edit and settings page for the course leader.
 
-**Data loaded:**
-- `courses` (by slug): all editable fields
-- Checks `instructor_id` or `created_by` against `profile.id` for ownership; also accepts `hasRoleLevel(profile.role, ROLES.ADMIN)`
+**Tabs:**
+- **Basic Info:** title, description, course leader name and bio
+- **Pricing:** pricing type, USD price, visibility (Public / Members Only / Premium)
+- **Content:** links to `/course-admin/:id/setup`
+- **Settings:** Featured toggle, Published toggle, Danger Zone (delete)
 
-**User actions:**
-- **Basic Info tab:** edit title, description, course leader name and bio; save
-- **Pricing tab:** change pricing type and USD price; change visibility (Public / Members Only / Premium)
-- **Content tab:** button links to `/course-admin/:id/setup` for journey/lesson management
-- **Settings tab:** toggle Featured and Published toggles; save
-- **Danger Zone (Settings tab):** delete course via `admin/delete-container` Edge Function with confirmation dialog
-- Header: Preview (link to landing page), Publish/Unpublish toggle
-
-**Tabs / sub-views:**
-- Basic Info / Pricing / Content / Settings
-
-**Access model:** Ownership check (`instructor_id` or `created_by`) or admin role; unauthorized users redirected to `/instructor/dashboard`
+**Access:** Ownership check (`instructor_id` or `created_by`) or admin role; unauthorized → `/instructor/dashboard`.
 
 **Known issues / gaps:**
-- Revenue estimate (`price_cents * enrollment_count / 100`) relies on the potentially stale `enrollment_count` column
-- `access_level` options in the Pricing tab include `'premium'` but `CreateCoursePage` does not offer this value; slight inconsistency
-- ConvertKit Product ID is not editable here (only on create form)
-- Content tab is a stub — it just shows a button; no inline journey management
+- Revenue estimate uses potentially stale `enrollment_count` column
+- ConvertKit Product ID not editable here (only on create form)
+- No course ratings or reviews surface — `average_rating` column exists on `courses` but is never written to; `content_ratings` table is not wired for `content_type = 'course'`
+- No course companion management view (planned)
+- No instructor prep library or student resource library (planned)
+
+---
+
+## CoursesManagement (`/platform-admin/courses`)
+
+**What it does:** Platform admin and instructor view listing all courses. Admins see all; instructors see their own only.
+
+**User actions:**
+- Search by title, description, or instructor name
+- View / setup / manage settings / delete any course
+- Create new course
+
+**Known issues / gaps:**
+- No hard route guard — a plain member who navigates directly sees an empty list rather than a redirect
+- `enrollment_count` stat may be stale (column vs. live join)
+- Instructors cannot delete their own courses here — must use `InstructorCourseManagement`
+
+---
+
+## Planned Features
+
+---
+
+### Course Companion (Instructor ↔ Student)
+
+**Goal:** Private 1:1 channel between the course instructor and each enrolled student — separate from the friend companion system.
+
+**Proposed schema:**
+```sql
+course_companions (
+  id, course_id, instructor_id, student_id,
+  created_at, last_message_at
+)
+course_companion_messages (
+  id, companion_id, sender_id,
+  body text,
+  item_type text,           -- 'message' | 'assignment_feedback' | 'resource'
+  item_ref_id uuid,         -- optional link to a journey_item_completion or resource
+  created_at
+)
+```
+
+**Interaction model:**
+- Auto-created when a student enrolls (same pattern as `friend_companions`)
+- Instructor sees a roster view at `/course-admin/:courseId/companions` listing all active companions with unread counts
+- Student sees a "Message Instructor" button in the `CoursePlayerPage` sidebar (currently missing — noted as a known gap)
+- Supports: text messages, file attachments (via storage), assignment feedback threads linked to `journey_item_completions`
+
+**Implementation path:**
+1. Schema migration — `course_companions` + `course_companion_messages`
+2. Auto-create on enrollment inside `enrollmentBridge.enrollInCourse`
+3. Student UI: add "Message Instructor" entry in `CoursePlayerPage` sidebar
+4. Instructor UI: companion roster tab in `CourseAdminSetupPage`
+5. Shared `CourseCompanionView` component (mirrors `FriendCompanionPage` layout minus the friendship check)
+
+---
+
+### Course Libraries
+
+**Goal:** Two distinct libraries per course — one for the instructor, one for students.
+
+**Instructor prep library:** Resources the instructor uses to build the course (reference texts, slide decks, planning docs). Not visible to students. Linked to the course via `course_id` on an existing `shelves` row with a `visibility = 'instructor'` flag.
+
+**Student resource library:** Supplementary materials released to enrolled students (workbooks, checklists, templates). Visible once enrolled. Same shelf pattern with `visibility = 'enrolled'`.
+
+**Implementation path:**
+- No new table: reuse `shelves` with a `course_id FK` + `visibility ENUM('instructor','enrolled','public')` column
+- Surface in `CourseAdminSetupPage` as a new "Resources" tab
+- Surface in `CoursePlayerPage` sidebar as a "Resources" section (appears after enrollment check)
+
+---
+
+### Book Study Template
+
+**Goal:** Course template where each module corresponds to a book section, followed by a reflection or assignment.
+
+**Template structure (one journey per chapter group):**
+```
+Module 1 — Chapters 1–3
+  ├─ book (item_type: book, pointing to chapters 1-3)
+  ├─ reflection ("What resonated with you from this section?")
+  └─ assignment ("Complete the Chapter 1 worksheet")
+Module 2 — Chapters 4–6
+  ...
+```
+
+**Dependency on book upgrades:** The current `book_chapters` schema stores chapters as flat markdown blobs. For a book study to work well, chapters need:
+- `reading_time_minutes` (computed from word count)
+- `section_label` for grouping chapters into parts
+- Per-chapter "Mark as Read" completion tracking
+- Prev/Next navigation (currently absent — must click sidebar)
+
+See **Book Upgrade Roadmap** section below.
+
+---
+
+### Book Upgrade Roadmap
+
+The current book feature is suited for short-form structured content (~10 chapters, no navigation aids). The following upgrades are needed for it to anchor a course:
+
+| Priority | Change | Schema impact |
+|----------|--------|--------------|
+| **P0** | Prev / Next chapter buttons at bottom of chapter view | None — client-only using existing `chapters` array |
+| **P0** | Per-chapter "Mark as Read" (writes `journey_item_completions`) | None if keyed on chapter `item_id` within a journey |
+| **P1** | `word_count INT` + `reading_time_minutes INT` columns on `book_chapters` | `ALTER TABLE book_chapters ADD COLUMN ...` |
+| **P1** | `section_label TEXT` on `book_chapters` — groups chapters into parts (e.g. "Part I: Foundations") | Same migration |
+| **P2** | Inline annotations / highlights (reader highlights a passage, saved to `book_annotations` table) | New table |
+| **P2** | Chapter-level audio URL (`audio_url TEXT`) for authored recordings | Column on `book_chapters` |
+
+**P0 items are client-only changes in `BookDetailPage.tsx`** — no migration needed. These can ship today.
+
+---
+
+### Audio Lectures & Text-to-Speech
+
+**Goal:** Let learners listen to course content — either an authored audio file or synthesized speech.
+
+#### Option A — Authored audio on `book_chapters`
+Add `audio_url TEXT` column to `book_chapters`. Render an HTML5 `<audio>` element above the chapter body when `audio_url` is present. Reuse the same pattern for `pages` (`page_sections.audio_url`).
+
+#### Option B — Browser TTS (zero infra cost)
+Use `window.speechSynthesis` to read chapter content aloud. Strip markdown before feeding to `speechSynthesis.speak()`. Add a "Listen" button to `BookDetailPage` and `PageView`.
+
+```ts
+// Pattern for browser TTS
+const speak = (text: string) => {
+  const utterance = new SpeechSynthesisUtterance(stripMarkdown(text));
+  utterance.rate = 1.0; // expose as UI control 0.5–2.0
+  window.speechSynthesis.speak(utterance);
+};
+const stopSpeaking = () => window.speechSynthesis.cancel();
+```
+
+**Recommendation:** Ship Option B (browser TTS) first — zero cost, no schema change, three files touched (`BookDetailPage.tsx`, a shared `useTTS` hook, and `PageView.tsx`). Add Option A later for production-quality audio.
+
+---
+
+### Course-to-Profile Matching ("Recommended for You")
+
+**Goal:** Surface relevant courses to a learner on `CoursesPage` and their dashboard based on profile overlap.
+
+**Scoring approach (client-side, no schema change):**
+```ts
+// Simple tag overlap score
+const scoreMatch = (course: Course, profile: UserProfile): number => {
+  const profileSet = new Set([
+    ...(profile.interests ?? []),
+    ...(profile.looking_for ?? []),
+    profile.career_stage,
+  ].filter(Boolean));
+  return (course.tags ?? []).filter(t => profileSet.has(t)).length;
+};
+```
+
+**CoursesPage changes needed:**
+1. Fetch current user's profile fields (`career_stage`, `looking_for`, `interests`) — already in `profiles` table
+2. Run `scoreMatch` over the published course list
+3. Render a "Recommended for You" horizontal scroll section above the All Courses grid when `score > 0` for at least one course
+4. Courses with `score = 0` still appear in the main grid — no courses are hidden
+
+**Note:** The "My Courses" filter already has a bug where it reads `course_enrollments` only (misses ticket-enrolled users). Fix that at the same time by joining `access_tickets` in the enrollment check.
+
+---
+
+### Slides Content Type (Planned)
+
+**Concept:** A `slides` journey item type — a deck-style viewer for text-heavy or visual slide content, more suited to long-form presentations than the existing `deck` flashcard format.
+
+**Differences from `deck`:**
+| | `deck` (existing) | `slides` (planned) |
+|---|---|---|
+| Primary use | Flashcard Q&A | Presentation / lecture slides |
+| Navigation | Card flip (front/back) | Linear prev/next |
+| Content per item | Short answer + question | Rich markdown, image, or embed per slide |
+| Import | Manual entry | Markdown frontmatter or CSV import |
+
+**Proposed schema:**
+```sql
+slide_decks (id, title, description, created_by, created_at)
+slides (id, deck_id, order_index, title, body text, image_url, notes text, created_at)
+```
+
+**Import path:** Accept a markdown file where each `---` separator creates a new slide (Marp/Reveal.js compatible). This enables import from any markdown-based slide tool.
+
+**Status:** Concept only — no schema migration or UI work done.
+
+---
+
+### Competitive Comparison Summary
+
+| Feature | Connexted Courses | Teachable | Thinkific | Kajabi | Circle (courses) |
+|---------|-------------------|-----------|-----------|--------|-----------------|
+| Self-paced enrollment | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Cohort / program mode | ✅ (Programs) | ❌ | ✅ | ✅ | ✅ |
+| JSON export/import | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Course duplication | ✅ | ✅ | ✅ | ✅ | ❌ |
+| AI course builder | ❌ (planned) | ✅ | ✅ | ✅ | ❌ |
+| 1:1 instructor-student messaging | ❌ (planned) | ❌ | ❌ | ✅ | ✅ |
+| Course ratings/reviews | ❌ (schema exists, not wired) | ✅ | ✅ | ✅ | ❌ |
+| Certificate of completion | ❌ (listed as planned) | ✅ | ✅ | ✅ | ❌ |
+| Book study template | ❌ (planned) | ❌ | ❌ | ❌ | ❌ |
+| Built-in TTS / audio | ❌ (planned) | ❌ | ❌ | ❌ | ❌ |
+| Interactive elements (poll, quiz) | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Cross-platform import | ❌ | ❌ | partial | ❌ | ❌ |
+| Profile-based recommendations | ❌ (planned) | ❌ | ❌ | ❌ | ❌ |
+| Community integration | ✅ (Circles) | ❌ | ❌ | ✅ | ✅ |
+
+**Key differentiators to build toward:**
+1. JSON portability (already done — unique in the market)
+2. 1:1 course companion messaging (planned — would differentiate from Teachable/Thinkific)
+3. Profile-based matching (planned — no competitor does this client-side)
+4. Book study template (planned — no competitor has this pattern)
+5. Audio/TTS on any content item (planned — no competitor has browser TTS)

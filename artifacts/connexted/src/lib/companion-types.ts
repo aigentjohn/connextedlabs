@@ -31,6 +31,8 @@ import {
   ListChecks,
   LayoutGrid,
   Users,
+  GraduationCap,
+  FileEdit,
 } from 'lucide-react';
 
 export type CompanionContext = 'circle' | 'company' | 'sponsor' | 'event' | 'friend';
@@ -182,8 +184,40 @@ export const COMPANION_ITEM_TYPES: CompanionItemType[] = [
     nameField: 'name',
     slugField: 'slug',
     route: '/checklists',
-    contexts: ['circle', 'event'],
+    contexts: ['circle', 'event', 'friend'],
     guestVisible: false,
+  },
+
+  // ── Course sharing (friend · circle) ────────────────────────────────────
+  // A mutual friend can share a course they are taking or recommend one.
+  // Circles naturally surface learning content to their members.
+
+  {
+    value: 'course',
+    label: 'Course',
+    icon: GraduationCap,
+    table: 'courses',
+    nameField: 'title',
+    slugField: 'slug',
+    route: '/courses',
+    contexts: ['circle', 'friend'],
+    guestVisible: true,
+  },
+
+  // ── Page sharing (friend · circle) ───────────────────────────────────────
+  // A page is a rich standalone article or note. Friends can share a page
+  // they wrote; circles can feature knowledge-base articles.
+
+  {
+    value: 'page',
+    label: 'Page',
+    icon: FileEdit,
+    table: 'pages',
+    nameField: 'title',
+    slugField: 'slug',
+    route: '/pages',
+    contexts: ['circle', 'friend'],
+    guestVisible: true,
   },
 
   // ── Structured learning (circle only) ────────────────────────────────────
