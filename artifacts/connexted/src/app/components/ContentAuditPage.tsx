@@ -95,7 +95,7 @@ export default function ContentAuditPage() {
     setLoading(true);
     try {
       const [b, d, l, lib] = await Promise.all([
-        supabase.from('books').select('id, title, description, visibility, created_at').eq('created_by', userId).order('created_at', { ascending: false }),
+        supabase.from('books').select('id, title, description, visibility, created_at').eq('created_by', userId).is('deleted_at', null).order('created_at', { ascending: false }),
         supabase.from('decks').select('id, title, description, visibility, created_at').eq('created_by', userId).order('created_at', { ascending: false }),
         supabase.from('checklists').select('id, name, description, category, created_at').eq('created_by', userId).order('created_at', { ascending: false }),
         supabase.from('libraries').select('id, name, description, is_public, created_at').eq('owner_id', userId).eq('owner_type', 'user').order('created_at', { ascending: false }),

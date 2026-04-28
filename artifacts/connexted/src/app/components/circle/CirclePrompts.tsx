@@ -4,9 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Badge } from '@/app/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
-import { Sparkles, Copy, Check, Plus, Trash2, Edit2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Copy, Check, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatePromptDialog } from '@/app/components/circle/CreatePromptDialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/app/components/ui/alert-dialog';
 
 interface CirclePrompt {
   id: string;
@@ -32,6 +37,7 @@ export default function CirclePrompts({ circleId, isAdmin, isMember }: CirclePro
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPrompts();
@@ -70,8 +76,6 @@ export default function CirclePrompts({ circleId, isAdmin, isMember }: CirclePro
   };
 
   const handleDeletePrompt = async (promptId: string) => {
-    if (!confirm('Are you sure you want to delete this prompt?')) return;
-
     try {
       const { error } = await supabase
         .from('circle_prompts')
@@ -81,6 +85,7 @@ export default function CirclePrompts({ circleId, isAdmin, isMember }: CirclePro
       if (error) throw error;
 
       setPrompts(prompts.filter(p => p.id !== promptId));
+      setDeleteTarget(null);
       toast.success('Prompt deleted');
     } catch (error) {
       console.error('Error deleting prompt:', error);
@@ -180,7 +185,7 @@ export default function CirclePrompts({ circleId, isAdmin, isMember }: CirclePro
                     
                     {(isOwner || isAdmin) && (
                       <Button
-                        onClick={() => handleDeletePrompt(prompt.id)}
+                        onClick={() => setDeleteTarget(prompt.id)}
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -261,6 +266,25 @@ export default function CirclePrompts({ circleId, isAdmin, isMember }: CirclePro
         circleId={circleId}
         onPromptCreated={fetchPrompts}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this prompt?</AlertDialogTitle>
+            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteTarget && handleDeletePrompt(deleteTarget)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

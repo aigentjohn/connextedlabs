@@ -99,6 +99,7 @@ export function AddJourneyContentDialog({
           const { data: books } = await supabase
             .from('books')
             .select('id, title, description')
+            .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(100);
           data = books || [];
