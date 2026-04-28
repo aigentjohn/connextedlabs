@@ -32,8 +32,10 @@ import {
   Maximize2,
   Star as StarIcon,
   Link2,
-  Video
+  Video,
+  Flag,
 } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import { toast } from 'sonner';
 import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 
@@ -451,6 +453,18 @@ export default function PitchDetailPage() {
                 containerTitle={pitch.name}
                 recipientId={pitch.created_by}
                 recipientName={creator?.name || 'the creator'}
+              />
+            )}
+            {pitch.created_by !== profile?.id && (
+              <ReportContentDialog
+                contentType="pitch"
+                contentId={pitch.id}
+                contentTitle={pitch.name}
+                trigger={
+                  <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
               />
             )}
             {isAdmin && (

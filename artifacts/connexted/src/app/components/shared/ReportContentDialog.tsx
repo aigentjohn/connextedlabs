@@ -18,7 +18,7 @@ import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
 interface ReportContentDialogProps {
-  contentType: 'review' | 'post' | 'document' | 'comment';
+  contentType: string;
   contentId: string;
   contentTitle?: string;
   onReportSubmitted?: () => void;
