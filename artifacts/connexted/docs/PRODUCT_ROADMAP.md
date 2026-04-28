@@ -56,6 +56,9 @@ Everything that was broken or partially built when this sprint started.
 | ✅ | P4-4: Course completion certificate — print-ready HTML via `window.open`; no dependencies |
 | ✅ | P4-5: Start from Scratch program creation — inline name form bypasses template picker |
 | ✅ | Interactive journey content types — Poll, Reflection, Assignment, FAQ, Schedule Picker; migration + pages + inline viewers + AddContentDialog Interactive tab |
+| ✅ | Platform-wide moderation — ReportContentDialog on 8 content types; FlaggedContentPage extended to 20 types; ContentModerationPage imports fixed (PR #8) |
+| ✅ | Creator edit/delete rights — Deck edit dialog; Build/Pitch creator self-service; Book/Review/Moments/Magazine gaps closed (PR #9) |
+| ✅ | Dead code cleanup — deleted orphaned PlaylistSettingsPage + MagazineSettingsPage; removed stale Episode.views interface field (PR #10) |
 
 ---
 
@@ -134,7 +137,19 @@ the Express API is not involved.
 | Count badge per tab | Each tab shows total item count |
 | Quick actions per type | Edit / Delete / Change visibility inline |
 
-### 2e. Data export (GDPR)  🔴 Critical — requires API server
+### 2e. Tech debt & cleanup  🟡 Medium
+*Frontend + DB migrations — no API server needed.*
+
+Carried from `CLEANUP_AND_DEVELOPMENT_NOTES.md`.
+
+| Item | Notes |
+|------|-------|
+| Dead DB columns — drop `blogs.view_count`, `blogs.click_count`, `episodes.views` | Migration only; or wire real server-side tracking via Edge Function |
+| Nav page audit — Tables, Meetings, Libraries, Checklists, Standups, Sprints, Elevators, Meetups | Verify route + page exists and renders for each; fix or stub empty states |
+| TopicSelector compact context audit | Search all `<TopicSelector` usages; confirm none render in a card/modal/sidebar where the inline tabs would overflow |
+| Prompts quick fixes (CirclePrompts, ProgramPrompts) | Replace `confirm()` with AlertDialog; remove unused `Edit2` import; align permission model (any member vs admin-only) |
+
+### 2f. Data export (GDPR)  🔴 Critical — requires API server  *(was 2e)*
 *Express API route + Railway deployment. Build after Step 0 is done.*
 
 **Architecture note:** Export cannot run in the browser — ZIP generation is
@@ -153,7 +168,7 @@ Tables to include in export: `documents`, `pages`, `books` + `book_chapters`,
 `decks`, `checklists`, `libraries`, `my_contents`, `posts`, `episodes`,
 `playlists`, `builds`, `pitches`, `badges`, user profile.
 
-### 2f. Account deletion (GDPR/CCPA)  🔴 Critical — requires API server
+### 2g. Account deletion (GDPR/CCPA)  🔴 Critical — requires API server  *(was 2f)*
 *Express API routes + pg_cron inside Supabase. Build after 2e is done.*
 
 **Architecture note:** The flow is split across two systems by design.
@@ -250,7 +265,20 @@ See `PAGES_AND_TEMPLATES_PLAN.md` for full list. Ship as a template picker on th
 | Tag filter on `/links` browse page | Client-side; tags already stored |
 | Submit link for admin review | `link_submissions` table + admin review queue |
 
-### 5c. Portfolio audit
+### 5c. Prompts container type
+*Full standalone container — same shape as Magazine/Playlist.*
+
+A `prompts` table already exists with `name`, `slug`, `member_ids`, `admin_ids`.
+No pages, routes, or create flow exist yet.
+
+| Feature | Notes |
+|---------|-------|
+| `PromptsPage.tsx` — browse/search | Same pattern as MagazinesPage |
+| `PromptDetailPage.tsx` — view + manage | Tabs: Prompts, Manage |
+| `CreatePromptPage.tsx` + route | `/prompts/create` |
+| Register routes in `App.tsx` + nav item | Restore `Prompts` nav entry |
+
+### 5d. Portfolio audit  *(was 5c)*
 | Feature | Notes |
 |---------|-------|
 | Audit `/portfolio/:userId` — what renders today | Read and document before fixing |
@@ -268,6 +296,7 @@ problem that affects every form in the app. Do it once, do it right.
 
 | Feature | Notes |
 |---------|-------|
+| Engagement metrics architecture — materialised count columns on `blogs`/`episodes` (via DB triggers) or a batch Edge Function | Replace multi-query fan-out on browse pages; not urgent until thousands of items |
 | Configure Storage buckets (avatars, covers, assets) | See `IMAGE_SPECIFICATIONS.md` |
 | Upload component (`ImageUpload`) | Shared; drop into any form |
 | Avatar upload on profile edit | First consumer |
@@ -306,6 +335,7 @@ advisory cohort validation.
 | Email notifications | Sprint 6+ |
 | Cross-instance content import | Post-MVP |
 | Photos and Albums | Post-Sprint 6 (Storage) |
+| Audio / Podcast episodes — `media_type` column on episodes; VideoPlayer → MediaPlayer; Spotify/SoundCloud embeds; square cover art for audio | Post-Sprint 6 |
 
 ---
 

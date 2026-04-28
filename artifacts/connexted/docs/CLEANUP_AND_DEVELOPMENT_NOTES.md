@@ -4,9 +4,11 @@ This document captures known gaps, dead code, and incomplete features identified
 UX normalization work on Blogs, Episodes, Magazines, and Playlists (April 2026).
 Items are grouped by area and rated by priority.
 
+Status: ✅ Resolved · 📋 Backlogged (see PRODUCT_ROADMAP.md) · ❓ Decision needed
+
 ---
 
-## 1. Dead Database Columns
+## 1. Dead Database Columns  📋 Backlogged → Sprint 2 tech debt
 
 ### `blogs.view_count`
 - **Status:** Column exists in DB, was previously incremented client-side on every page load.
@@ -28,29 +30,22 @@ Items are grouped by area and rated by priority.
 
 ---
 
-## 2. Dead Routes
+## 2. Dead Routes  ✅ Resolved (PR #10, April 2026)
 
 ### `/episodes/:id/edit`
-- **Status:** Linked from the old owner action buttons in EpisodesPage. No such route exists
-  in `App.tsx`. Fixed in EpisodeCard by changing "Edit" → "Manage" linking to `/episodes/:id`.
-- **Action needed:** Confirm no other components still link to `/episodes/:id/edit` and that
-  it is not defined anywhere in `App.tsx`. Safe to ignore if nothing links to it.
+- **Status:** Confirmed absent from `App.tsx`. No components link to it. No action needed.
 
 ### `/magazines/:id/settings`
-- **Status:** Linked from the old MagazineDetailPage Settings button. MagazineSettingsPage
-  content has been absorbed into the Manage tab of the new MagazineDetailPage.
-- **Action needed:** Check `App.tsx` for a `/magazines/:id/settings` route and remove it.
-  Check whether `MagazineSettingsPage.tsx` still exists and can be deleted.
+- **Status:** Route was already absent from `App.tsx`. `MagazineSettingsPage.tsx` confirmed
+  orphaned and deleted in PR #10.
 
 ### `/playlists/:slug/settings`
-- **Status:** Same as above — PlaylistSettingsPage content absorbed into PlaylistDetailPage
-  Manage tab.
-- **Action needed:** Check `App.tsx` for a `/playlists/:slug/settings` route and remove it.
-  Check whether `PlaylistSettingsPage.tsx` still exists and can be deleted.
+- **Status:** Route was already absent from `App.tsx`. `PlaylistSettingsPage.tsx` confirmed
+  orphaned and deleted in PR #10.
 
 ---
 
-## 3. Prompts — Deferred Container Type
+## 3. Prompts — Deferred Container Type  📋 Backlogged → Sprint 5 (container) / Sprint 2 (cleanup)
 
 ### Background
 The nav item `Prompts → /prompts` was removed from `nav-config.ts` because no pages were built.
@@ -77,7 +72,7 @@ Two separate things exist under the "prompts" label:
 
 ---
 
-## 4. TopicSelector — Context Risk
+## 4. TopicSelector — Context Risk  📋 Backlogged → Sprint 2 audit
 
 ### Background
 `TopicSelector` was changed from a `Popover` (click to open) to an always-visible inline
@@ -102,21 +97,17 @@ vertical space. Known usages (all full-page, safe):
 
 ---
 
-## 5. EpisodesPage — Stale Interface Field
+## 5. EpisodesPage — Stale Interface Field  ✅ Resolved (PR #10, April 2026)
 
-The `Episode` interface in `EpisodesPage.tsx` still declares `views: number` even though
-`episode.views` is no longer displayed anywhere in the component. The field is fetched from
-the DB but silently ignored.
-
-**Action needed:** Remove `views` from the `Episode` interface in `EpisodesPage.tsx` and
-confirm no remaining references.
+The `views: number` field was removed from the `Episode` interface in `EpisodesPage.tsx`.
+No remaining references found.
 
 ---
 
-## 6. Nav Items With Unknown Page Status
+## 6. Nav Items With Unknown Page Status  📋 Backlogged → Sprint 2 audit
 
 The following items appear in `nav-config.ts` but their page completeness has not been
-reviewed. Each should be checked to confirm a working route and page exists:
+fully reviewed. Each should be checked to confirm a working route and page exists:
 
 | Nav item | Route | Min class | Status |
 |---|---|---|---|
@@ -127,28 +118,22 @@ reviewed. Each should be checked to confirm a working route and page exists:
 | Standups | `/standups` | 7 | Unknown |
 | Sprints | `/sprints` | 7 | Unknown |
 | Elevators | `/elevators` | 10 | Unknown |
-| Pitches | `/pitches` | 10 | Unknown |
-| Builds | `/builds` | 10 | Unknown |
+| Pitches | `/pitches` | 10 | ✅ Confirmed working (Apr 2026) |
+| Builds | `/builds` | 10 | ✅ Confirmed working (Apr 2026) |
 | Meetups | `/meetups` | 10 | Unknown |
 
-For each: verify a route exists in `App.tsx`, a page component exists, and the page renders
-meaningfully rather than showing an empty or broken state.
+For each unknown: verify a route exists in `App.tsx`, a page component exists, and the page
+renders meaningfully rather than showing an empty or broken state.
 
 ---
 
-## 7. MagazineSettingsPage and PlaylistSettingsPage
+## 7. MagazineSettingsPage and PlaylistSettingsPage  ✅ Resolved (PR #10, April 2026)
 
-These files may still exist as orphaned components now that their content has been absorbed
-into the respective detail page Manage tabs.
-
-**Action needed:**
-- Locate `MagazineSettingsPage.tsx` and `PlaylistSettingsPage.tsx`.
-- If routes to them still exist in `App.tsx`, remove those routes.
-- Delete the files if they are no longer reachable.
+Both files were confirmed orphaned and deleted. Routes were already absent from `App.tsx`.
 
 ---
 
-## 8. Blog / Episode Engagement Architecture
+## 8. Blog / Episode Engagement Architecture  📋 Backlogged → Sprint 6
 
 `content_likes`, `content_ratings`, and `content_shares` tables drive engagement metrics
 across both blogs and episodes. Currently these are loaded with separate parallel queries
@@ -163,7 +148,7 @@ Not urgent at current scale, but worth noting before the browse pages handle tho
 
 ---
 
-## 9. Audio / Podcast Support (Deferred)
+## 9. Audio / Podcast Support  📋 Backlogged → Hypothesis Pipeline
 
 Discussed and deferred. The recommended approach when ready:
 
