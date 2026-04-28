@@ -50,6 +50,12 @@ Everything that was broken or partially built when this sprint started.
 | ✅ | Admin dashboard — real activity counts from `membership_states` + `container_memberships` |
 | ✅ | `/help/discover` — Discover Guide page built and registered |
 | ✅ | `/markets/search` — Market search page built and registered |
+| ✅ | P4-1: Item reordering — up/down arrows on EditCompanyPage, EventCompanionDetailPage, PlaylistSettingsPage |
+| ✅ | P4-2: Skills/credentials `is_public` toggle — Eye/EyeOff on each row; public profile filters immediately |
+| ✅ | P4-3: Moments comments — lazy-loaded per post, gated by `allow_comments`; submit via Enter or button |
+| ✅ | P4-4: Course completion certificate — print-ready HTML via `window.open`; no dependencies |
+| ✅ | P4-5: Start from Scratch program creation — inline name form bypasses template picker |
+| ✅ | Interactive journey content types — Poll, Reflection, Assignment, FAQ, Schedule Picker; migration + pages + inline viewers + AddContentDialog Interactive tab |
 
 ---
 
@@ -203,13 +209,14 @@ If >50% → build micro-pathway creator in PathwayAdminPage.
 
 **Dependencies:** Sprint 2 (account deletion done); sprint 3 results in.
 
-### 4a. Journey item completion tracking
-| Feature | Notes |
-|---------|-------|
-| `journey_item_completions` table | `user_id`, `program_id`, `journey_id`, `item_id`, `completed_at` |
-| Mark item complete button in JourneyInlineViewer | Calls upsert on completion table |
-| Learner progress bar on Program dashboard | `completed / total` per journey |
-| Instructor view — completion per member | Admin-only tab on Program page |
+### 4a. Journey item completion tracking  ⚠️ Partially done early
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `journey_item_completions` table | ✅ Done | Pre-existing table; `user_id`, `program_id`, `journey_id`, `item_id`, `completed_at` |
+| Mark item complete (checkbox + auto-complete for interactive types) | ✅ Done | Shipped with interactive types Apr 2026; checkboxes in JourneyDetailView; Poll/Reflection auto-complete on submit |
+| Learner progress bar on Program dashboard | 📋 Remaining | `completed / total` per journey — completions stored but not surfaced yet |
+| Instructor view — completion per member | 📋 Remaining | Admin-only progress view not yet built |
 
 ### 4b. Pathway step completion (durable)  ✅ Done early (shipped Sprint 1)
 | Feature | Status |

@@ -157,8 +157,9 @@ How instructors build structured learning and how learners move through it.
 | Add Documents, Books, Decks, Episodes, Checklists | ✅ Live | — | — |
 | Add Pages to journeys | ✅ Live | — | Built Apr 2026 |
 | Inline content viewer per item type | ✅ Live | — | JourneyInlineViewer |
-| Journey item completion tracking | 📋 Planned | 🟡 | No per-item completion stored yet |
-| Learner progress rollup | 📋 Planned | 🟡 | Depends on completion tracking |
+| Journey item completion tracking | ✅ Live | — | `journey_item_completions` table; checkboxes in JourneyDetailView; interactive types auto-complete on submit |
+| Add interactive content types to journeys | ✅ Live | — | Built Apr 2026; Poll, Reflection, Assignment, FAQ, Schedule Picker via AddContentDialog Interactive tab |
+| Learner progress rollup | 📋 Planned | 🟡 | Per-item completions exist; admin progress view not yet built |
 | Estimated time per item | 📋 Planned | 🟢 | `estimated_time` field exists; not surfaced |
 | Drag-to-reorder journey items | 💡 Exploring | 🟢 | — |
 
@@ -166,9 +167,11 @@ How instructors build structured learning and how learners move through it.
 | Feature | Status | Priority | Notes |
 |---|---|---|---|
 | Course creation and management | ✅ Live | — | — |
+| Start from Scratch (no template) | ✅ Live | — | Fixed Apr 2026; inline name form bypasses template picker; navigates to `/program-admin/:id/setup` |
 | Enrolled courses view | ⚠️ Not reviewed | 🟡 | `/my-courses` — needs audit |
 | Course import / export (JSON) | ✅ Live | — | Export schema defined |
 | Course landing page | ✅ Live | — | — |
+| Course completion certificate | ✅ Live | — | Fixed Apr 2026; "Get Certificate" opens print-ready HTML certificate in new tab (window.open); no dependencies |
 | Prerequisite gating | 💡 Exploring | 🟢 | — |
 
 ### Programs
@@ -184,11 +187,15 @@ How instructors build structured learning and how learners move through it.
 ### Interactive Content (in Journeys)
 | Feature | Status | Priority | Notes |
 |---|---|---|---|
-| Poll (single question, live results) | 📋 Planned | 🟡 | See INTERACTIVE_CONTENT_TYPES_PLAN.md |
-| Ranking (drag to order, consensus view) | 📋 Planned | 🟢 | — |
-| Assignment (submit work, instructor review) | 📋 Planned | 🟡 | — |
-| Reflection prompt (private journal entry) | 📋 Planned | 🟡 | — |
-| FAQ (admin-curated Q&A accordion) | 📋 Planned | 🟢 | Could be a Page section schema instead |
+| Poll (single question, live results) | ✅ Live | — | Built Apr 2026; inline vote + live bar chart; reuses surveys table with survey_type='poll'; auto-completes journey item on vote |
+| Reflection (private journaling prompt) | ✅ Live | — | Built Apr 2026; inline textarea; responses in reflection_responses table; auto-completes on first save |
+| Assignment (submit work, instructor review) | ✅ Live | — | Built Apr 2026; `/assignments/:id`; text/link/both; past-due + allow_late logic; admin inline feedback + score |
+| FAQ (admin-curated Q&A accordion) | ✅ Live | — | Built Apr 2026; `/faqs/:id`; admin add/edit/delete/reorder; member accordion view |
+| Schedule Picker (Doodle-style availability) | ✅ Live | — | Built Apr 2026; `/schedule/:id`; members mark availability; admin confirms slot; response count bars |
+| Ranking (drag to order, consensus view) | 📋 Planned | 🟢 | See INTERACTIVE_CONTENT_TYPES_PLAN.md |
+| Cohort Introduction (structured intro, visible to group) | 📋 Planned | 🟢 | — |
+| Peer Review (rubric-based, paired submissions) | 📋 Planned | 🟢 | Depends on Assignment being live |
+| Office Hours Booking (host slots, member books 1:1) | 📋 Planned | 🟢 | — |
 | Quiz / Assessment | ⚠️ Partial | 🟡 | `surveys` table exists; UI incomplete |
 
 ---
@@ -214,7 +221,7 @@ How members connect, share, and collaborate.
 |---|---|---|---|
 | Create, edit, delete posts | ✅ Live | — | `/moments/:userId` |
 | Posts feed per circle | ✅ Live | — | — |
-| Like, comment on posts | ✅ Live | — | — |
+| Like, comment on posts | ✅ Live | — | Fixed Apr 2026; comments lazy-loaded per post, gated by `allow_comments` flag |
 | Post expiry | 💡 Exploring | 🟢 | Low priority |
 
 ### Friend Companions

@@ -1,7 +1,7 @@
-# Interactive Content Types — Future Development Plan
+# Interactive Content Types — Development Plan
 
 **Date:** April 2026
-**Status:** Planned — not yet built
+**Status:** Phase 1 shipped (Poll, Reflection, Assignment, FAQ, Schedule Picker — April 2026). Phase 2 (Ranking, Cohort Intro, Peer Review, Office Hours) planned.
 **Scope:** New interactive content types for Courses and Programs (journeys/cohorts)
 
 ---
