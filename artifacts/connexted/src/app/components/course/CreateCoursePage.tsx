@@ -84,7 +84,7 @@ export default function CreateCoursePage() {
         .from('courses')
         .select('id')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
 
       if (existingCourse) {
         toast.error('A course with this title already exists. Please use a different title.');

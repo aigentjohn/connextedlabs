@@ -20,6 +20,7 @@ import { checkAccess } from '@/services/enrollmentBridge';
 import RedeemCodeDialog from '@/app/components/shared/RedeemCodeDialog';
 import { WaitlistBlock } from '@/app/components/shared/WaitlistBlock';
 import { templateApi, type TicketTemplate } from '@/services/ticketSystemService';
+import { RatingWidget } from '@/app/components/engagement/RatingWidget';
 
 interface Course {
   id: string;
@@ -35,6 +36,8 @@ interface Course {
   currency: string;
   is_published: boolean;
   convertkit_product_id: string | null;
+  average_rating: number | null;
+  ratings_count: number | null;
 }
 
 interface Journey {
@@ -55,6 +58,7 @@ export default function CourseLandingPage() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [linkedTemplate, setLinkedTemplate] = useState<TicketTemplate | null>(null);
+  const [userRating, setUserRating] = useState<{ rating: number; review_text: string } | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -69,7 +73,7 @@ export default function CourseLandingPage() {
       // Fetch course
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
-        .select('id, slug, title, description, instructor_id, instructor_name, instructor_bio, instructor_avatar_url, pricing_type, price_cents, currency, is_published, convertkit_product_id')
+        .select('id, slug, title, description, instructor_id, instructor_name, instructor_bio, instructor_avatar_url, pricing_type, price_cents, currency, is_published, convertkit_product_id, average_rating, ratings_count')
         .eq('slug', slug)
         .eq('is_published', true)
         .maybeSingle();
@@ -118,6 +122,16 @@ export default function CourseLandingPage() {
           containerId: courseData.id,
         });
         setIsEnrolled(accessResult.hasAccess);
+
+        // Load existing rating for this user
+        const { data: ratingData } = await supabase
+          .from('content_ratings')
+          .select('rating, review_text')
+          .eq('content_type', 'course')
+          .eq('content_id', courseData.id)
+          .eq('user_id', profile.id)
+          .maybeSingle();
+        if (ratingData) setUserRating(ratingData);
       }
 
       // Fetch linked ticket template (public — works for logged-out visitors)
@@ -297,8 +311,8 @@ export default function CourseLandingPage() {
             )}
           </div>
 
-          {/* Right: Enrollment Card */}
-          <div className="flex items-center justify-center">
+          {/* Right: Enrollment Card + Ratings */}
+          <div className="flex flex-col items-center gap-4">
             <Card className="w-full max-w-md">
               <CardContent className="pt-6">
                 <div className="text-center mb-4">
@@ -372,6 +386,37 @@ export default function CourseLandingPage() {
                     Certificate of completion
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Ratings — shown to all; rate button only for enrolled users */}
+            <Card className="w-full max-w-md">
+              <CardContent className="pt-4">
+                <RatingWidget
+                  contentType="course"
+                  contentId={course.id}
+                  userId={isEnrolled ? profile?.id : undefined}
+                  initialRating={userRating?.rating ?? 0}
+                  initialReview={userRating?.review_text ?? ''}
+                  avgRating={course.average_rating ?? 0}
+                  ratingsCount={course.ratings_count ?? 0}
+                  onRatingSubmit={async () => {
+                    // Recompute average from content_ratings and write back to courses
+                    const { data: ratings } = await supabase
+                      .from('content_ratings')
+                      .select('rating')
+                      .eq('content_type', 'course')
+                      .eq('content_id', course.id);
+                    if (ratings && ratings.length > 0) {
+                      const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
+                      await supabase
+                        .from('courses')
+                        .update({ average_rating: Math.round(avg * 10) / 10, ratings_count: ratings.length })
+                        .eq('id', course.id);
+                      setCourse(prev => prev ? { ...prev, average_rating: Math.round(avg * 10) / 10, ratings_count: ratings.length } : prev);
+                    }
+                  }}
+                />
               </CardContent>
             </Card>
           </div>
