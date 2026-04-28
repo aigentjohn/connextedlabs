@@ -87,6 +87,8 @@ export default function ReviewDetailPage() {
   const [responseText, setResponseText] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [editReviewForm, setEditReviewForm] = useState({ title: '', description: '', external_rating: 5, tags: '' });
 
   useEffect(() => {
     if (id && profile) {
@@ -366,6 +368,39 @@ export default function ReviewDetailPage() {
     }
   };
 
+  const openEditReview = () => {
+    if (!review) return;
+    setEditReviewForm({
+      title: review.title,
+      description: review.description,
+      external_rating: review.external_rating,
+      tags: review.tags?.join(', ') || '',
+    });
+    setIsEditingReview(true);
+  };
+
+  const handleUpdateReview = async () => {
+    if (!review || !editReviewForm.title.trim()) return;
+    try {
+      const { error } = await supabase
+        .from('endorsements')
+        .update({
+          title: editReviewForm.title.trim(),
+          description: editReviewForm.description.trim(),
+          external_rating: editReviewForm.external_rating,
+          tags: editReviewForm.tags ? editReviewForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        })
+        .eq('id', review.id);
+      if (error) throw error;
+      toast.success('Review updated');
+      setIsEditingReview(false);
+      await fetchReview();
+    } catch (error) {
+      console.error('Error updating review:', error);
+      toast.error('Failed to update review');
+    }
+  };
+
   const renderStars = (rating: number) => {
     return (
       <div className="flex items-center gap-1">
@@ -428,6 +463,11 @@ export default function ReviewDetailPage() {
                 entityId={review.id}
                 entityName={review.title}
               />
+              {review.author_id === profile.id && !isEditingReview && (
+                <Button variant="outline" size="sm" onClick={openEditReview}>
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+              )}
               {canDeleteReview() && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -472,36 +512,90 @@ export default function ReviewDetailPage() {
             </div>
           </div>
 
-          {/* Title */}
-          <h1 className="text-3xl">{review.title}</h1>
+          {isEditingReview ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Title *</label>
+                <input
+                  className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                  value={editReviewForm.title}
+                  onChange={(e) => setEditReviewForm({ ...editReviewForm, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Rating</label>
+                <div className="flex gap-2 mt-1">
+                  {[1,2,3,4,5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setEditReviewForm({ ...editReviewForm, external_rating: n })}
+                      className={`p-1 ${n <= editReviewForm.external_rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                      <Star className="w-6 h-6 fill-current" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <Textarea
+                  className="mt-1"
+                  value={editReviewForm.description}
+                  onChange={(e) => setEditReviewForm({ ...editReviewForm, description: e.target.value })}
+                  rows={5}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Tags</label>
+                <input
+                  className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                  value={editReviewForm.tags}
+                  onChange={(e) => setEditReviewForm({ ...editReviewForm, tags: e.target.value })}
+                  placeholder="comma-separated tags"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleUpdateReview} disabled={!editReviewForm.title.trim()}>Save</Button>
+                <Button variant="outline" onClick={() => setIsEditingReview(false)}>
+                  <X className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Title */}
+              <h1 className="text-3xl">{review.title}</h1>
 
-          {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-6 h-6">
-                <AvatarImage src={review.author?.avatar} />
-                <AvatarFallback>{review.author?.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <Link to={`/members/${review.author?.id}`} className="hover:underline">
-                {review.author?.name}
-              </Link>
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
-            </div>
-            <div className="flex items-center gap-1">
-              <ThumbsUp className="w-4 h-4" />
-              {review.likes_count || 0} {review.likes_count === 1 ? 'like' : 'likes'}
-            </div>
-          </div>
+              {/* Meta Info */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={review.author?.avatar} />
+                    <AvatarFallback>{review.author?.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <Link to={`/members/${review.author?.id}`} className="hover:underline">
+                    {review.author?.name}
+                  </Link>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                </div>
+                <div className="flex items-center gap-1">
+                  <ThumbsUp className="w-4 h-4" />
+                  {review.likes_count || 0} {review.likes_count === 1 ? 'like' : 'likes'}
+                </div>
+              </div>
 
-          {/* Review Content */}
-          <div className="prose max-w-none">
-            <p className="text-gray-700 whitespace-pre-wrap text-base leading-relaxed">
-              {review.description}
-            </p>
-          </div>
+              {/* Review Content */}
+              <div className="prose max-w-none">
+                <p className="text-gray-700 whitespace-pre-wrap text-base leading-relaxed">
+                  {review.description}
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Circles */}
           {circles.length > 0 && (

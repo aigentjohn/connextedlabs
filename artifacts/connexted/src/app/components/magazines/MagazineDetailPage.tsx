@@ -140,6 +140,7 @@ export default function MagazineDetailPage() {
   const [mgmtVisibility, setMgmtVisibility] = useState<'public' | 'member' | 'unlisted' | 'private'>('public');
   const [mgmtSaving, setMgmtSaving] = useState(false);
   const [mgmtArchiving, setMgmtArchiving] = useState(false);
+  const [mgmtDeleting, setMgmtDeleting] = useState(false);
 
   // Subscribers list
   const [subscribers, setSubscribers] = useState<any[]>([]);
@@ -462,6 +463,21 @@ export default function MagazineDetailPage() {
       setSubscribersLoaded(true);
     } catch (error) {
       console.error('Error loading subscribers:', error);
+    }
+  };
+
+  // Manage tab — permanently delete magazine
+  const handleDelete = async () => {
+    if (!magazine) return;
+    setMgmtDeleting(true);
+    try {
+      const { error } = await supabase.from('magazines').delete().eq('id', magazine.id);
+      if (error) throw error;
+      toast.success('Magazine deleted');
+      navigate('/magazines');
+    } catch (error: any) {
+      toast.error('Failed to delete magazine');
+      setMgmtDeleting(false);
     }
   };
 
@@ -1092,7 +1108,7 @@ export default function MagazineDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-white p-4 rounded-lg border border-red-200">
+                <div className="bg-white p-4 rounded-lg border border-red-200 mb-4">
                   <h4 className="font-medium text-red-900 mb-1">Archive this magazine</h4>
                   <p className="text-sm text-gray-700 mb-4">
                     Archiving hides this magazine from public view. All blogs and followers are retained.
@@ -1119,6 +1135,37 @@ export default function MagazineDetailPage() {
                           className="bg-red-600 hover:bg-red-700"
                         >
                           Archive
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-red-200">
+                  <h4 className="font-medium text-red-900 mb-1">Delete this magazine</h4>
+                  <p className="text-sm text-gray-700 mb-4">
+                    Permanently deletes the magazine. This cannot be undone.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" disabled={mgmtDeleting}>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Magazine
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete "{magazine.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the magazine. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
