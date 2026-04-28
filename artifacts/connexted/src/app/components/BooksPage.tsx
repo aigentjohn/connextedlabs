@@ -278,17 +278,12 @@ export default function BooksPage() {
     if (!confirm('Are you sure you want to delete this book?')) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-d7930c7f/books/${bookId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
+      const { error } = await supabase
+        .from('books')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', bookId);
 
-      if (!response.ok) throw new Error('Failed to delete book');
+      if (error) throw error;
 
       toast.success('Book deleted');
       fetchBooks();

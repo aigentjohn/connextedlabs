@@ -193,6 +193,7 @@ export default function SearchPage() {
         supabase
           .from('books')
           .select('id, title, author, description')
+          .is('deleted_at', null)
           .or(`title.ilike.%${q}%,author.ilike.%${q}%,description.ilike.%${q}%`)
           .limit(20),
 
