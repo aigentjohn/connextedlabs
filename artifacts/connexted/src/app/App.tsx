@@ -138,6 +138,7 @@ const ProspectSignup = lazy(() => import('@/app/components/ProspectSignup'));
 const KitCommerceDemo = lazy(() => import('@/app/components/KitCommerceDemo'));
 const JoinOurCommunityPageFlexible = lazy(() => import('@/app/components/JoinOurCommunityPageFlexible'));
 const ClaimProfileConfirmPage = lazy(() => import('@/app/components/ClaimProfileConfirmPage'));
+const JoinViaTokenPage = lazy(() => import('@/app/components/JoinViaTokenPage'));
 
 // Circles
 const CirclesPage = lazy(() => import('@/app/components/CirclesPage'));
@@ -551,6 +552,7 @@ const router = createBrowserRouter([
       { path: '/', element: <GuestOnly><MarketingLandingPage /></GuestOnly> },
       { path: '/demos', element: <DemosPage /> },
       { path: '/join', element: <GuestExplorePage /> },
+      { path: '/join/:token', element: <JoinViaTokenPage /> },
       { path: '/join-community', element: <JoinOurCommunityPageFlexible /> },
       { path: '/prospect-signup', element: <ProspectSignup /> },
       { path: '/kit-demo', element: <KitCommerceDemo /> },
