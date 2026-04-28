@@ -22,7 +22,7 @@
 - Route registration: artifacts/connexted/src/app/App.tsx
 - Feature docs: artifacts/connexted/docs/sidebar/
 - Roadmap: artifacts/connexted/docs/PRODUCT_ROADMAP.md
-- Edge Functions: supabase/functions/
+- Express API (Railway): artifacts/api-server/src/routes/
 - Migrations: supabase/migrations/
 
 ## Patterns
@@ -30,7 +30,7 @@
 - Access tickets: access_tickets table is source of truth; course_enrollments is legacy fallback
 - Always use .maybeSingle() not .single() for optional lookups
 - Supabase client: `import { supabase } from '@/lib/supabase'` — 30s timeout built-in
-- Server-side privileged ops: use Supabase Edge Functions with service role key (no Express API)
+- API server: uses supabaseAdmin (service role key); only use for privileged ops that can't run in browser
 - PR workflow: create draft PR after every push; mark ready + squash-merge when approved
 
 ## Key hooks (artifacts/connexted/src/hooks/)
@@ -53,15 +53,8 @@ ContainerCard, ContainerBreadcrumbs, PageHeader, UserDisplay, QRCodeGenerator,
 JoinCircleDialog, ShareInviteButton, ExpirationWarning, ReviewsList,
 ImageUpload (preset: 'square'|'wide' — canvas-resizes to 400×400 or 1200×400 WebP before upload)
 
-## Edge Functions (supabase/functions/)
-- `invite-user` — admin sends invitation email
-- `account-export` — GDPR data export (GET, JWT auth)
-- `account-delete` — soft-delete (POST) + cancel (DELETE)
-- `hard-delete-accounts` — scheduled nightly cron, hard-deletes users past 30-day grace
-- `make-server-d7930c7f` — pathway writes, completions, badge mappings (deployed directly in Supabase)
-
 ## Migrations
 - File format: `YYYYMMDD000NNN_description.sql` in `supabase/migrations/`
 - When a migration is needed, always show the full SQL before creating the file
-- Apply by pasting into Supabase SQL editor
+- Apply locally with: `supabase db push` (or paste into Supabase SQL editor)
 - Example filename: `20260428000001_add_circle_invites.sql`
