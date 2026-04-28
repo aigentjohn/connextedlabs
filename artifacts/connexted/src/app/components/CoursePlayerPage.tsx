@@ -51,6 +51,7 @@ interface Enrollment {
   id: string;
   progress_percentage: number;
   last_accessed_at: string;
+  completed_at: string | null;
 }
 
 export default function CoursePlayerPage() {
@@ -269,6 +270,57 @@ export default function CoursePlayerPage() {
       console.error('Error issuing course completion badge:', badgeError);
     }
   }, [profile, publicAnonKey]);
+
+  const handleGetCertificate = () => {
+    if (!course || !profile) return;
+    const completedDate = enrollment?.completed_at
+      ? new Date(enrollment.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const userName = (profile as any).name || 'Student';
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Certificate of Completion — ${course.title}</title>
+  <style>
+    @media print { body { margin: 0; } .no-print { display: none; } }
+    * { box-sizing: border-box; }
+    body { font-family: Georgia, serif; background: #f9f7f2; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 32px; }
+    .certificate { width: 780px; background: #fff; padding: 64px; border: 8px solid #1e3a5f; text-align: center; position: relative; }
+    .certificate::before { content: ''; position: absolute; inset: 12px; border: 2px solid #c9a84c; pointer-events: none; }
+    .org { font-size: 13px; letter-spacing: 5px; text-transform: uppercase; color: #1e3a5f; font-weight: bold; margin-bottom: 32px; }
+    h1 { font-size: 38px; color: #1e3a5f; margin: 0 0 6px; }
+    .rule { width: 80px; height: 2px; background: #c9a84c; margin: 0 auto 32px; }
+    .presented { font-size: 15px; color: #777; margin-bottom: 10px; }
+    .name { font-size: 50px; color: #1e3a5f; font-style: italic; margin: 8px 0 32px; }
+    .completed { font-size: 15px; color: #777; margin-bottom: 10px; }
+    .course { font-size: 26px; color: #1e3a5f; font-weight: bold; margin-bottom: 40px; }
+    .date { font-size: 13px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+    .print-btn { margin-top: 28px; padding: 12px 36px; background: #1e3a5f; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-family: sans-serif; }
+    .print-btn:hover { background: #163057; }
+  </style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="org">Connexted Labs</div>
+    <h1>Certificate of Completion</h1>
+    <div class="rule"></div>
+    <div class="presented">This certifies that</div>
+    <div class="name">${userName}</div>
+    <div class="completed">has successfully completed</div>
+    <div class="course">${course.title}</div>
+    <div class="date">Completed on ${completedDate}</div>
+  </div>
+  <div class="no-print">
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</body>
+</html>`;
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
 
   // Callback for JourneyDetailView to report live progress changes
   const handleProgressChange = useCallback(async (journeyId: string) => {
@@ -510,16 +562,8 @@ export default function CoursePlayerPage() {
             <p className="text-sm text-yellow-800 mb-3">
               You've completed all modules!
             </p>
-            <Button size="sm" className="w-full"
-              onClick={() => {
-                if (enrollment && course) {
-                  fireCourseCompletion(course.id, enrollment.id);
-                } else {
-                  toast.info('Certificate feature coming soon!');
-                }
-              }}
-            >
-              Complete Course
+            <Button size="sm" className="w-full" onClick={handleGetCertificate}>
+              Get Certificate
             </Button>
           </div>
         )}

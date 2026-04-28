@@ -13,7 +13,8 @@ import {
   CalendarDays,
   Plus,
   Trash2,
-  GripVertical,
+  ArrowUp,
+  ArrowDown,
   ArrowLeft,
   Edit2,
   Save,
@@ -268,6 +269,23 @@ export default function EventCompanionDetailPage() {
     }
   }
 
+  async function moveItem(index: number, direction: 'up' | 'down') {
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= items.length) return;
+    const a = items[index];
+    const b = items[swapIndex];
+    await Promise.all([
+      supabase.from('event_companion_items').update({ order_index: b.order_index }).eq('id', a.id),
+      supabase.from('event_companion_items').update({ order_index: a.order_index }).eq('id', b.id),
+    ]);
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...a, order_index: b.order_index };
+      next[swapIndex] = { ...b, order_index: a.order_index };
+      return next.sort((x, y) => x.order_index - y.order_index);
+    });
+  }
+
   function getItemRoute(item: CompanionItem) {
     const config = getCompanionItemType(item.item_type);
     if (!config) return '#';
@@ -496,7 +514,7 @@ export default function EventCompanionDetailPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {items.map((item) => {
+              {items.map((item, index) => {
                 const typeConfig = getCompanionItemType(item.item_type);
                 const Icon = getItemIcon(item.item_type);
                 const typeLabel = typeConfig?.label || item.item_type;
@@ -507,7 +525,14 @@ export default function EventCompanionDetailPage() {
                   <div key={item.id} className="border rounded-lg overflow-hidden">
                     {/* Item header */}
                     <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 border-b">
-                      <GripVertical className="w-4 h-4 text-gray-300" />
+                      <div className="flex flex-col">
+                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-gray-400 hover:text-gray-700" disabled={index === 0} onClick={() => moveItem(index, 'up')}>
+                          <ArrowUp className="w-3 h-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-gray-400 hover:text-gray-700" disabled={index === items.length - 1} onClick={() => moveItem(index, 'down')}>
+                          <ArrowDown className="w-3 h-3" />
+                        </Button>
+                      </div>
                       <Icon className="w-4 h-4 text-indigo-500" />
                       <span className="flex-1 text-sm font-medium text-gray-700">
                         {typeLabel}
