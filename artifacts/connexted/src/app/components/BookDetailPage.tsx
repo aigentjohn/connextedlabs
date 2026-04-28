@@ -58,6 +58,8 @@ export default function BookDetailPage() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditBookOpen, setIsEditBookOpen] = useState(false);
+  const [editBookForm, setEditBookForm] = useState({ title: '', description: '', tags: '' });
   const [isEditingChapter, setIsEditingChapter] = useState(false);
   const [newChapter, setNewChapter] = useState({ title: '', content: '' });
   const [editingContent, setEditingContent] = useState('');
@@ -326,6 +328,40 @@ export default function BookDetailPage() {
     }
   };
 
+  const openEditBook = () => {
+    if (!book) return;
+    setEditBookForm({
+      title: book.title,
+      description: book.description || '',
+      tags: book.tags?.join(', ') || '',
+    });
+    setIsEditBookOpen(true);
+  };
+
+  const handleUpdateBook = async () => {
+    if (!editBookForm.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('books')
+        .update({
+          title: editBookForm.title.trim(),
+          description: editBookForm.description.trim(),
+          tags: editBookForm.tags ? editBookForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        })
+        .eq('id', book!.id);
+      if (error) throw error;
+      toast.success('Book updated');
+      setIsEditBookOpen(false);
+      fetchBook();
+    } catch (error) {
+      console.error('Error updating book:', error);
+      toast.error('Failed to update book');
+    }
+  };
+
   const startEditing = () => {
     const chapter = chapters.find(c => c.id === selectedChapterId);
     if (chapter) {
@@ -486,6 +522,12 @@ export default function BookDetailPage() {
                 Export JSON
               </Button>
             </>
+          )}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={openEditBook}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit Book
+            </Button>
           )}
           {canEdit && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -761,6 +803,54 @@ export default function BookDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Book Dialog */}
+      <Dialog open={isEditBookOpen} onOpenChange={setIsEditBookOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Book</DialogTitle>
+            <DialogDescription>Update the book's title, description, and tags.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="book-title">Title *</Label>
+              <Input
+                id="book-title"
+                value={editBookForm.title}
+                onChange={(e) => setEditBookForm({ ...editBookForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="book-description">Description</Label>
+              <Textarea
+                id="book-description"
+                value={editBookForm.description}
+                onChange={(e) => setEditBookForm({ ...editBookForm, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="book-tags">Tags</Label>
+              <Input
+                id="book-tags"
+                value={editBookForm.tags}
+                onChange={(e) => setEditBookForm({ ...editBookForm, tags: e.target.value })}
+                placeholder="comma-separated tags"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateBook} className="flex-1" disabled={!editBookForm.title.trim()}>
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </Button>
+              <Button variant="outline" onClick={() => setIsEditBookOpen(false)} className="flex-1">
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

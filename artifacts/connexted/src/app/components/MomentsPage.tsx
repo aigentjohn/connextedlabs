@@ -27,10 +27,12 @@ import {
   Settings,
   Clock,
   Briefcase,
+  Flag,
 } from 'lucide-react';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 
 interface MomentsData {
   id: string;
@@ -573,6 +575,18 @@ export default function MomentsPage() {
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
                           </div>
+                        )}
+                        {!isOwner && currentUser && !isEditing && (
+                          <ReportContentDialog
+                            contentType="post"
+                            contentId={post.id}
+                            contentTitle={`Post by ${user?.name || 'user'}`}
+                            trigger={
+                              <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
+                                <Flag className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
                         )}
                       </div>
 
