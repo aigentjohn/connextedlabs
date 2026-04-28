@@ -1,10 +1,27 @@
-import { useState,useEffect } from 'react';
-// Split candidate: ~551 lines — consider extracting FlaggedItemRow, ModerationDecisionPanel, and FlaggedContentFilters into sub-components.
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 import { AlertTriangle, Flag, Eye, CheckCircle2, XCircle, Search, ExternalLink, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/dialog';
 import { notifyContentModeration } from '@/lib/notificationHelpers';
 
 interface FlaggedContent {
@@ -99,27 +116,40 @@ export default function FlaggedContentPage() {
         (flagsData || []).map(async (flag) => {
           let content = null;
 
-          if (flag.content_type === 'review') {
+          const CONTENT_TABLE_MAP: Record<string, { table: string; fields: string }> = {
+            review:         { table: 'endorsements', fields: 'id, title, description, author_id' },
+            post:           { table: 'posts',        fields: 'id, content, author_id' },
+            document:       { table: 'documents',    fields: 'id, title, description, author_id' },
+            comment:        { table: 'comments',     fields: 'id, content, author_id' },
+            deck:           { table: 'decks',        fields: 'id, title, description, created_by' },
+            book:           { table: 'books',        fields: 'id, title, description, uploaded_by' },
+            episode:        { table: 'episodes',     fields: 'id, title, description, author_id' },
+            playlist:       { table: 'playlists',    fields: 'id, title, description, created_by' },
+            magazine:       { table: 'magazines',    fields: 'id, title, description, created_by' },
+            page:           { table: 'pages',        fields: 'id, title, content, author_id' },
+            build:          { table: 'builds',       fields: 'id, title, description, created_by' },
+            pitch:          { table: 'pitches',      fields: 'id, title, description, created_by' },
+            table:          { table: 'tables',       fields: 'id, title, description, created_by' },
+            elevator:       { table: 'elevators',    fields: 'id, title, description, created_by' },
+            standup:        { table: 'standups',     fields: 'id, title, description, created_by' },
+            meetup:         { table: 'meetups',      fields: 'id, title, description, created_by' },
+            sprint:         { table: 'sprints',      fields: 'id, title, description, created_by' },
+            checklist:      { table: 'checklists',   fields: 'id, title, description, created_by' },
+            library:        { table: 'libraries',    fields: 'id, title, description, created_by' },
+            assignment:     { table: 'assignments',  fields: 'id, title, description, created_by' },
+            faq:            { table: 'faqs',         fields: 'id, title, description, created_by' },
+          };
+          const cfg = CONTENT_TABLE_MAP[flag.content_type];
+          if (cfg) {
             const { data } = await supabase
-              .from('endorsements')
-              .select('id, title, description, author_id')
+              .from(cfg.table)
+              .select(cfg.fields)
               .eq('id', flag.content_id)
-              .single();
-            content = data;
-          } else if (flag.content_type === 'post') {
-            const { data } = await supabase
-              .from('posts')
-              .select('id, content, author_id')
-              .eq('id', flag.content_id)
-              .single();
-            content = data;
-          } else if (flag.content_type === 'document') {
-            const { data } = await supabase
-              .from('documents')
-              .select('id, title, description, author_id')
-              .eq('id', flag.content_id)
-              .single();
-            content = data;
+              .maybeSingle();
+            // Normalise author_id to a common field
+            if (data) {
+              content = { ...data, author_id: data.author_id ?? data.uploaded_by ?? data.created_by };
+            }
           }
 
           return { ...flag, content };
@@ -141,13 +171,29 @@ export default function FlaggedContentPage() {
       return;
     }
 
-    // Navigate to the content
-    if (flag.content_type === 'review') {
-      window.open(`/reviews/${flag.content_id}`, '_blank');
-    } else if (flag.content_type === 'post') {
-      toast.info('Post viewing coming soon');
-    } else if (flag.content_type === 'document') {
-      window.open(`/documents/${flag.content_id}`, '_blank');
+    const CONTENT_ROUTE_MAP: Record<string, string> = {
+      review:    `/reviews/${flag.content_id}`,
+      document:  `/documents/${flag.content_id}`,
+      deck:      `/decks/${flag.content_id}`,
+      book:      `/books/${flag.content_id}`,
+      episode:   `/episodes/${flag.content_id}`,
+      playlist:  `/playlists/${flag.content_id}`,
+      build:     `/builds/${flag.content_id}`,
+      pitch:     `/pitches/${flag.content_id}`,
+      table:     `/tables/${flag.content_id}`,
+      elevator:  `/elevators/${flag.content_id}`,
+      standup:   `/standups/${flag.content_id}`,
+      meetup:    `/meetups/${flag.content_id}`,
+      sprint:    `/sprints/${flag.content_id}`,
+      library:   `/libraries/${flag.content_id}`,
+      assignment: `/assignments/${flag.content_id}`,
+      faq:       `/faqs/${flag.content_id}`,
+    };
+    const route = CONTENT_ROUTE_MAP[flag.content_type];
+    if (route) {
+      window.open(route, '_blank');
+    } else {
+      toast.info(`Viewing ${flag.content_type} content is not yet supported`);
     }
   };
 
@@ -210,12 +256,22 @@ export default function FlaggedContentPage() {
       // Get content author before deleting
       const contentAuthorId = selectedFlag.content?.author_id || selectedFlag.content?.uploaded_by;
 
-      // Delete the content
-      const { error: deleteError } = await supabase
-        .from(selectedFlag.content_type === 'review' ? 'reviews' : 
-              selectedFlag.content_type === 'post' ? 'posts' : 'documents')
-        .delete()
-        .eq('id', selectedFlag.content_id);
+      // Soft-delete documents; hard-delete everything else
+      const SOFT_DELETE_TYPES = ['document'];
+      const TABLE_MAP: Record<string, string> = {
+        review: 'endorsements', post: 'posts', document: 'documents',
+        comment: 'comments', deck: 'decks', book: 'books', episode: 'episodes',
+        playlist: 'playlists', magazine: 'magazines', page: 'pages',
+        build: 'builds', pitch: 'pitches', table: 'tables', elevator: 'elevators',
+        standup: 'standups', meetup: 'meetups', sprint: 'sprints',
+        checklist: 'checklists', library: 'libraries',
+        assignment: 'assignments', faq: 'faqs',
+      };
+      const tableName = TABLE_MAP[selectedFlag.content_type] ?? selectedFlag.content_type + 's';
+      const isSoftDelete = SOFT_DELETE_TYPES.includes(selectedFlag.content_type);
+      const { error: deleteError } = isSoftDelete
+        ? await supabase.from(tableName).update({ deleted_at: new Date().toISOString(), deleted_by: profile.id }).eq('id', selectedFlag.content_id)
+        : await supabase.from(tableName).delete().eq('id', selectedFlag.content_id);
 
       if (deleteError) throw deleteError;
 

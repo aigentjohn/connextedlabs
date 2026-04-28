@@ -21,8 +21,10 @@ import {
   Plus,
   UserPlus,
   ArrowLeft,
-  GitFork
+  GitFork,
+  Flag,
 } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import AddDocumentDialog from '@/app/components/build/AddDocumentDialog';
 import { ContainerBreadcrumbs } from '@/app/components/shared/ContainerBreadcrumbs';
 import { toast } from 'sonner';
@@ -388,6 +390,18 @@ export default function BuildDetailPage() {
             containerTitle={build.name}
             recipientId={build.created_by}
             recipientName={creator?.name || 'the creator'}
+          />
+        )}
+        {!isOwner && (
+          <ReportContentDialog
+            contentType="build"
+            contentId={build.id}
+            contentTitle={build.name}
+            trigger={
+              <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                <Flag className="w-4 h-4" />
+              </Button>
+            }
           />
         )}
 

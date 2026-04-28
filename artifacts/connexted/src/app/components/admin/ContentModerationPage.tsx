@@ -1,10 +1,17 @@
-import { useState,useEffect } from 'react';
-// Split candidate: ~480 lines — consider extracting ContentModerationRow, ModerationFilterBar, and BulkModerationActions into sub-components.
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router';
+import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 import { Trash2, AlertTriangle, FileText, Star as StarIcon, Search, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import {
   Table,
   TableBody,

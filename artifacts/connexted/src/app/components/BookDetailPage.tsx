@@ -9,7 +9,8 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { BookOpen, Plus, Trash2, Edit2, FileUp, Save, X, ArrowUp, ArrowDown, Download, Copy } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Edit2, FileUp, Save, X, ArrowUp, ArrowDown, Download, Copy, Flag } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
 import {
@@ -449,6 +450,18 @@ export default function BookDetailPage() {
               containerTitle={book.title}
               recipientId={book.author_id}
               recipientName={book.author?.name || 'the author'}
+            />
+          )}
+          {!isOwner && (
+            <ReportContentDialog
+              contentType="book"
+              contentId={book.id}
+              contentTitle={book.title}
+              trigger={
+                <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                  <Flag className="w-4 h-4" />
+                </Button>
+              }
             />
           )}
           {/* Export JSON Buttons */}

@@ -49,8 +49,10 @@ import {
   Heart,
   Share2,
   Loader2,
+  Flag,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 
 export default function PlaylistDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -431,6 +433,18 @@ export default function PlaylistDetailPage() {
                 recipientId={playlist.created_by}
                 recipientName={creator?.name || 'the creator'}
                 containerPath={`/playlists/${playlist.slug || playlist.id}`}
+              />
+            )}
+            {!isOwner && (
+              <ReportContentDialog
+                contentType="playlist"
+                contentId={playlist.id}
+                contentTitle={playlist.name}
+                trigger={
+                  <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
               />
             )}
           </div>

@@ -23,8 +23,9 @@ import { TagSelector } from '@/app/components/unified/TagSelector';
 import { TopicSelector } from '@/app/components/unified/TopicSelector';
 import {
   Video, Clock, User, Tag, PlayCircle, Target, Users, Lightbulb,
-  Save, Trash2, Globe, Lock, Settings
+  Save, Trash2, Globe, Lock, Settings, Flag
 } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import { toast } from 'sonner';
 
 export default function EpisodeDetailPage() {
@@ -309,6 +310,18 @@ export default function EpisodeDetailPage() {
               <PrivateCommentDialog
                 containerType="episode" containerId={episode.id} containerTitle={episode.title}
                 recipientId={episode.author_id} recipientName={author?.name || 'the author'}
+              />
+            )}
+            {!isAuthor && (
+              <ReportContentDialog
+                contentType="episode"
+                contentId={episode.id}
+                contentTitle={episode.title}
+                trigger={
+                  <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
               />
             )}
           </div>

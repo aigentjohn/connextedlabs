@@ -55,8 +55,10 @@ import {
   Save,
   Trash2,
   MessageSquare,
+  Flag,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Topic {
@@ -638,6 +640,18 @@ export default function MagazineDetailPage() {
                 containerTitle={magazine.name}
                 recipientId={magazine.curator_id}
                 recipientName={magazine.curator_name || 'the curator'}
+              />
+            )}
+            {!isOwner && (
+              <ReportContentDialog
+                contentType="magazine"
+                contentId={magazine.id}
+                contentTitle={magazine.name}
+                trigger={
+                  <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
               />
             )}
           </div>

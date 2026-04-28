@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router';
-import { ExternalLink, Star, Eye, Calendar, Bookmark, BookmarkCheck, Trash2, BookOpen, Plus, X, Download, Maximize2, Edit, Lock, Share2, Tag } from 'lucide-react';
+import { ExternalLink, Star, Eye, Calendar, Bookmark, BookmarkCheck, Trash2, BookOpen, Plus, X, Download, Maximize2, Edit, Lock, Share2, Tag, Flag } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -761,6 +762,18 @@ export default function DocumentDetailPage() {
                   containerTitle={document.title}
                   recipientId={document.author_id}
                   recipientName={document.author?.name || 'the author'}
+                />
+              )}
+              {document.author_id !== profile.id && (
+                <ReportContentDialog
+                  contentType="document"
+                  contentId={document.id}
+                  contentTitle={document.title}
+                  trigger={
+                    <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                      <Flag className="w-4 h-4" />
+                    </Button>
+                  }
                 />
               )}
               

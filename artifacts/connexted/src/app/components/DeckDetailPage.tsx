@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Layers, Heart, Star, Eye, ChevronLeft, ChevronRight, Edit2, Trash2, Plus, GripVertical, Save, X } from 'lucide-react';
+import { Layers, Heart, Star, Eye, ChevronLeft, ChevronRight, Edit2, Trash2, Plus, GripVertical, Save, X, Flag } from 'lucide-react';
+import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Slider from 'react-slick';
@@ -554,6 +555,18 @@ export default function DeckDetailPage() {
                 containerTitle={deck.title}
                 recipientId={deck.created_by}
                 recipientName={creator?.name || 'the creator'}
+              />
+            )}
+            {!isOwner && (
+              <ReportContentDialog
+                contentType="deck"
+                contentId={deck.id}
+                contentTitle={deck.title}
+                trigger={
+                  <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
               />
             )}
           </div>
