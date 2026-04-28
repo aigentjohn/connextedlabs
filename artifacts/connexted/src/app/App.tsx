@@ -361,6 +361,7 @@ const EngagementDemo = lazy(() => import('@/app/components/engagement/Engagement
 // Pages directory
 const MyContentsPage = lazy(() => import('@/app/pages/MyContentsPage'));
 const MyContentAdminPage = lazy(() => import('@/app/pages/MyContentAdminPage').then(m => ({ default: m.MyContentAdminPage })));
+const ContentAuditPage = lazy(() => import('@/app/components/ContentAuditPage'));
 const ContactDirectoryPage = lazy(() => import('@/app/pages/ContactDirectoryPage'));
 const FriendsPage = lazy(() => import('@/app/pages/FriendsPage'));
 const FriendCompanionPage = lazy(() => import('@/app/pages/FriendCompanionPage'));
@@ -700,6 +701,7 @@ const router = createBrowserRouter([
           // My Content
           { path: '/my-subscriptions', element: <Navigate to="/my-content" replace /> },
           { path: '/my-content', element: <MyContentPage /> },
+          { path: '/my-content/audit', element: <ContentAuditPage /> },
           { path: '/my-content-admin', element: <MyContentAdminPage /> },
           { path: '/my-contents', element: <MyContentsPage /> },
           { path: '/members', element: <MembersPage /> },
