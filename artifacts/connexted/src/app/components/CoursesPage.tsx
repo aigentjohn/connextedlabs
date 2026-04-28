@@ -26,6 +26,7 @@ interface Course {
   featured: boolean;
   circle_ids: string[];
   created_at: string;
+  tags: string[] | null;
 }
 
 export default function CoursesPage() {
@@ -53,21 +54,25 @@ export default function CoursesPage() {
 
   const fetchEnrollments = async () => {
     if (!profile) return;
-    
+
     try {
-      const { data, error } = await supabase
-        .from('course_enrollments')
-        .select('course_id')
-        .eq('user_id', profile.id);
-      
-      if (error) {
-        console.error('Error fetching enrollments:', error);
-        return;
-      }
-      
-      if (data) {
-        setSubscribedCourseIds(new Set(data.map(e => e.course_id)));
-      }
+      const [legacyResult, ticketResult] = await Promise.all([
+        supabase
+          .from('course_enrollments')
+          .select('course_id')
+          .eq('user_id', profile.id),
+        supabase
+          .from('access_tickets')
+          .select('container_id')
+          .eq('user_id', profile.id)
+          .eq('container_type', 'course')
+          .eq('is_active', true),
+      ]);
+
+      const ids = new Set<string>();
+      (legacyResult.data || []).forEach(e => ids.add(e.course_id));
+      (ticketResult.data || []).forEach(t => t.container_id && ids.add(t.container_id));
+      setSubscribedCourseIds(ids);
     } catch (error) {
       console.error('Error fetching enrollments:', error);
     }
@@ -78,7 +83,7 @@ export default function CoursesPage() {
       setLoading(true);
       let query = supabase
         .from('courses')
-        .select('id, slug, title, description, instructor_name, instructor_avatar_url, pricing_type, price_cents, is_published, featured, circle_ids, created_at')
+        .select('id, slug, title, description, instructor_name, instructor_avatar_url, pricing_type, price_cents, is_published, featured, circle_ids, created_at, tags')
         .eq('is_published', true)
         .order('featured', { ascending: false })
         .order('created_at', { ascending: false });
@@ -152,6 +157,28 @@ export default function CoursesPage() {
 
   const featuredCourses = filteredCourses.filter(c => c.featured);
   const regularCourses = filteredCourses.filter(c => !c.featured);
+
+  // Recommended: score courses by tag overlap with user profile (client-side, no schema change)
+  const recommendedCourses = (() => {
+    if (!profile || !courses.length) return [];
+    const profileTerms = new Set<string>(
+      [
+        ...(profile.interests ?? []),
+        profile.career_stage ?? '',
+      ].filter(Boolean).map(t => t.toLowerCase())
+    );
+    if (profileTerms.size === 0) return [];
+    return courses
+      .filter(c => !subscribedCourseIds.has(c.id)) // hide already-enrolled
+      .map(c => ({
+        course: c,
+        score: (c.tags ?? []).filter(t => profileTerms.has(t.toLowerCase())).length,
+      }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(({ course }) => course);
+  })();
 
   const getPriceDisplay = (course: Course) => {
     if (course.pricing_type === 'free') {
@@ -278,6 +305,26 @@ export default function CoursesPage() {
         </Card>
       ) : (
         <>
+          {/* Recommended for You */}
+          {recommendedCourses.length > 0 && !showSubscribedOnly && searchQuery === '' && (
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">Recommended for You</h2>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {recommendedCourses.map((course) => (
+                  <div key={course.id} className="min-w-[280px]">
+                    <CourseCard
+                      course={course}
+                      getPriceDisplay={getPriceDisplay}
+                      likeCount={likeCountsMap[course.id] || 0}
+                      isLiked={likedByMeSet.has(course.id)}
+                      userId={profile?.id}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Featured Courses */}
           {featuredCourses.length > 0 && (
             <div>
