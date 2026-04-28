@@ -26,6 +26,7 @@ import {
   Users2, ExternalLink, ArrowLeft, FileText, Plus, Trash2, X,
 } from 'lucide-react';
 import { getTypesForContext, getCompanionItemType } from '@/lib/companion-types';
+import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -497,6 +498,7 @@ export default function FriendCompanionPage() {
                           <Link to={href}><ExternalLink className="w-4 h-4" /></Link>
                         </Button>
                       )}
+                      <FavoriteButton contentType={item.item_type} contentId={item.item_id} size="sm" />
                       <Button
                         variant="ghost"
                         size="sm"

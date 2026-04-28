@@ -21,6 +21,7 @@ import {
   Hammer, MessageSquare, Users2, CalendarClock, ExternalLink,
   Bookmark,
 } from 'lucide-react';
+import { Link } from 'react-router';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { toast } from 'sonner';
 
@@ -61,6 +62,7 @@ const FAV_TYPES: FavType[] = [
   { contentType: 'sprint',    table: 'sprints',    label: 'Sprint',    pluralLabel: 'Sprints',    titleField: 'name',  slugField: 'slug', route: '/sprints',    icon: CalendarClock,  group: 'container' },
   { contentType: 'library',   table: 'libraries',  label: 'Library',   pluralLabel: 'Libraries',  titleField: 'name',  route: '/libraries',  icon: Library,        group: 'container' },
   { contentType: 'checklist', table: 'checklists', label: 'Checklist', pluralLabel: 'Checklists', titleField: 'name',  route: '/checklists', icon: CheckSquare,    group: 'container' },
+  { contentType: 'pathway',   table: 'pathways',   label: 'Pathway',   pluralLabel: 'Pathways',   titleField: 'name',  route: '/browse-pathways', icon: ExternalLink,  group: 'content' },
 ];
 
 const TYPE_MAP = new Map(FAV_TYPES.map(t => [t.contentType, t]));
@@ -244,14 +246,19 @@ export default function MyContentPage() {
       <Breadcrumbs items={[{ label: 'My Favorites' }]} />
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {items.length} saved item{items.length !== 1 ? 's' : ''} across {typesPresent.length} type{typesPresent.length !== 1 ? 's' : ''}
-          </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">My Favorites</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {items.length} saved item{items.length !== 1 ? 's' : ''} across {typesPresent.length} type{typesPresent.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
+        <Link to="/my-content/audit" className="text-sm text-blue-600 hover:underline shrink-0 mt-1">
+          Content Audit →
+        </Link>
       </div>
 
       {/* Filters */}
