@@ -87,6 +87,8 @@ export default function DeckDetailPage() {
   const [editingCard, setEditingCard] = useState<DeckCard | null>(null);
   const [newCard, setNewCard] = useState({ title: '', content: '' });
   const [isManageMode, setIsManageMode] = useState(false);
+  const [isEditDeckOpen, setIsEditDeckOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '', category: '', tags: '' });
 
   useEffect(() => {
     if (!id || !isValidUUID(id)) {
@@ -405,6 +407,42 @@ export default function DeckDetailPage() {
     setIsEditCardDialogOpen(true);
   };
 
+  const openEditDeck = () => {
+    if (!deck) return;
+    setEditForm({
+      title: deck.title,
+      description: deck.description || '',
+      category: deck.category || '',
+      tags: deck.tags?.join(', ') || '',
+    });
+    setIsEditDeckOpen(true);
+  };
+
+  const handleUpdateDeck = async () => {
+    if (!editForm.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('decks')
+        .update({
+          title: editForm.title.trim(),
+          description: editForm.description.trim(),
+          category: editForm.category.trim() || null,
+          tags: editForm.tags ? editForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        })
+        .eq('id', deck!.id);
+      if (error) throw error;
+      toast.success('Deck updated');
+      setIsEditDeckOpen(false);
+      await fetchDeck();
+    } catch (error) {
+      console.error('Error updating deck:', error);
+      toast.error('Failed to update deck');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -533,6 +571,14 @@ export default function DeckDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={openEditDeck}
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleDeleteDeck}
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
             >
@@ -554,7 +600,7 @@ export default function DeckDetailPage() {
                 containerId={deck.id}
                 containerTitle={deck.title}
                 recipientId={deck.created_by}
-                recipientName={creator?.name || 'the creator'}
+                recipientName={deck.author?.name || 'the creator'}
               />
             )}
             {!isOwner && (
@@ -864,6 +910,63 @@ export default function DeckDetailPage() {
           </div>
         </>
       )}
+
+      {/* Edit Deck Dialog */}
+      <Dialog open={isEditDeckOpen} onOpenChange={setIsEditDeckOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Deck</DialogTitle>
+            <DialogDescription>Update the deck details.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="deck-title">Title *</Label>
+              <Input
+                id="deck-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="deck-description">Description</Label>
+              <Textarea
+                id="deck-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="deck-category">Category</Label>
+              <Input
+                id="deck-category"
+                value={editForm.category}
+                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                placeholder="e.g. Science, History"
+              />
+            </div>
+            <div>
+              <Label htmlFor="deck-tags">Tags</Label>
+              <Input
+                id="deck-tags"
+                value={editForm.tags}
+                onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                placeholder="comma-separated tags"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateDeck} className="flex-1" disabled={!editForm.title.trim()}>
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </Button>
+              <Button variant="outline" onClick={() => setIsEditDeckOpen(false)} className="flex-1">
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Card Dialog */}
       <Dialog open={isEditCardDialogOpen} onOpenChange={setIsEditCardDialogOpen}>

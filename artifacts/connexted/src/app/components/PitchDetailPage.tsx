@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, Navigate } from 'react-router';
+import { useParams, Link, Navigate, useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { canViewContainer } from '@/lib/visibility-access';
@@ -15,11 +15,11 @@ import AddDocumentDialog from '@/app/components/pitch/AddDocumentDialog';
 import AddReviewDialog from '@/app/components/pitch/AddReviewDialog';
 import PrivateCommentDialog from '@/app/components/shared/PrivateCommentDialog';
 import { 
-  ExternalLink, 
-  Star, 
-  Calendar, 
-  User, 
-  Users, 
+  ExternalLink,
+  Star,
+  Calendar,
+  User,
+  Users,
   FileText,
   ArrowLeft,
   Presentation,
@@ -34,6 +34,7 @@ import {
   Link2,
   Video,
   Flag,
+  Trash2,
 } from 'lucide-react';
 import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import { toast } from 'sonner';
@@ -88,6 +89,7 @@ interface Review {
 export default function PitchDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [pitch, setPitch] = useState<Pitch | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -244,6 +246,19 @@ export default function PitchDetailPage() {
   };
 
   // handleToggleFavorite removed — now handled by engagement/FavoriteButton component
+
+  const handleDeletePitch = async () => {
+    if (!confirm(`Delete "${pitch.name}"? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase.from('pitches').delete().eq('id', pitch.id);
+      if (error) throw error;
+      toast.success('Pitch deleted');
+      navigate('/pitches');
+    } catch (error) {
+      console.error('Error deleting pitch:', error);
+      toast.error('Failed to delete pitch');
+    }
+  };
 
   const getVisibilityIcon = (visibility: string) => {
     switch (visibility) {
@@ -468,12 +483,23 @@ export default function PitchDetailPage() {
               />
             )}
             {isAdmin && (
-              <Button asChild>
-                <Link to={`/pitches/${pitch.slug}/settings`}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Link>
-              </Button>
+              <>
+                <Button asChild>
+                  <Link to={`/pitches/${pitch.slug}/settings`}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeletePitch}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </>
             )}
           </div>
         </div>

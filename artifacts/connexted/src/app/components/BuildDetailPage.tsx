@@ -1,5 +1,5 @@
 import { useState,useEffect } from 'react';
-import { useParams, Link, Navigate } from 'react-router';
+import { useParams, Link, Navigate, useNavigate } from 'react-router';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { canViewContainer } from '@/lib/visibility-access';
@@ -9,6 +9,7 @@ import { Badge } from '@/app/components/ui/badge';
 import {
   Hammer,
   Settings,
+  Trash2,
   User,
   Calendar,
   FileText,
@@ -86,6 +87,7 @@ interface Review {
 export default function BuildDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [build, setBuild] = useState<Build | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -240,9 +242,9 @@ export default function BuildDetailPage() {
     );
   }
 
-  const isAdmin = profile.role === 'super' || build.admin_ids.includes(profile.id);
-  const isMember = build.member_ids.includes(profile.id);
   const isOwner = build.created_by === profile.id;
+  const isAdmin = profile.role === 'super' || build.admin_ids.includes(profile.id) || isOwner;
+  const isMember = build.member_ids.includes(profile.id);
 
   // Gate: non-members cannot view private/member-only builds
   if (!canViewContainer(profile, build, 'builds')) {
@@ -283,6 +285,19 @@ export default function BuildDetailPage() {
         bookmarkId,
         { showToast: false, userId: profile.id }
       );
+    }
+  };
+
+  const handleDeleteBuild = async () => {
+    if (!confirm(`Delete "${build.name}"? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase.from('builds').delete().eq('id', build.id);
+      if (error) throw error;
+      toast.success('Build deleted');
+      navigate('/builds');
+    } catch (error) {
+      console.error('Error deleting build:', error);
+      toast.error('Failed to delete build');
     }
   };
 
@@ -351,12 +366,23 @@ export default function BuildDetailPage() {
           </div>
 
           {isAdmin && (
-            <Button asChild>
-              <Link to={`/builds/${build.slug}/settings`}>
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild>
+                <Link to={`/builds/${build.slug}/settings`}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteBuild}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           )}
         </div>
       </div>
