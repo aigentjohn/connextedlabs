@@ -9,7 +9,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { BookOpen, Plus, Trash2, Edit2, FileUp, Save, X, ArrowUp, ArrowDown, Download, Copy, Flag } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Edit2, FileUp, Save, X, ArrowUp, ArrowDown, Download, Copy, Flag, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import ReportContentDialog from '@/app/components/shared/ReportContentDialog';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
@@ -65,7 +65,24 @@ export default function BookDetailPage() {
   const [editingContent, setEditingContent] = useState('');
   const [topics, setTopics] = useState<any[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const { profile } = useAuth();
+
+  const handleSpeak = () => {
+    if (!selectedChapter?.content) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const text = selectedChapter.content.replace(/[#*_`>\-\[\]()]/g, ' ').trim();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  };
 
   useEffect(() => {
     if (!id || !isValidUUID(id)) {
@@ -747,16 +764,29 @@ export default function BookDetailPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle>{selectedChapter.title}</CardTitle>
-                  {canEdit && !isEditingChapter && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={startEditing}
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!isEditingChapter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSpeak}
+                        title={isSpeaking ? 'Stop reading' : 'Listen to chapter'}
+                      >
+                        {isSpeaking ? <VolumeX className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                        {isSpeaking ? 'Stop' : 'Listen'}
+                      </Button>
+                    )}
+                    {canEdit && !isEditingChapter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={startEditing}
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                   {isEditingChapter && (
                     <div className="flex gap-2">
                       <Button
@@ -798,6 +828,45 @@ export default function BookDetailPage() {
                     )}
                   </div>
                 )}
+
+                {/* Prev / Next chapter navigation */}
+                {!isEditingChapter && (() => {
+                  const idx = chapters.findIndex(c => c.id === selectedChapterId);
+                  const prev = idx > 0 ? chapters[idx - 1] : null;
+                  const next = idx < chapters.length - 1 ? chapters[idx + 1] : null;
+                  if (!prev && !next) return null;
+                  return (
+                    <div className="flex items-center justify-between mt-8 pt-4 border-t">
+                      <div>
+                        {prev && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedChapterId(prev.id)}
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            {prev.title}
+                          </Button>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {idx + 1} / {chapters.length}
+                      </span>
+                      <div>
+                        {next && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedChapterId(next.id)}
+                          >
+                            {next.title}
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
