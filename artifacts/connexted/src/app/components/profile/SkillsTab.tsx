@@ -5,13 +5,15 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Badge } from '@/app/components/ui/badge';
-import { 
+import {
   Award,
   GraduationCap,
   Star,
   Plus,
   Trash2,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,6 +25,7 @@ interface Skill {
   id?: string;
   skill_name: string;
   proficiency_level?: string;
+  is_public?: boolean;
 }
 
 interface Credential {
@@ -32,6 +35,7 @@ interface Credential {
   issue_date?: string;
   expiry_date?: string;
   credential_url?: string;
+  is_public?: boolean;
 }
 
 export function SkillsTab({ profile }: SkillsTabProps) {
@@ -72,6 +76,7 @@ export function SkillsTab({ profile }: SkillsTabProps) {
           user_id: profile.id,
           skill_name: '',
           proficiency_level: 'intermediate',
+          is_public: true,
         })
         .select()
         .single();
@@ -134,6 +139,7 @@ export function SkillsTab({ profile }: SkillsTabProps) {
         .insert({
           user_id: profile.id,
           credential_name: '',
+          is_public: true,
         })
         .select()
         .single();
@@ -238,6 +244,15 @@ export function SkillsTab({ profile }: SkillsTabProps) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    title={skill.is_public !== false ? 'Visible on public profile — click to hide' : 'Hidden from public profile — click to show'}
+                    onClick={() => updateSkill(index, 'is_public', skill.is_public === false ? true : false)}
+                    className={skill.is_public === false ? 'text-gray-400 hover:text-gray-600' : 'text-green-600 hover:text-green-700'}
+                  >
+                    {skill.is_public === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => deleteSkill(index)}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
@@ -329,14 +344,25 @@ export function SkillsTab({ profile }: SkillsTabProps) {
                       </div>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteCredential(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title={credential.is_public !== false ? 'Visible on public profile — click to hide' : 'Hidden from public profile — click to show'}
+                        onClick={() => updateCredential(index, 'is_public', credential.is_public === false ? true : false)}
+                        className={credential.is_public === false ? 'text-gray-400 hover:text-gray-600' : 'text-green-600 hover:text-green-700'}
+                      >
+                        {credential.is_public === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteCredential(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
