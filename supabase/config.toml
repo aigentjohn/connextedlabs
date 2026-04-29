@@ -1,0 +1,2 @@
+[functions.hard-delete-accounts]
+schedule = "0 3 * * *"
