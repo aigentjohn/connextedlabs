@@ -150,16 +150,11 @@ Tables to include in export: `documents`, `pages`, `books` + `book_chapters`,
 `decks`, `checklists`, `libraries`, `my_contents`, `posts`, `episodes`,
 `playlists`, `builds`, `pitches`, `badges`, user profile.
 
-### 2h. Access tickets unique index  🔴 Critical — live bug
-*Single migration — no frontend changes needed.*
+### 2h. Access tickets unique index  ✅ Done
+*Migration `20260429000002_access_tickets_unique_index.sql` applied.*
 
-Error in browser console: `42P10 — there is no unique or exclusion constraint matching the ON CONFLICT specification`.
-The upsert in `accessTicketService` uses `ON CONFLICT (user_id, container_id, container_type)` but the index does not exist.
-
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS access_tickets_user_container_unique
-  ON public.access_tickets (user_id, container_id, container_type);
-```
+Fixed 42P10 error — `accessTicketService` upsert now resolves correctly on
+`(user_id, container_id, container_type)`.
 
 ### 2g. Account deletion (GDPR/CCPA)  🔴 Critical — requires Edge Function  *(was 2f)*
 *Supabase Edge Functions + pg_cron inside Supabase. Build after 2f is done.*
@@ -411,10 +406,10 @@ advisory cohort validation.
 
 | Feature | Blocked on | Est. unblock |
 |---------|-----------|--------------|
-| Image uploads (all forms) | Storage buckets not configured | Sprint 6 |
+| Image uploads (all forms) | Storage buckets not configured | Sprint 3 |
 | Reviews tab in Content Audit | `reviews` table missing | TBD |
-| Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 4 |
-| Hard-delete cron | Account deletion flow | Sprint 2 |
+| Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 5 |
+| ~~Hard-delete cron~~ | ✅ Done — scheduled Edge Function deployed | — |
 | Cloud folder import | OAuth app registration per provider | Post-MVP |
 | ~~Pathway admin writes~~ | ✅ Fixed — Supabase Edge Function + service role key | Done |
 
