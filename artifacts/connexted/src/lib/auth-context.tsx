@@ -29,6 +29,7 @@ interface UserProfile {
   badges: string[];
   has_new_notifications?: boolean;
   created_at?: string;
+  deleted_at?: string | null;
 }
 
 // User class permissions type
