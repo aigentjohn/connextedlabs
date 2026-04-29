@@ -33,6 +33,7 @@ import {
   Filter,
   X,
 } from 'lucide-react';
+import { FavoriteButton } from '@/app/components/engagement/FavoriteButton';
 
 // ============================================================================
 // TYPES
@@ -385,6 +386,7 @@ function PathwayCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-gray-900 leading-tight">{pathway.name}</h3>
+              <FavoriteButton contentType="pathway" contentId={pathway.id} size="sm" />
               {pathway.is_featured && (
                 <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[10px] px-1.5 py-0">
                   <Sparkles className="w-2.5 h-2.5 mr-1" />Featured

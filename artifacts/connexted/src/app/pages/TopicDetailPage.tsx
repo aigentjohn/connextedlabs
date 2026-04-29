@@ -155,6 +155,7 @@ export default function TopicDetailPage() {
     const { data, error } = await supabase
       .from('books')
       .select('id, title, description, created_at, created_by, likes')
+      .is('deleted_at', null)
       .in('id', ids);
 
     if (error) {

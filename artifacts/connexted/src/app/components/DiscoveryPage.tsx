@@ -363,6 +363,7 @@ export default function DiscoveryPage() {
         fetchPromises.push(
           supabase.from('books')
             .select('id, title, author, description, created_at, created_by')
+            .is('deleted_at', null)
             .in('id', favoritesByType['book'])
             .then(({ data }) => data?.map(book => ({
               id: book.id,
@@ -596,6 +597,7 @@ export default function DiscoveryPage() {
         fetchPromises.push(
           supabase.from('books')
             .select('id, title, author, description, created_at, created_by')
+            .is('deleted_at', null)
             .in('id', likesByType['book'])
             .then(({ data }) => data?.map(book => ({
               id: book.id,
