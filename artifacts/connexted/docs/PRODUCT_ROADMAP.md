@@ -173,26 +173,25 @@ The hard-delete cron runs inside Supabase on a schedule.
 
 ---
 
-## Sprint 3 — Image Uploads + Visual Polish (May 2026)  📋 Next
+## Sprint 3 — Image Uploads + Visual Polish (May 2026)  ✅ Complete
 
 **Theme:** Make the platform look like a finished product before onboarding the advisory cohort.
 Profiles, circles, programs, and companies are all missing real imagery — this sprint fixes that once, for everything.
 
 **Moved earlier:** Originally Sprint 6a. Prioritised because the advisory cohort experience depends on visual quality, not just functionality.
 
-**Unblocks:** Avatar/cover uploads everywhere, inline images in Pages, My Assets page, Photos and Albums.
-
 ### 3a. Supabase Storage setup
 
-| Feature | Notes |
-|---------|-------|
-| Configure Storage buckets: `avatars`, `covers`, `assets` | Private buckets with signed URLs; set CORS + RLS policies |
-| Shared `ImageUpload` component | Drag-drop or click-to-upload; shows preview; returns signed URL; drop into any form |
-| Avatar upload on profile edit | First consumer of `ImageUpload` |
-| Cover image on Program / Circle / Build | Second consumer |
-| Company logo upload | Third consumer — `logo_url` field already exists |
-| Inline image paste/upload in Page editor | Fourth consumer; inserts `![alt](url)` into markdown |
-| My Assets page (`/my-content/assets`) | Lists all user uploads; delete with ref-check |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Configure Storage buckets: `avatars`, `covers`, `assets` | ⚠️ Manual step | Create in Supabase Dashboard; RLS policies in migration `20260429000003` |
+| Shared `ImageUpload` component | ✅ Done | `src/app/components/shared/ImageUpload.tsx`; avatar/cover/logo variants; drag-drop or click; size limits per bucket |
+| Avatar upload on profile edit | ✅ Done | `AboutTab.tsx` — camera button overlays avatar circle; uploads to `avatars/{userId}/avatar` |
+| Cover image on Circle settings | ✅ Done | `CircleSettingsPage.tsx` — new General tab; uploads to `covers/circles/{id}/cover` |
+| Cover image on Program settings | ✅ Done | `ProgramSettingsPage.tsx` — under description in General tab; uploads to `covers/programs/{id}/cover` |
+| Company logo upload | ✅ Done | `EditCompanyPage.tsx` — logo variant above company name; uploads to `covers/companies/{id}/logo` |
+| Inline image upload in Page editor | ✅ Done | `MyPagesPage.tsx` — Image button in editor toolbar; inserts `![alt](url)` at cursor; uploads to `assets/{userId}/{ts}-{name}` |
+| My Assets page (`/my-content/assets`) | ✅ Done | `MyAssetsPage.tsx`; thumbnail grid; Copy URL; delete with ref-check against `pages.content` |
 
 ---
 
@@ -406,7 +405,7 @@ advisory cohort validation.
 
 | Feature | Blocked on | Est. unblock |
 |---------|-----------|--------------|
-| Image uploads (all forms) | Storage buckets not configured | Sprint 3 |
+| ~~Image uploads (all forms)~~ | ✅ Done — Storage + ImageUpload component shipped Sprint 3 | — |
 | Reviews tab in Content Audit | `reviews` table missing | TBD |
 | Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 5 |
 | ~~Hard-delete cron~~ | ✅ Done — scheduled Edge Function deployed | — |
