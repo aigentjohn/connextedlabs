@@ -50,7 +50,8 @@
 ## Shared components (artifacts/connexted/src/app/components/shared/)
 FavoriteButton, ShareButton, RatingDialog, ReportContentDialog, ContentEngagement,
 ContainerCard, ContainerBreadcrumbs, PageHeader, UserDisplay, QRCodeGenerator,
-JoinCircleDialog, ShareInviteButton, ExpirationWarning, ReviewsList
+JoinCircleDialog, ShareInviteButton, ExpirationWarning, ReviewsList,
+ImageUpload (preset: 'square'|'wide' — canvas-resizes to 400×400 or 1200×400 WebP before upload)
 
 ## Edge Functions (supabase/functions/)
 - `invite-user` — admin sends invitation email

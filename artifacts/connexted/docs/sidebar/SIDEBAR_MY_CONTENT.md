@@ -269,6 +269,48 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 
 ---
 
+## My Assets (`/my-content/assets`)
+
+**Component:** `src/app/components/MyAssetsPage.tsx` (added Sprint 3)
+
+**What it does:** Lists all images and files the authenticated user has uploaded
+to the private `assets` Supabase Storage bucket. Provides a central place to
+manage uploaded assets, copy their URLs for use in the Page editor or other URL
+fields, and delete files that are no longer needed.
+
+**Data loaded:**
+- `supabase.storage.from('assets').list(userId)` — up to 200 objects in the
+  user's folder, ordered newest-first. Folder objects (no `id`) are filtered out.
+- Public URL constructed via `getPublicUrl` per object (assets bucket has user-scoped
+  RLS, not truly public — URL is constructed but requires auth to fetch).
+
+**User actions:**
+- **Upload** — header Upload button opens a file picker (images only, max 10 MB).
+  File is stored as `{userId}/{timestamp}-{safeName}` with no resize (assets are
+  variable-use, unlike covers/avatars).
+- **Copy URL** — hover over any thumbnail, click "Copy URL" to copy the public URL
+  to clipboard. Paste into the Page editor Image button or any URL field.
+- **Delete** — hover → trash icon → `AlertDialog` confirmation. Before deleting,
+  a ref-check queries `pages.content` for the asset's URL; if found, deletion is
+  blocked and the referencing page title is shown.
+- **Refresh** — re-fetches the storage listing.
+
+**Thumbnail grid:** 2–4 columns responsive. Shows filename, file size badge, and
+upload age. Non-image files show a generic icon.
+
+**Known issues / gaps:**
+- The ref-check only scans `pages.content`. Assets referenced in other markdown
+  fields (book chapters, etc.) are not checked — the delete warning says so explicitly.
+- `getPublicUrl` on the private `assets` bucket returns a URL that requires
+  authenticated access; pasting it into a public page would result in a broken
+  image for unauthenticated viewers. Consider using signed URLs for assets embedded
+  in member-only pages.
+- No search or filter; all assets load at once (capped at 200).
+- The route `/my-content/assets` is registered in App.tsx but is not yet linked
+  from the `MyContentSection.tsx` sidebar nav — users must navigate directly.
+
+---
+
 ## Content Audit (`/my-content/audit`)
 
 **Component:** `src/app/components/ContentAuditPage.tsx` (added Sprint 2d)

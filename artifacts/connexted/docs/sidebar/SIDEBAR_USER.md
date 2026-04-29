@@ -125,10 +125,13 @@ Component: `ProfileOnboardingWizard`.
 - `name` (required) — full display name
 - `tagline` — short headline, max 100 characters
 - `bio` — free-text introduction, max 1000 characters
-- `avatar` — URL to profile picture (JPEG, PNG, GIF, WebP)
+- `avatar` — URL to profile picture (JPEG, PNG, WebP)
 
-Avatar upload is URL-entry only; there is no file upload picker.
-Save is manual (explicit "Save Changes" button); unsaved-changes state is tracked locally.
+Avatar upload uses the `ImageUpload` component (Sprint 3): a camera button overlays
+the avatar circle; clicking it opens a file picker. The image is resized client-side
+to 400×400 px and converted to WebP before upload to the `avatars` Supabase Storage
+bucket at `avatars/{userId}/avatar.webp`. The resulting public URL is stored in
+`users.avatar`. Save is still manual (explicit "Save Changes" button).
 
 ### Contact tab
 
