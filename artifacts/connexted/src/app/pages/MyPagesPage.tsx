@@ -45,6 +45,8 @@ import {
   Upload,
   Search,
   Clock,
+  ImagePlus,
+  Loader2,
 } from 'lucide-react';
 
 interface Page {
@@ -84,6 +86,10 @@ export default function MyPagesPage() {
 
   // File input ref for .md import
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Refs for inline image upload in editor
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     if (profile?.id) fetchPages();
@@ -190,6 +196,43 @@ export default function MyPagesPage() {
     } catch (err) {
       console.error('Error deleting page:', err);
       toast.error('Failed to delete page');
+    }
+  };
+
+  // ── Inline image upload ─────────────────────────────────────────────────────
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !profile?.id) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10 MB'); return; }
+    setImageUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${profile.id}/${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('assets').getPublicUrl(path);
+      const md = `![${file.name.replace(`.${ext}`, '')}](${data.publicUrl})`;
+      const ta = textareaRef.current;
+      if (ta) {
+        const start = ta.selectionStart ?? form.content.length;
+        const end = ta.selectionEnd ?? start;
+        const before = form.content.slice(0, start);
+        const after = form.content.slice(end);
+        const newContent = `${before}\n${md}\n${after}`;
+        setForm((f) => ({ ...f, content: newContent }));
+      } else {
+        setForm((f) => ({ ...f, content: f.content + `\n${md}\n` }));
+      }
+      toast.success('Image inserted');
+    } catch (err: any) {
+      console.error('Image upload error:', err);
+      toast.error(err.message ?? 'Upload failed');
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -415,23 +458,37 @@ export default function MyPagesPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Content</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={() => setPreviewMode((v) => !v)}
-                >
-                  {previewMode ? (
-                    <>
-                      <Code2 className="w-3.5 h-3.5" /> Editor
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-3.5 h-3.5" /> Preview
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    disabled={imageUploading || previewMode}
+                    onClick={() => imageInputRef.current?.click()}
+                    title="Insert image"
+                  >
+                    {imageUploading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <ImagePlus className="w-3.5 h-3.5" />}
+                    Image
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    onClick={() => setPreviewMode((v) => !v)}
+                  >
+                    {previewMode ? (
+                      <><Code2 className="w-3.5 h-3.5" /> Editor</>
+                    ) : (
+                      <><Eye className="w-3.5 h-3.5" /> Preview</>
+                    )}
+                  </Button>
+                </div>
               </div>
+              <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImageFile} />
 
               {previewMode ? (
                 <div className="min-h-[280px] max-h-[400px] overflow-y-auto border rounded-lg p-4 bg-white prose prose-sm max-w-none">
@@ -445,6 +502,7 @@ export default function MyPagesPage() {
                 </div>
               ) : (
                 <Textarea
+                  ref={textareaRef}
                   value={form.content}
                   onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                   placeholder="Write your page content in markdown..."
