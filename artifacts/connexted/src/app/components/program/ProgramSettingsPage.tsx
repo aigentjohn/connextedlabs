@@ -426,6 +426,7 @@ export default function ProgramSettingsPage() {
                   <ImageUpload
                     bucket="covers"
                     storagePath={`programs/${program.id}/cover`}
+                    preset="wide"
                     currentUrl={coverImage}
                     onUpload={(url) => setCoverImage(url)}
                     variant="cover"

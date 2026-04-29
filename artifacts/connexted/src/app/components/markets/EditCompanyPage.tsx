@@ -642,6 +642,7 @@ export default function EditCompanyPage() {
               <ImageUpload
                 bucket="covers"
                 storagePath={`companies/${id}/logo`}
+                preset="square"
                 currentUrl={logoUrl}
                 onUpload={(url) => setLogoUrl(url)}
                 variant="logo"

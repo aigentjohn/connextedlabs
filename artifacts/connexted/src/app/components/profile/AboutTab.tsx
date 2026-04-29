@@ -97,6 +97,7 @@ export function AboutTab({ profile, onUpdate }: AboutTabProps) {
           <ImageUpload
             bucket="avatars"
             storagePath={`${profile?.id}/avatar`}
+            preset="square"
             currentUrl={avatar}
             onUpload={(url) => { setAvatar(url); setHasChanges(true); }}
             variant="avatar"

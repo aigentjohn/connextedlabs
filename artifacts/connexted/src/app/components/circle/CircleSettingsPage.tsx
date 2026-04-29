@@ -333,6 +333,7 @@ function GeneralTab({ circle, setCircle }: { circle: Circle; setCircle: (c: Circ
           <ImageUpload
             bucket="covers"
             storagePath={`circles/${circle.id}/cover`}
+            preset="wide"
             currentUrl={coverImage}
             onUpload={(url) => setCoverImage(url)}
             variant="cover"
