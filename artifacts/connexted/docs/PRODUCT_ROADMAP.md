@@ -72,23 +72,6 @@ can't see it in one place.
 
 ---
 
-### Step 0 — Railway deployment gate  🔴 Must do first
-
-The Express API on Railway is running stale code. The pathway completions and
-`verify-report` endpoints exist in the repo but are not live in production yet.
-Nothing in 2c or 2d can go live until the API is deployed.
-
-**Do this before writing any new features:**
-
-| Task | Effort | Notes |
-|------|--------|-------|
-| Harden API error responses | 1–2 hrs | Replace `err.message` with generic messages; log details server-side. See `DEVELOPER.md` engineering item 1. Required before exposing the API to real users. |
-| Deploy current branch to Railway | 1–2 hrs | Push, set env vars, smoke-test pathway completions end-to-end in production |
-
-Once deployed, all subsequent API work in this sprint goes live with the next deploy.
-
----
-
 ### 2a. My Favorites — audit and extend  🟡 Medium
 *Frontend only — no API server or deployment needed.*
 
@@ -103,10 +86,9 @@ The Discover sidebar already links to it with a count badge.
 | "Save" action on Companion items | Companion panel | Calls `toggleFavorite` |
 
 ### 2b. Pathway admin RLS fix  ✅ Done
-Express API uses `supabaseAdmin` (service role key) with `requireAdmin` middleware.
-All pathway CRUD works. Step-level completion tracking shipped early
+Pathway writes use the `make-server-d7930c7f` Supabase Edge Function (service role key).
+All pathway CRUD works. Step-level completion tracking shipped
 (`pathway_step_completions` table + `self-report` / `verify-report` endpoints).
-**Needs Railway deployment (Step 0) to go live in production.**
 
 ### 2c. Circle shareable invite link  🔴 Critical
 *Frontend + migration — no API server needed.*
