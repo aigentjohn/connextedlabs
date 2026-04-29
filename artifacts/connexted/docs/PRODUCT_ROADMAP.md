@@ -62,7 +62,7 @@ Everything that was broken or partially built when this sprint started.
 
 ---
 
-## Sprint 2 — Surfacing Saved Content (May 2026)  📋 Next
+## Sprint 2 — Surfacing Saved Content (May 2026)  ✅ Complete
 
 **Theme:** Make the platform's existing engagement data visible to users.
 Everything users have saved, liked, or favorited is already stored — they just
@@ -178,12 +178,35 @@ The hard-delete cron runs inside Supabase on a schedule.
 
 ---
 
-## Sprint 3 — Advisory Cohort + Validation (June 2026)
+## Sprint 3 — Image Uploads + Visual Polish (May 2026)  📋 Next
+
+**Theme:** Make the platform look like a finished product before onboarding the advisory cohort.
+Profiles, circles, programs, and companies are all missing real imagery — this sprint fixes that once, for everything.
+
+**Moved earlier:** Originally Sprint 6a. Prioritised because the advisory cohort experience depends on visual quality, not just functionality.
+
+**Unblocks:** Avatar/cover uploads everywhere, inline images in Pages, My Assets page, Photos and Albums.
+
+### 3a. Supabase Storage setup
+
+| Feature | Notes |
+|---------|-------|
+| Configure Storage buckets: `avatars`, `covers`, `assets` | Private buckets with signed URLs; set CORS + RLS policies |
+| Shared `ImageUpload` component | Drag-drop or click-to-upload; shows preview; returns signed URL; drop into any form |
+| Avatar upload on profile edit | First consumer of `ImageUpload` |
+| Cover image on Program / Circle / Build | Second consumer |
+| Company logo upload | Third consumer — `logo_url` field already exists |
+| Inline image paste/upload in Page editor | Fourth consumer; inserts `![alt](url)` into markdown |
+| My Assets page (`/my-content/assets`) | Lists all user uploads; delete with ref-check |
+
+---
+
+## Sprint 4 — Advisory Cohort + Validation (June 2026)
 
 **Theme:** Use the platform to recruit and run the first advisory cohort.
 The cohort validates §10 backlog hypotheses before any is built.
 
-**Dependencies:** Sprint 2 complete (invite links, saved items surfaced).
+**Dependencies:** Sprint 3 complete (platform looks polished for cohort onboarding).
 
 ### 3a. Advisory cohort program
 | Feature | Notes |
@@ -210,7 +233,7 @@ If >50% → build micro-pathway creator in PathwayAdminPage.
 
 ---
 
-## Sprint 4 — Learning Completions + Lifecycle (July 2026)
+## Sprint 5 — Learning Completions + Lifecycle (July 2026)
 
 **Theme:** Close the feedback loop for learners and instructors.
 
@@ -244,7 +267,7 @@ If >50% → build micro-pathway creator in PathwayAdminPage.
 
 ---
 
-## Sprint 5 — Discovery + Content Surface (August 2026)
+## Sprint 6 — Discovery + Content Surface (August 2026)
 
 **Theme:** Members can find and act on content more easily.
 
@@ -301,27 +324,16 @@ No pages, routes, or create flow exist yet.
 
 ---
 
-## Sprint 6 — Infrastructure + Platform Depth  ⏳ Later
+## Sprint 7 — Infrastructure + Platform Depth  ⏳ Later
 
-**Unblocks:** Avatar/cover uploads, inline images in Pages, My Assets page,
-Photos and Albums, asset reference check before delete.
+**Note:** Supabase Storage (image uploads) moved to Sprint 3.
 
-### 6a. Supabase Storage
-
-This sprint does nothing visible to users except fix the "no image upload"
-problem that affects every form in the app. Do it once, do it right.
-
+### 7a. Engagement metrics architecture
 | Feature | Notes |
 |---------|-------|
-| Engagement metrics architecture — materialised count columns on `blogs`/`episodes` (via DB triggers) or a batch Edge Function | Replace multi-query fan-out on browse pages; not urgent until thousands of items |
-| Configure Storage buckets (avatars, covers, assets) | See `IMAGE_SPECIFICATIONS.md` |
-| Upload component (`ImageUpload`) | Shared; drop into any form |
-| Avatar upload on profile edit | First consumer |
-| Cover image on Program / Circle / Build | Second consumer |
-| Inline image paste in Page editor | Third consumer; `![alt](url)` in markdown |
-| My Assets page (`/my-content/assets`) | Lists all user uploads; delete with ref-check |
+| Materialised count columns on `blogs`/`episodes` via DB triggers or batch Edge Function | Replace multi-query fan-out on browse pages; not urgent until thousands of items |
 
-### 6b. Sessions unified pre-event structure
+### 7b. Sessions unified pre-event structure
 *ADR approved — see `docs/archive/SESSIONS_EVENTS_MEETINGS_ARCHITECTURE.md`.*
 
 | Feature | Notes |
@@ -331,7 +343,7 @@ problem that affects every form in the app. Do it once, do it right.
 | `/my-sessions` sidebar — fetch sessions from all contexts | Currently fetches nothing useful; unify across circles/programs/pathways |
 | Calendar integration — sessions with `start_date` appear on unified calendar | `calendarHelpers.ts` today fetches `events` only; extend to include sessions |
 
-### 6c. Interactive content types Phase 2
+### 7c. Interactive content types Phase 2
 *Phase 1 (Poll, Reflection, Assignment, FAQ, Schedule Picker) shipped Sprint 1.*
 
 | Feature | Notes |
@@ -341,7 +353,7 @@ problem that affects every form in the app. Do it once, do it right.
 | Peer Review — structured peer feedback exchange | Assign reviewer pairs; rubric-based scoring |
 | Office Hours — admin posts availability slots; members book | Time slot table + booking confirmation |
 
-### 6d. Member retention automation — Phase 1
+### 7d. Member retention automation — Phase 1
 *See `docs/archive/MEMBER_RETENTION_AND_PROGRESSION.md` for full strategy.*
 
 | Feature | Notes |
@@ -353,7 +365,7 @@ problem that affects every form in the app. Do it once, do it right.
 
 ---
 
-## Sprint 7 — AI Draft Generation  ⏳ Later
+## Sprint 8 — AI Draft Generation  ⏳ Later
 
 **Dependencies:** Sprint 6 (pages established, markdown editor stable).
 
