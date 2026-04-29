@@ -61,7 +61,7 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 **User actions:**
 - **Create** — "Create Book" dialog (inline in this page) accepts title, description, visibility, topics (up to 3), and tags (up to 10). Topics are linked via a separate `POST /topics/link` Edge Function call after book creation.
 - **Edit** — "Edit Book" dialog (inline in this page) updates title, description, visibility, tags, and topics. ~~Topic editing was stubbed with `topicIds: []`~~ — **Fixed April 2026**: `handleEditBook` now awaits a fetch of existing topic links from `content_topics` before opening the dialog; `TopicSelector` added to the edit form; update always syncs topics via the Edge Function.
-- **Delete** — `DELETE /books/:id` via Edge Function. Uses `window.confirm` (no modal confirmation).
+- **Delete** — `DELETE /books/:id` via Edge Function. Soft-delete: sets `deleted_at` on the book row rather than hard-deleting. Uses `window.confirm` (no modal confirmation). Soft-deleted books are filtered out by `.is('deleted_at', null)` on all read queries.
 - **Like / Unlike** — Toggles a row in `content_likes`. Optimistic UI with rollback on error.
 - **Favorite / Unfavorite** — Toggles a row in `content_favorites`. Optimistic UI with rollback on error.
 - **Inline chapter reader** — Expand icon on each card loads chapters and renders a two-pane reader (chapter list left, markdown content right) inline in the list.
@@ -269,6 +269,53 @@ Each tab shows a count badge. Stats row at the top mirrors the four tab counts.
 
 ---
 
+## Content Audit (`/my-content/audit`)
+
+**Component:** `src/app/components/ContentAuditPage.tsx` (added Sprint 2d)
+
+**What it does:** A unified, cross-type audit view of all content the authenticated
+user has created. Covers four content types in a single tabbed interface —
+Books, Decks, Lists (checklists), and Libraries — with inline visibility controls
+and delete actions. Intended as a central management page for content owners who
+create across multiple types.
+
+**Data loaded (direct Supabase queries — not Edge Functions):**
+- `books` — `created_by = user.id AND deleted_at IS NULL`, ordered newest-first.
+- `decks` — `created_by = user.id`, ordered newest-first.
+- `checklists` — `created_by = user.id`, ordered newest-first.
+- `libraries` — `owner_id = user.id AND owner_type = 'user'`, ordered newest-first.
+All four are fetched in parallel (`Promise.all`).
+
+**Tabs:**
+
+| Tab | Count badge | Edit link |
+|---|---|---|
+| Books | book count | `/books/:id` |
+| Decks | deck count | `/decks/:id` |
+| Lists | checklist count | `/checklists/:id` |
+| Libraries | library count | `/libraries/:id` |
+
+**Per-item actions (dropdown menu on each row):**
+- **Edit** — navigates to the item's detail/edit page.
+- **Change visibility** (Books, Decks) — inline dropdown cycles through
+  `public` / `member` / `private` / `unlisted`. Writes directly via
+  `supabase.from(table).update({ visibility })`.
+- **Toggle public/private** (Libraries) — toggles `is_public` boolean.
+  Lists (checklists) have no visibility field; only Edit and Delete are shown.
+- **Delete** — opens an `AlertDialog` confirmation, then calls
+  `supabase.from(table).delete()` (hard delete for all four types in this view).
+  Note: the `books` delete here is a hard delete, unlike the soft-delete performed
+  by the Edge Function when deleting from `BooksPage`.
+
+**Known issues / gaps:**
+- Delete is a hard delete (`.delete()`), not a soft delete — inconsistent with
+  `BooksPage` where `DELETE /books/:id` via Edge Function sets `deleted_at`.
+- No search or sort controls; items are displayed in creation order only.
+- Lists (checklists) show no visibility badge because `checklists` has no
+  `visibility` or `access_level` column.
+
+---
+
 ## Content Admin (`/my-content-admin`)
 
 **Component:** `src/app/pages/MyContentAdminPage.tsx`
@@ -306,3 +353,23 @@ Overview stats row: Active count / Expiring Soon count / Recently Expired count 
 - Bulk renew calls `handleRenew` per item in a loop (lines 195–206) but `handleRenew` itself sets and unsets `setRenewing(true/false)` internally — the outer `handleBulkRenew` sets `renewing` again after the loop regardless, leading to redundant state updates.
 
 **Visibility controls:** Not applicable to this page — it manages expiration and scheduling of content, not audience access controls. Access control for the content itself is managed on each container type's own settings page.
+
+---
+
+## Data Portability & Account Deletion
+
+Connexted provides GDPR/CCPA-compliant data controls accessible from `/my-account`
+(not from the My Content sidebar section directly, but documented here because
+they affect all user-created content):
+
+- **Export my data** — Downloads a full account export as JSON via the
+  `account-export` Edge Function. Includes: profile, documents, pages, books
+  (with chapters), decks, checklists, libraries, my_contents, posts, episodes,
+  playlists, builds, pitches, badge_assignments, content_favorites, and circles.
+- **Delete my account** — Soft-deletes the user record (`users.deleted_at = now()`).
+  All content remains in the database during the 30-day grace period. The
+  `hard-delete-accounts` Edge Function (runs daily at 3am UTC) permanently removes
+  users and their data after the grace period via `auth.admin.deleteUser()` which
+  cascades to `public.users`.
+- A red dismissal banner appears in `DashboardLayout` for any user with
+  `deleted_at` set, linking back to `/my-account` to cancel the deletion.

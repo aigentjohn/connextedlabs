@@ -245,7 +245,7 @@ How members track their own development over time.
 | Activity type: `watch_episode` with specific instance | ✅ Live | — | Fixed Apr 2026; `ACTIVITY_TABLE_MAP` wired |
 | Activity types: `read_page`, `view_pitch`, `view_build` | ✅ Live | — | Added Apr 2026; learning/observation verbs |
 | Editable step title and instructions | ✅ Live | — | Added Apr 2026; inline edit in step card |
-| Pathway admin RLS fix | ✅ Live | — | Fixed — Express API uses service role key with `requireAdmin` middleware |
+| Pathway admin RLS fix | ✅ Live | — | Fixed — Edge Function uses service role key with `requireAdmin` middleware |
 | Step-level completion tracking | ✅ Live | — | `pathway_step_completions` table + self-report/verify-report API; built Apr 2026 |
 | Step targeting a specific item (pick from list) | ✅ Live | — | `activity_criteria.target_id` + search dialog |
 | Step instructions visible to learner | ✅ Live | — | `step.description` rendered in PathwayDetailPage |
