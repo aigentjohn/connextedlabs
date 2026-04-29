@@ -774,6 +774,15 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
+          {profile?.deleted_at && (
+            <div className="bg-red-600 text-white text-sm px-4 py-2 flex items-center justify-between gap-4">
+              <span>
+                Your account is scheduled for deletion{' '}
+                {(() => { try { return formatDistanceToNow(new Date(profile.deleted_at), { addSuffix: true }); } catch { return 'soon'; } })()}.
+                {' '}Visit <Link to="/my-account" className="underline font-medium">My Account</Link> to cancel.
+              </span>
+            </div>
+          )}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Suspense fallback={<RouteLoader />}>
               <Outlet />
