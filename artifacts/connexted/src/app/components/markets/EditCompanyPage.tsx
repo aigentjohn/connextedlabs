@@ -23,6 +23,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUpload } from '@/app/components/shared/ImageUpload';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import {
   AlertDialog,
@@ -90,6 +91,7 @@ export default function EditCompanyPage() {
     industry: '', team_size: '', headquarters_location: '',
     website_url: '', founded_year: '',
   });
+  const [logoUrl, setLogoUrl] = useState('');
 
   // ── Companion items state ─────────────────────────────────────────────────
 
@@ -159,6 +161,7 @@ export default function EditCompanyPage() {
         website_url: co.website_url || '',
         founded_year: co.founded_year ? co.founded_year.toString() : '',
       });
+      setLogoUrl((co as any).logo_url || '');
 
       // Fetch companion items
       const { data: itemsData } = await supabase
@@ -242,6 +245,7 @@ export default function EditCompanyPage() {
         team_size: formData.team_size || null,
         headquarters_location: formData.headquarters_location || null,
         website_url: formData.website_url || null,
+        logo_url: logoUrl || null,
         founded_year: formData.founded_year ? parseInt(formData.founded_year) : null,
         updated_at: new Date().toISOString(),
       }).eq('id', id);
@@ -633,6 +637,17 @@ export default function EditCompanyPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Company Logo</Label>
+              <ImageUpload
+                bucket="covers"
+                storagePath={`companies/${id}/logo`}
+                currentUrl={logoUrl}
+                onUpload={(url) => setLogoUrl(url)}
+                variant="logo"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Company Name <span className="text-red-500">*</span></Label>
               <Input
