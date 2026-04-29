@@ -5,19 +5,18 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Separator } from '@/app/components/ui/separator';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
-import { 
-  User, 
-  FileText, 
+import {
+  User,
+  FileText,
   UserCircle,
-  Camera,
   Info,
   Save,
   CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUpload } from '@/app/components/shared/ImageUpload';
 
 interface AboutTabProps {
   profile: any;
@@ -93,17 +92,21 @@ export function AboutTab({ profile, onUpdate }: AboutTabProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         
-        {/* Avatar Preview */}
+        {/* Avatar */}
         <div className="flex items-center gap-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          <Avatar className="w-20 h-20">
-            <AvatarImage src={avatar} alt={name} />
-            <AvatarFallback className="text-2xl">
-              {name?.charAt(0)?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <ImageUpload
+            bucket="avatars"
+            storagePath={`${profile?.id}/avatar`}
+            preset="square"
+            currentUrl={avatar}
+            onUpload={(url) => { setAvatar(url); setHasChanges(true); }}
+            variant="avatar"
+            fallback={name?.charAt(0)?.toUpperCase() || 'U'}
+          />
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{name || 'Your Name'}</h3>
             {tagline && <p className="text-sm text-muted-foreground">{tagline}</p>}
+            <p className="text-xs text-muted-foreground mt-1">Click the camera icon to upload a photo</p>
           </div>
         </div>
 
@@ -161,24 +164,6 @@ export function AboutTab({ profile, onUpdate }: AboutTabProps) {
           />
           <p className="text-xs text-muted-foreground">
             Share your story and interests ({bio.length}/1000 characters)
-          </p>
-        </div>
-
-        {/* Avatar URL Field */}
-        <div className="space-y-2">
-          <Label htmlFor="avatar" className="flex items-center gap-2">
-            <Camera className="w-4 h-4" />
-            Avatar URL
-          </Label>
-          <Input
-            id="avatar"
-            type="url"
-            value={avatar}
-            onChange={(e) => setAvatar(e.target.value)}
-            placeholder="https://example.com/your-photo.jpg"
-          />
-          <p className="text-xs text-muted-foreground">
-            Link to your profile picture (supported: JPEG, PNG, GIF, WebP)
           </p>
         </div>
 

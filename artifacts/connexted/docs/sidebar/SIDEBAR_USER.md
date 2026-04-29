@@ -125,10 +125,13 @@ Component: `ProfileOnboardingWizard`.
 - `name` (required) — full display name
 - `tagline` — short headline, max 100 characters
 - `bio` — free-text introduction, max 1000 characters
-- `avatar` — URL to profile picture (JPEG, PNG, GIF, WebP)
+- `avatar` — URL to profile picture (JPEG, PNG, WebP)
 
-Avatar upload is URL-entry only; there is no file upload picker.
-Save is manual (explicit "Save Changes" button); unsaved-changes state is tracked locally.
+Avatar upload uses the `ImageUpload` component (Sprint 3): a camera button overlays
+the avatar circle; clicking it opens a file picker. The image is resized client-side
+to 400×400 px and converted to WebP before upload to the `avatars` Supabase Storage
+bucket at `avatars/{userId}/avatar.webp`. The resulting public URL is stored in
+`users.avatar`. Save is still manual (explicit "Save Changes" button).
 
 ### Contact tab
 
@@ -362,9 +365,10 @@ Save is manual (explicit "Save Changes" button).
 **Component:** `src/app/components/MyAccountPage.tsx`
 **Shell:** `ProfilePageShell` (sectionLabel "My Account")
 
-**Purpose:** Shows the user's current membership class (access level) and
-options for upgrading. This is not a billing page — Connexted uses a ticket/
-access-class model rather than subscription billing.
+**Purpose:** Shows the user's current membership class (access level), options
+for upgrading, data portability controls, and account deletion. This is not a
+billing page — Connexted uses a ticket/access-class model rather than
+subscription billing.
 
 **Component:** `MembershipManagement` (`src/app/components/profile/MembershipManagement.tsx`)
 
@@ -385,9 +389,28 @@ access-class model rather than subscription billing.
 - **Compare User Classes** — grid showing classes 3–9 (Visitor/Guest classes 1–2
   and Platform Admin class 10 are excluded) with their limits; current class
   is highlighted
+- **Data & Privacy** section (added Sprint 2f) — "Export my data" button that
+  downloads the user's full account data as a JSON file (GDPR Article 20
+  portability). Calls the `account-export` Supabase Edge Function via
+  `GET /functions/v1/account-export` with the user's JWT. The response is
+  downloaded as `connexted-export-YYYY-MM-DD.json` containing: profile, documents,
+  pages, books (with chapters), decks, checklists, libraries, my_contents, posts,
+  episodes, playlists, builds, pitches, badge_assignments, content_favorites,
+  and circles.
+- **Danger Zone** section (added Sprint 2g) — "Delete my account" button opens an
+  `AlertDialog` confirmation. On confirm, calls `POST /functions/v1/account-delete`
+  which soft-deletes the user (`users.deleted_at = now()`) and triggers an export
+  to Storage. The account is permanently deleted after a 30-day grace period via
+  the `hard-delete-accounts` scheduled Edge Function (runs daily at 3am UTC). If
+  deletion is already scheduled, a "Cancel deletion" button is shown instead,
+  which calls `DELETE /functions/v1/account-delete` to clear `deleted_at`.
 
 **No editable fields** — class upgrades are applied by redeeming a ticket on
 the My Tickets page, not edited directly here.
+
+**Deletion warning banner:** `DashboardLayout.tsx` renders a red banner above all
+page content when the authenticated user's `profile.deleted_at` is set. It shows
+the time remaining before permanent deletion and links to `/my-account` to cancel.
 
 **Known issues / gaps:**
 - Usage counts for containers query 7 container types (`tables`, `elevators`,
@@ -402,6 +425,9 @@ the My Tickets page, not edited directly here.
   determine what the user already has — if a ticket is inactive/expired it
   won't be in the exclusion set, potentially showing an offering the user
   already claimed in a past state.
+- The `account-exports` Storage bucket must be created in Supabase for the
+  export-on-delete to persist; saving to Storage is non-fatal (errors are caught
+  and logged) so the deletion proceeds regardless.
 
 ---
 
