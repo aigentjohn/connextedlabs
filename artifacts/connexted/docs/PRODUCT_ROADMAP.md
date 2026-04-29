@@ -132,39 +132,37 @@ Carried from `CLEANUP_AND_DEVELOPMENT_NOTES.md`.
 | Prompts quick fixes (CirclePrompts, ProgramPrompts) | Replace `confirm()` with AlertDialog; remove unused `Edit2` import; align permission model (any member vs admin-only) |
 | Books soft delete — add `deleted_at timestamptz` to `books` table | Filter `WHERE deleted_at IS NULL` in all queries; prevents permanent data loss on creator delete |
 
-### 2f. Data export (GDPR)  🔴 Critical — requires API server  *(was 2e)*
-*Express API route + Railway deployment. Build after Step 0 is done.*
+### 2f. Data export (GDPR)  🔴 Critical — requires Edge Function  *(was 2e)*
+*Supabase Edge Function. Build before 2g.*
 
 **Architecture note:** Export cannot run in the browser — ZIP generation is
 server-side, and the service role key guarantees complete retrieval across all
-tables regardless of RLS gaps. The browser sends a JWT; the API validates it,
+tables regardless of RLS gaps. The browser sends a JWT; the Edge Function validates it,
 queries everything as service role filtered by `user_id`, streams a ZIP back.
 
 | Feature | File | Notes |
 |---------|------|-------|
-| `GET /account/export` route | New file: `api-server/src/routes/account.ts` | Validate JWT; query all 12+ content tables; package as JSON-per-type + ZIP |
+| `supabase/functions/account-export` Edge Function | New file | Validate JWT; query all 12+ content tables; package as JSON-per-type + ZIP |
 | Export button in Account Settings | `AccountSettings.tsx` or similar | Triggers download; shows progress spinner |
 | Auto-trigger export on deletion request | Part of 2f | Generate and store ZIP before any data is touched |
-| Register route in `api-server/src/routes/index.ts` | — | Mount `accountRouter` |
 
 Tables to include in export: `documents`, `pages`, `books` + `book_chapters`,
 `decks`, `checklists`, `libraries`, `my_contents`, `posts`, `episodes`,
 `playlists`, `builds`, `pitches`, `badges`, user profile.
 
-### 2g. Account deletion (GDPR/CCPA)  🔴 Critical — requires API server  *(was 2f)*
-*Express API routes + pg_cron inside Supabase. Build after 2e is done.*
+### 2g. Account deletion (GDPR/CCPA)  🔴 Critical — requires Edge Function  *(was 2f)*
+*Supabase Edge Functions + pg_cron inside Supabase. Build after 2f is done.*
 
 **Architecture note:** The flow is split across two systems by design.
-The Express API handles user-triggered actions (soft-delete, cancel).
-The hard-delete cron runs inside Supabase on a schedule — it does not go
-through the Express API.
+Edge Functions handle user-triggered actions (soft-delete, cancel).
+The hard-delete cron runs inside Supabase on a schedule.
 
 | Step | Where | Feature |
 |------|-------|---------|
-| 1 | Express API | `POST /account/delete` — validate JWT, trigger export (2e), set `users.deleted_at = now()` |
+| 1 | Edge Function `account-delete` | `POST` — validate JWT, trigger export (2f), set `users.deleted_at = now()` |
 | 2 | Frontend | Account Settings: "Delete my account" button → confirmation dialog with 30-day grace warning |
 | 3 | Frontend | On login: if `deleted_at` is set, show "Your account is scheduled for deletion" + Cancel button |
-| 4 | Express API | `DELETE /account/delete` — validate JWT, clear `users.deleted_at` |
+| 4 | Edge Function `account-delete` | `DELETE` — validate JWT, clear `users.deleted_at` |
 | 5 | Supabase | pg_cron job: nightly, hard-delete users where `deleted_at < now() - interval '30 days'`; cascade across all content tables |
 
 ---
@@ -395,7 +393,7 @@ advisory cohort validation.
 | Expiry notifications cron | pg_cron / scheduled Edge Function | Sprint 4 |
 | Hard-delete cron | Account deletion flow | Sprint 2 |
 | Cloud folder import | OAuth app registration per provider | Post-MVP |
-| ~~Pathway admin writes~~ | ✅ Fixed — Express API + service role key | Done |
+| ~~Pathway admin writes~~ | ✅ Fixed — Supabase Edge Function + service role key | Done |
 
 ---
 
