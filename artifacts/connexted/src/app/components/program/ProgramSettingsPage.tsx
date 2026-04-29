@@ -31,6 +31,7 @@ import {
   Home,
   BookOpen,
 } from 'lucide-react';
+import { ImageUpload } from '@/app/components/shared/ImageUpload';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -56,6 +57,7 @@ interface Program {
   circle_id: string | null;
   pricing_type?: 'free' | 'paid' | 'members-only';
   price_cents?: number;
+  cover_image?: string | null;
 }
 
 interface Profile {
@@ -80,6 +82,7 @@ export default function ProgramSettingsPage() {
   const [status, setStatus] = useState<'not-started' | 'in-progress' | 'completed'>('not-started');
   const [pricingType, setPricingType] = useState<'free' | 'paid' | 'members-only'>('free');
   const [priceCents, setPriceCents] = useState<number>(0);
+  const [coverImage, setCoverImage] = useState('');
 
   // Members management
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
@@ -126,6 +129,7 @@ export default function ProgramSettingsPage() {
       setPricingType(data.pricing_type || 'free');
       setPriceCents(data.price_cents || 0);
       setAdminIds(data.admin_ids || []);
+      setCoverImage(data.cover_image || '');
     } catch (error) {
       console.error('Error fetching program:', error);
       toast.error('Failed to load program');
@@ -167,6 +171,7 @@ export default function ProgramSettingsPage() {
           status,
           pricing_type: pricingType,
           price_cents: pricingType === 'paid' ? priceCents : 0,
+          cover_image: coverImage || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', program.id);
@@ -413,6 +418,17 @@ export default function ProgramSettingsPage() {
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe your program"
                     rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Cover Image</Label>
+                  <ImageUpload
+                    bucket="covers"
+                    storagePath={`programs/${program.id}/cover`}
+                    currentUrl={coverImage}
+                    onUpload={(url) => setCoverImage(url)}
+                    variant="cover"
                   />
                 </div>
 
