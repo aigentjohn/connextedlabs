@@ -16,6 +16,7 @@ import {
   ChevronDown, ChevronUp, Eye, Loader2, MailPlus
 } from 'lucide-react';
 import { notifyMemberJoined, notifyRoleChanged } from '@/lib/notificationHelpers';
+import CircleInviteLink from '@/app/components/circle/CircleInviteLink';
 
 // =====================================================
 // TYPES
@@ -158,7 +159,7 @@ export default function CirclePeopleManager({ circle, setCircle, currentUserId }
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="members" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             <span>Members</span>
@@ -183,6 +184,10 @@ export default function CirclePeopleManager({ circle, setCircle, currentUserId }
                 {invitedCount}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="invite-link" className="flex items-center gap-2">
+            <MailPlus className="w-4 h-4" />
+            <span>Invite Link</span>
           </TabsTrigger>
         </TabsList>
 
@@ -215,6 +220,14 @@ export default function CirclePeopleManager({ circle, setCircle, currentUserId }
             currentUserId={currentUserId}
             onRefresh={loadAllData}
             loading={loading}
+          />
+        </TabsContent>
+
+        <TabsContent value="invite-link" className="mt-6">
+          <CircleInviteLink
+            circleId={circle.id}
+            circleName={circle.name}
+            currentUserId={currentUserId}
           />
         </TabsContent>
       </Tabs>
