@@ -36,11 +36,14 @@ import { notifyMemberJoined, notifyRoleChanged } from '@/lib/notificationHelpers
 import { ExportImportManager } from '@/app/components/ExportImportManager';
 import CircleTopicsAudienceTab from '@/app/components/circle/CircleTopicsAudienceTab';
 import CirclePeopleManager from '@/app/components/circle/CirclePeopleManager';
+import { ImageUpload } from '@/app/components/shared/ImageUpload';
+import { Textarea } from '@/app/components/ui/textarea';
 
 interface Circle {
   id: string;
   name: string;
   description: string;
+  cover_image?: string | null;
   member_ids: string[];
   admin_ids: string[];
   guest_access: {
@@ -184,8 +187,12 @@ export default function CircleSettingsPage() {
         <p className="text-gray-600">Manage {circle.name}</p>
       </div>
 
-      <Tabs defaultValue="members" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-11">
+          <TabsTrigger value="general">
+            <FileText className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">General</span>
+          </TabsTrigger>
           <TabsTrigger value="members">
             <Users className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Members</span>
@@ -227,6 +234,10 @@ export default function CircleSettingsPage() {
             <span className="hidden sm:inline">Export/Import</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="general" className="space-y-4 mt-6">
+          <GeneralTab circle={circle} setCircle={setCircle} />
+        </TabsContent>
 
         <TabsContent value="members" className="space-y-4 mt-6">
           <CirclePeopleManager circle={circle} setCircle={setCircle} currentUserId={profile.id} />
@@ -273,6 +284,67 @@ export default function CircleSettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// General Tab — name, description, cover image
+function GeneralTab({ circle, setCircle }: { circle: Circle; setCircle: (c: Circle) => void }) {
+  const [name, setName] = useState(circle.name);
+  const [description, setDescription] = useState(circle.description ?? '');
+  const [coverImage, setCoverImage] = useState(circle.cover_image ?? '');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!name.trim()) { toast.error('Name is required'); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('circles')
+        .update({ name: name.trim(), description: description.trim() || null, cover_image: coverImage || null })
+        .eq('id', circle.id);
+      if (error) throw error;
+      setCircle({ ...circle, name: name.trim(), description: description.trim(), cover_image: coverImage || null });
+      toast.success('Circle updated');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>General</CardTitle>
+        <CardDescription>Circle name, description, and cover image</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="circle-name">Name *</Label>
+          <Input id="circle-name" value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="circle-desc">Description</Label>
+          <Textarea id="circle-desc" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+        </div>
+        <div className="space-y-2">
+          <Label>Cover Image</Label>
+          <ImageUpload
+            bucket="covers"
+            storagePath={`circles/${circle.id}/cover`}
+            currentUrl={coverImage}
+            onUpload={(url) => setCoverImage(url)}
+            variant="cover"
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
