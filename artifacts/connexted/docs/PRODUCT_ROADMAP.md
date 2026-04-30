@@ -111,7 +111,7 @@ it needs to be extended to cover everything.
 
 **Architecture note:** All content tables have RLS policies that let users read
 their own rows. This is purely parallel Supabase client queries from the browser —
-the Express API is not involved.
+Edge Functions handle any privileged server-side ops; the browser queries Supabase directly via RLS.
 
 | Feature | Notes |
 |---------|-------|
