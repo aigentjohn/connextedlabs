@@ -253,7 +253,37 @@ Sponsorship is **independent** of a user's `membership_tier` and `user_class`. A
 
 ---
 
-## 7. How the Systems Interact
+## 7. Account Management
+
+### User-facing (`/my-account`)
+
+Every user has an account management page covering:
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Membership info | ✅ Live | Displays current `membership_tier` and subscription status |
+| Data export (GDPR) | ✅ Live | Calls `account-export` Edge Function; downloads full JSON of all user content |
+| Schedule account deletion | ✅ Live | Calls `account-delete` Edge Function; sets `users.deleted_at`; 30-day grace period before hard delete |
+| Cancel deletion | ✅ Live | Calls `account-delete` (DELETE method); clears `deleted_at` |
+
+The hard delete runs nightly via the `hard-delete-accounts` scheduled Edge Function — permanently removes users whose `deleted_at` is older than 30 days.
+
+### Admin-facing (`/platform-admin/account-management`)
+
+Platform admin tool for exporting and importing user account data as JSON. Used for backup/restore and migration. Super admin only.
+
+### Future account management scope
+
+As subscriptions and bundles mature, account management will need to surface:
+- Current subscription plan with upgrade/downgrade actions
+- Billing history and invoices
+- Active tickets and access grants
+- Bundle contents and expiry dates
+- Connected sponsor memberships
+
+---
+
+## 8. How the Systems Interact — Example
 
 Example: a `member` role user, `user_class = 7`, `membership_tier = 'member'`, active subscription (can_host_containers = true), and admin of one sponsor at Silver tier:
 
@@ -273,7 +303,7 @@ Example: a `member` role user, `user_class = 7`, `membership_tier = 'member'`, a
 
 ---
 
-## 8. Future Automation Roadmap
+## 9. Future Automation Roadmap
 
 ### Membership tier → subscription (billing webhook)
 ```
@@ -300,7 +330,7 @@ Under Option D (recommended): creating and selling cohort programs becomes a `pr
 
 ---
 
-## 9. Current Gaps
+## 10. Current Gaps
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
