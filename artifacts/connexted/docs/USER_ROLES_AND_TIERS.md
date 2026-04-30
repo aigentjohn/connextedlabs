@@ -1,8 +1,9 @@
 # User Roles, User Class, Membership Tier & Commercial Framework
 
-**Last updated:** April 2026
+**Last updated:** April 2026  
+**Status:** Preliminary — to be worked into the product roadmap
 
-This document covers all the systems that control what a user can do, access, and create on the platform — including the commercial and sponsor layers.
+This document captures all systems that control what a user can do, access, and create on the platform — including the commercial, sponsor, and onboarding layers. Intended as a single reference before decisions are broken into roadmap sprints.
 
 ---
 
@@ -14,6 +15,7 @@ This document covers all the systems that control what a user can do, access, an
 | **User Class** | `users.user_class` (1–10) | Access — which content types and container types you can use (the class configuration matrix) | Platform admin manually or via tickets | Tickets / one-time purchases unlock higher classes |
 | **Membership Tier** | `users.membership_tier` | Markets — access to the commercial marketplace layer (companies, offerings, analytics) | Platform admin manually or via billing event | Recurring subscription sets and maintains the tier |
 | **Subscription** | `user_subscriptions` table | Capacity — how many circles/containers you can join or admin; whether you can purchase programs | Subscription purchase or admin manual entry | Automated via billing provider webhook |
+| **Access Ticket** | `access_tickets` table | Specific program/course/bundle access | Purchase, admin grant, referral, scholarship, membership benefit | Kit Commerce webhook auto-assigns on purchase |
 | **Sponsor Tier** | `sponsor_tiers` table | Sponsor capabilities — which container types a sponsor organisation can create and how many | Platform admin assigns sponsor tier when creating sponsor | Driven by sponsorship agreement |
 
 ---
@@ -169,7 +171,73 @@ Subscriptions are currently individual tier purchases. Bundles (combining multip
 
 ---
 
-## 5. Pathways, Courses & Cohort Programs — Creation Gating
+## 5. Access Tickets — Specific Program & Course Access
+
+### What it is
+Access tickets (`access_tickets` table) are the **unified enrollment system** for specific programs, courses, and bundles. A ticket grants a named user access to a named container. This is separate from user class (which gates container types) and subscription (which gates capacity) — a ticket is a one-to-one access grant for a specific offering.
+
+Access tickets are the source of truth for program/course enrollment, replacing legacy `course_enrollments`.
+
+### Ticket fields
+
+| Field | Notes |
+|-------|-------|
+| `user_id` | Who holds the ticket |
+| `container_type` | `course` \| `program` \| `bundle` |
+| `container_id` | The specific offering |
+| `status` | `active` \| `paused` \| `cancelled` \| `expired` |
+| `ticket_type` | `purchase` \| `grant` \| `trial` \| `scholarship` |
+| `acquisition_source` | `marketplace_purchase`, `direct_enrollment`, `referral`, `invitation`, `membership_benefit`, `scholarship`, `admin_grant` |
+| `expires_at` | Optional expiry date |
+| `price_paid_cents` / `original_price_cents` | Payment tracking |
+| `progress_percentage` | Completion tracking |
+| `referral_code` | For referral tracking (clicks, conversions, earnings) |
+
+### How tickets are issued
+
+| Source | Mechanism |
+|--------|-----------|
+| Kit Commerce purchase | Webhook auto-assigns ticket (see Section 6) |
+| Admin grant | Platform admin issues directly via Ticket Inventory admin |
+| Direct enrollment | Admin enrols user via `enrollmentBridge` |
+| Referral | Referral conversion triggers ticket grant |
+| Membership benefit | Subscription tier includes specific program access |
+| Scholarship | Admin-granted free access |
+
+### Relationship to other systems
+- **User class**: independent — user class gates which container *types* you can see; a ticket grants access to a *specific* instance
+- **Subscription**: independent — subscription controls circle/container capacity; tickets control program/course access
+- **Membership tier (future)**: a `premium` tier could include a `membership_benefit` ticket grant for selected programs
+
+---
+
+## 6. Kit Commerce Integration
+
+### What it is
+Kit (ConvertKit) is the platform's commerce provider for selling programs and courses. When a user purchases a Kit product, a webhook fires and the platform auto-assigns an access ticket.
+
+### Pipeline
+
+```
+Admin links offering → Kit Product ID
+User purchases on Kit → POST /webhooks/kit/commerce-purchase
+Platform validates → matches Kit Product ID to ticket template
+Ticket auto-assigned → access_tickets row created for user
+```
+
+### Admin tools
+- `/platform-admin/kit-commerce` — KitCommerceAdmin: webhook URL, pipeline audit, purchase log, offering → Kit ID mapping
+- Ticket templates define what access a Kit product grants (`TicketTemplatesAdmin`)
+- Ticket inventory shows issued tickets (`TicketInventoryAdmin`)
+
+### Current limitations
+- Kit purchases create **access tickets** (program/course access) only
+- `membership_tier` and `user_class` are **not** automatically updated by Kit purchases — still admin-assigned
+- **Future:** a Kit subscription product could trigger a `set-membership-tier` Edge Function webhook to automate tier upgrades
+
+---
+
+## 7. Pathways, Courses & Cohort Programs — Creation Gating
 
 ### Current state — role-gated, not tier-gated
 
@@ -208,7 +276,86 @@ Member-created pathways and cohorts become a marketplace product — users on `p
 
 ---
 
-## 6. Sponsors
+## 8. Registration & Onboarding
+
+### Public access — no account required
+Classes 1 (Visitor) and 2 (Guest) represent unauthenticated users. They can browse public content without registering.
+
+| Route | Who can access | What they see |
+|-------|---------------|---------------|
+| `/` | Everyone | Marketing landing page |
+| `/join` | Everyone | GuestExplorePage — browse public containers and content |
+| `/login` | Unauthenticated only | Login form |
+| `/register` | Unauthenticated only | Login/signup form (same component as `/login`) |
+| `/pricing` | Everyone | PricingPage — class tier comparison with pricing |
+| `/join/:token` | Must be logged in | Circle join via invite token (redirects to login if not authenticated) |
+
+### Account creation
+`/register` uses the same `LoginPage` component as `/login`. Any user can create an account — there is no invite-only gate on account creation. After creating an account, the user is assigned the platform default `user_class` (typically Class 3, Basic User).
+
+### Circle invitations (`/join/:token`)
+Invitation tokens gate **circle membership**, not account creation.
+
+- Invites are stored in the `circle_invites` table: `token`, `circle_id`, `expires_at`, `max_uses`, `use_count`
+- A user arriving at `/join/:token` without being logged in is redirected to `/login?next=/join/:token` and lands back after authentication
+- Token validity checks: expiry date, max use count, already-a-member check
+- On success, the user is added to `circle.member_ids`
+
+### JoinOurCommunityPage
+`/join` also serves `JoinOurCommunityPage` (alias used in marketing contexts), which displays a full tier comparison matrix — identical class capability breakdown to the PricingPage but with a marketing framing (no prices, focused on features).
+
+---
+
+## 9. Pricing & Upgrade Path
+
+### PricingPage (`/pricing`)
+The PricingPage fetches from the `user_classes` table (ordered by `class_number`) and displays each tier with:
+- Monthly and yearly pricing (`monthly_price_cents`, `yearly_price_cents`)
+- Feature capability matrix drawn from `USER_ACCESS_CAPABILITIES` constants (hardcoded in PricingPage.tsx)
+- Subscription capacity limits (`max_circles`, `max_containers`, `can_host_containers`, etc.) from the live table
+- A "popular" badge for the highlighted tier (`is_popular = true`)
+
+### Class tier names on pricing page
+
+| Class | Display name | Account | Pricing intent |
+|-------|-------------|---------|----------------|
+| 1 | Visitor | No | Free — browse only |
+| 2 | Guest | No | Free — read only |
+| 3 | Basic User | Yes | Paid — participate |
+| 4 | Attender | Yes | Paid — join programs/circles |
+| 5 | Regular User | Yes | Paid — create lightweight containers |
+| 6 | Power User | Yes | Paid — create substantial containers |
+| 7 | Circle Leader | Yes | Paid — create circles |
+| 8 | Program Leader | Yes | Paid — create programs |
+
+Classes 9–10 are internal platform/admin classes and do not appear on the public pricing page.
+
+### Upgrade flow (current state)
+
+1. User clicks "Get Started" or "Upgrade" on a tier in PricingPage
+2. If not logged in → redirected to `/login`
+3. If logged in → navigated to `/my-account` with `{ selectedTier: tier }` state
+4. **No billing integration exists yet** — the `/my-account` page receives the intent but there is no automated payment or class change. The admin must manually set `user_class` after confirming payment.
+
+### Upgrade flow (future state)
+
+```
+User selects tier on /pricing
+  → Billing provider checkout (Stripe / Kit Commerce)
+  → Webhook fires → set-subscription Edge Function
+  → user_subscriptions row created/updated
+  → users.user_class updated to tier's class_number
+  → membership_tier updated if applicable
+```
+
+### Upgrade/downgrade policy gaps
+- No automated downgrade handling when subscription lapses
+- No enforcement of what happens to content/containers created above the downgraded class
+- Downgrade policy needs a formal decision (e.g. read-only access to previously accessible containers, or hidden until re-upgraded)
+
+---
+
+## 10. Sponsors
 
 ### What it is
 Sponsors are **organisations** (not individual users) that partner with the platform. They have their own member directory, role hierarchy, and tier-based permissions for creating and hosting containers.
@@ -253,7 +400,7 @@ Sponsorship is **independent** of a user's `membership_tier` and `user_class`. A
 
 ---
 
-## 7. Account Management
+## 11. Account Management
 
 ### User-facing (`/my-account`)
 
@@ -283,7 +430,7 @@ As subscriptions and bundles mature, account management will need to surface:
 
 ---
 
-## 8. How the Systems Interact — Example
+## 12. How the Systems Interact — Example
 
 Example: a `member` role user, `user_class = 7`, `membership_tier = 'member'`, active subscription (can_host_containers = true), and admin of one sponsor at Silver tier:
 
@@ -303,7 +450,7 @@ Example: a `member` role user, `user_class = 7`, `membership_tier = 'member'`, a
 
 ---
 
-## 9. Future Automation Roadmap
+## 13. Future Automation Roadmap
 
 ### Membership tier → subscription (billing webhook)
 ```
@@ -330,7 +477,7 @@ Under Option D (recommended): creating and selling cohort programs becomes a `pr
 
 ---
 
-## 10. Current Gaps
+## 14. Current Gaps
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
