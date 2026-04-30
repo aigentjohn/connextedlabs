@@ -2,7 +2,7 @@
 
 **Last updated:** April 2026
 
-These three systems work together. They are independent but complementary.
+Three independent systems that work together. Each governs a distinct dimension of what a user can do on the platform.
 
 ---
 
@@ -10,9 +10,9 @@ These three systems work together. They are independent but complementary.
 
 | System | Field | Controls | Assigned by | Future model |
 |--------|-------|----------|-------------|--------------|
-| **Role** | `users.role` + context arrays | Authority — what actions you can perform within the platform | Platform admin manually, or by joining a circle/container in a specific role | Unchanged — roles are operational, not commercial |
-| **User Class** | `users.user_class` (1–10) | Capacity — how much you can access and create across content, containers, and circles | Platform admin manually or via tickets | Tickets / one-time purchases unlock higher classes |
-| **Membership Tier** | `users.membership_tier` | Platform subscription level — access to platform-level features outside of content, containers, and circles (e.g. analytics, API, storage, advanced admin, support) | Platform admin manually or via billing event | Recurring subscription sets and maintains the tier |
+| **Role** | `users.role` + context arrays | Authority — what actions you can perform | Platform admin manually, or contextually within a circle/program/container | Unchanged — operational, not commercial |
+| **User Class** | `users.user_class` (1–10) | Access — which content types and container types you can use (the class configuration matrix) | Platform admin manually or via tickets | Tickets / one-time purchases unlock higher classes |
+| **Membership Tier** | `users.membership_tier` | Markets — access to the commercial marketplace layer (companies, offerings, analytics) | Platform admin manually or via billing event | Recurring subscription sets and maintains the tier |
 
 ---
 
@@ -33,19 +33,19 @@ Higher level = more authority. Permission checks use `hasRoleLevel()` — a mana
 | Role | Who has it | What it unlocks |
 |------|-----------|-----------------|
 | `member` | All regular users (default) | Participate in circles and containers |
-| `admin` | Trusted platform operators | Access to platform admin dashboard; manage users, circles, programs |
-| `super` | Platform owner | Full access; can promote/demote admins; bypass all permission checks |
+| `admin` | Trusted platform operators | Platform admin dashboard; manage users, circles, programs |
+| `super` | Platform owner | Full access; promote/demote admins; bypass all permission checks |
 
-> **Note:** `users.role` only stores `member`, `admin`, or `super`. The richer roles below are contextual — they live on the container, not the user.
+> `users.role` only stores `member`, `admin`, or `super`. The richer roles below are contextual — they live on the container/circle/program record, not the user.
 
 ### Contextual roles (stored as array columns on the resource)
 
 | Role | Assigned via | Scope | What it allows |
 |------|-------------|-------|----------------|
 | `host` | `container.admin_ids` | Container (Table, Elevator, Meeting, Pitch, Build, Standup, Meetup, Sprint) | Administer a single container |
-| `moderator` | `circle.moderator_ids` | Circle | Moderate content; remove posts; manage flagged items within a circle |
-| `admin` | `circle.admin_ids` | Circle | Administer a circle; manage members; edit settings |
-| `coordinator` | `program.coordinator_ids` | Program | Manage program members; mark completions; view progress |
+| `moderator` | `circle.moderator_ids` | Circle | Moderate content; remove posts; manage flagged items |
+| `admin` | `circle.admin_ids` | Circle | Administer circle; manage members; edit settings |
+| `coordinator` | `program.coordinator_ids` | Program | Manage members; mark completions; view progress |
 | `manager` | `program.manager_ids` | Program | Full program administration; edit content; manage journeys |
 
 A user can hold different contextual roles in different circles/programs simultaneously. Their platform-wide `users.role` is unaffected.
@@ -57,125 +57,121 @@ A user can hold different contextual roles in different circles/programs simulta
 - `src/lib/constants/roles.ts` — hierarchy, level comparisons, display labels
 
 ### How to assign roles
-- **Platform admin/super**: via `/platform-admin/users/:userId` — "Promote to Admin" / "Demote to Member" button; also via CSV import
-- **Circle roles**: via Circle Settings → Members tab — assign moderator or admin per member
-- **Container roles**: via container Settings → Members tab
-- **Program roles**: via Program admin dashboard → Team tab
+- **Platform-wide**: `/platform-admin/users/:userId` — Promote to Admin / Demote to Member; also via CSV import
+- **Circle roles**: Circle Settings → Members tab
+- **Container roles**: Container Settings → Members tab
+- **Program roles**: Program admin dashboard → Team tab
 
 ---
 
-## 2. User Class — Capacity
+## 2. User Class — Content & Container Access
 
 ### What it is
-User class is a **number from 1 to 10** that controls how much a user can access and create across content, containers, and circles. It represents their earned or purchased level of engagement within the community — separate from their billing status.
+User class is a **number from 1 to 10** that controls which **content types** and **container types** a user can access, via the class configuration matrix (`user_class_permissions` table). It has nothing to do with the marketplace — it governs the community and learning layer of the platform.
 
-Higher class = more containers visible, more creation rights, deeper community access. The sidebar navigation reflects this by showing only the features the user's class has unlocked.
+At login, the user's class is looked up and a `permitted_types` array is loaded. Every content access check (`visibility-access.ts`) runs against this array as Gate 1 before checking visibility. The sidebar navigation also filters to show only the container types the user's class permits.
 
-### Class thresholds (current defaults)
+> From `visibility-access.ts`: *"Use this [permitted_types] for the content class gate — do NOT use membership_tier."*
 
-| Class | Containers and features unlocked |
-|-------|----------------------------------|
+### Class configuration matrix
+
+The `user_class_permissions` table maps each class number to the container/content types it can access. Managed via `/platform-admin/container-configuration`.
+
+Current default thresholds (overridable per type in the DB):
+
+| Class | Container types unlocked |
+|-------|--------------------------|
 | 0+ | Home, News, Circles, Calendar |
 | 3+ | Tables, Meetings, Libraries, Lists |
 | 7+ | Standups, Sprints |
 | 10 | Elevators, Pitches, Builds, Meetups |
 
-Admin and super roles bypass class entirely and see everything.
-
-These thresholds are overridable per item via `/platform-admin/container-configuration`.
+Admin and super roles bypass class entirely.
 
 ### How to assign user class
-- **Today:** Platform admin manually sets `user_class` on a user via `/platform-admin/users` (inline dropdown on the list) or `/platform-admin/users/:userId` (detail page)
-- **Future:** Purchasing a ticket or completing a program automatically advances the user's class (see Future Model below)
+- **Today:** Platform admin sets `user_class` via `/platform-admin/users` (inline dropdown) or `/platform-admin/users/:userId`
+- **Future:** Purchasing a ticket or completing a program automatically advances the class
 
 ### Where it's checked
-- `src/lib/nav-config.ts` — `min_class` field on each nav item; filtered at render time
-- `ContainerConfigurationPage` — admin UI to override thresholds per item from the DB (`user_class_permissions` table)
+- `src/lib/visibility-access.ts` — Gate 1 content class check (`permitted_types`)
+- `src/lib/auth-context.tsx` — loads `user_class_permissions` on login, builds `permitted_types` + `visible_containers`
+- `src/lib/nav-config.ts` — `min_class` per nav item filters the sidebar
 
 ---
 
-## 3. Membership Tier — Platform Subscription Level
+## 3. Membership Tier — Markets & Commercial Access
 
 ### What it is
-Membership tier is a **string** (`free` | `member` | `premium`) that controls access to **platform-level features** — capabilities that sit above and outside of content, containers, and circles. Think of it as the subscription layer: what the platform itself offers the user as part of their plan.
+Membership tier is a **string** (`free` | `member` | `premium`) that controls access to the **commercial marketplace layer** — specifically the Markets feature. It governs whether a user can create companies, list offerings, and view marketplace analytics. It does **not** gate content types, containers, or circles.
 
-Current examples include market access and company/offering limits, but the intended scope is broader: analytics access, API access, storage quotas, advanced admin features, and support level. These are the features that vary with a recurring subscription, not with community participation.
+> From `visibility-access.ts`: *"do NOT use membership_tier"* for content/container access — that is user class territory.
 
-### Current tier limits (from `membership_tier_permissions` table, with hardcoded fallbacks)
+### What the membership tier matrix controls
 
-| Tier | Can create company | Max companies | Max offerings per company | Market access |
-|------|-------------------|---------------|--------------------------|---------------|
-| `free` | No | 0 | 0 | None |
-| `member` | Yes | 1 | 5 | Defined in DB |
-| `premium` | Yes | 3 | Unlimited | Defined in DB |
+Managed via `/platform-admin/membership-tier-permissions` (the membership tier matrix). Values live in the `membership_tier_permissions` table; hardcoded fallbacks apply if a row is missing.
 
-These values are live in the `membership_tier_permissions` table — change them in Supabase without a code deploy. If a row is missing, hardcoded fallbacks apply.
+| Tier | Can create company | Max companies | Max offerings per company | Featured listings | Analytics |
+|------|-------------------|---------------|--------------------------|-------------------|-----------|
+| `free` | No | 0 | 0 | No | No |
+| `member` | Yes | 1 | 5 | No | No |
+| `premium` | Yes | 3 | Unlimited | Yes | Yes |
+
+Also controls `accessible_market_ids` — which markets a tier can place offerings into (array of market UUIDs, configured per tier in the DB).
 
 ### How to assign membership tier
-- **Today:** Platform admin manually sets `membership_tier` on a user via `/platform-admin/users` (inline dropdown on the list) or `/platform-admin/users/:userId` (detail page)
-- **Future:** A billing webhook (Kit / Stripe) sets and maintains the tier automatically on subscription start, renewal, and cancellation (see Future Model below)
+- **Today:** Platform admin sets `membership_tier` via `/platform-admin/users` (inline dropdown) or `/platform-admin/users/:userId`
+- **Future:** Billing webhook sets tier automatically on subscription start, renewal, and cancellation
 
 ### Where it's checked
 - `src/lib/tier-permissions.ts` — `getTierPermissions()` and `checkMarketAccess()`
 - `MyVenturesPage.tsx` — gates company creation
 - `CreateOfferingPage.tsx` — gates offering creation
 
-> **Design note from `roles.ts`:** *"Membership tiers control capacity limits (HOW MUCH you can do) while roles control authority (WHAT you can do)."*
-
 ---
 
 ## 4. How the Three Systems Interact
 
-A concrete example for a user who is a `member` on the platform, `user_class = 7`, `membership_tier = 'member'`, and a circle admin in one circle:
+Example: a user with `role = 'member'`, `user_class = 7`, `membership_tier = 'member'`, who is a circle admin in one circle:
 
 | Capability | System | Result |
 |-----------|--------|--------|
-| Can access /platform-admin | Role (`member`) | ❌ No |
-| Sees Standups in sidebar | User class (7 — capacity) | ✅ Yes |
-| Sees Elevators in sidebar | User class (7, needs 10) | ❌ No |
-| Can create a company | Membership tier (`member` — platform feature) | ✅ Yes (max 1) |
-| Can create a second company | Membership tier (`member`) | ❌ No (limit 1) |
-| Can post in their circle | Contextual role (`admin` of that circle) | ✅ Yes |
-| Can delete others' posts in their circle | Contextual role (`admin`) | ✅ Yes |
-| Can delete posts in a circle they only joined | Contextual role (`member`) | ❌ No |
+| Access `/platform-admin` | Role (`member`) | ❌ No |
+| Access Standups in sidebar | User class (7, threshold = 7) | ✅ Yes |
+| Access Elevators in sidebar | User class (7, threshold = 10) | ❌ No |
+| View a `public` episode | User class (permitted_types includes `episodes`) | ✅ Yes |
+| Create a company in Markets | Membership tier (`member`) | ✅ Yes (max 1) |
+| Create a second company | Membership tier (`member`, limit = 1) | ❌ No |
+| View marketplace analytics | Membership tier (`member`, analytics = No) | ❌ No |
+| Post in their own circle | Contextual role (`admin` of that circle) | ✅ Yes |
+| Delete another user's post in a circle they only joined | Contextual role (`member` in that circle) | ❌ No |
 
 ---
 
-## 5. Future Model — Automation Roadmap
+## 5. Future Model
 
-### Membership Tier → Subscription
-When a user subscribes to a paid plan (Kit Commerce / Stripe), a webhook fires an Edge Function that sets `membership_tier` automatically:
-
+### Membership Tier → Subscription (recurring billing)
 ```
 subscribe to "Member" plan  →  membership_tier = 'member'
 subscribe to "Premium" plan →  membership_tier = 'premium'
 subscription lapses         →  membership_tier = 'free'
-subscription renews         →  no change needed
 ```
-
 **What needs building:**
 - Billing provider webhook → `set-membership-tier` Edge Function
-- Graceful downgrade logic (what happens to companies/offerings over the new limit when a user downgrades)
+- Downgrade policy: what happens to a user's companies/offerings if they drop below the limit
 
 ### User Class → Tickets & One-Time Purchases
-User class (capacity) advances are unlocked by tickets or milestone events, not subscription status:
-
 ```
-purchase "Community Access" ticket  →  user_class = 3  (Tables, Meetings, Libraries, Lists)
-complete a Program                   →  user_class advances by 1 (or to a set threshold)
-purchase "Full Access" ticket        →  user_class = 10 (all features)
-attend N events                      →  user_class advances automatically
+purchase "Community Access" ticket  →  user_class = 3
+purchase "Full Access" ticket        →  user_class = 10
+complete a Program                   →  user_class advances to defined threshold
 ```
-
 **What needs building:**
 - `access_tickets` → `user_class` upgrade rule (Edge Function or DB trigger)
+- Admin UI: "this ticket grants class X" on TicketTemplatesAdmin
 - Program completion → class advancement rule
-- Admin UI to configure "this ticket grants class X" on TicketTemplatesAdmin
 
 ### Roles — No automation needed
-Roles are assigned intentionally by admins. The only automation that might make sense:
-- Joining a circle as a paying member could auto-assign `host` for their own containers
-- Program enrollment via ticket could auto-assign `coordinator` for their own program workspace
+Roles are assigned intentionally. Contextual roles (host, moderator, coordinator) are granted when a user is added to a circle/container/program in that capacity.
 
 ---
 
@@ -183,8 +179,7 @@ Roles are assigned intentionally by admins. The only automation that might make 
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
-| `users.role` only has `member`/`admin`/`super` — richer roles like `coordinator` and `manager` exist in the permissions lib but aren't surfaced in UserDetailPage | Coordinators/managers can only be assigned via circle/program settings, not platform admin | Low — contextual assignment is the right model |
-| User class upgrade via ticket is documented intent but not implemented | Class advancement must be done manually by admin | Medium |
-| Billing webhook → membership_tier automation not built | Tier must be set manually after payment | Medium — needed before public launch |
-| Downgrade handling for membership_tier not defined | If a premium user downgrades with 3 companies, what happens? | Medium — needs a policy decision before building |
-| `platform_admin` role string appears in some older components | Inconsistency with the canonical `admin` role value | Low — cleanup task |
+| Billing webhook → `membership_tier` not built | Tier must be set manually after payment | High — needed before public launch |
+| User class upgrade via ticket not implemented | Class advancement must be done manually | Medium |
+| Downgrade policy for membership_tier not defined | Undefined behaviour if premium user drops to member with 3 companies | Medium — policy decision needed first |
+| `platform_admin` role string in some older components | Inconsistency with canonical `admin` value | Low — cleanup task |
