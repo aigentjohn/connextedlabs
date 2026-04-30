@@ -2,7 +2,7 @@
 
 **Last updated:** April 2026
 
-These three systems work together to control what a user can **do**, what they can **see**, and how much they can **create**. They are independent but complementary.
+These three systems work together. They are independent but complementary.
 
 ---
 
@@ -10,9 +10,9 @@ These three systems work together to control what a user can **do**, what they c
 
 | System | Field | Controls | Assigned by | Future model |
 |--------|-------|----------|-------------|--------------|
-| **Role** | `users.role` + context arrays | Authority — what actions you can perform | Platform admin manually, or by joining a circle/container in a specific role | Unchanged — roles are operational, not commercial |
-| **User Class** | `users.user_class` (1–10) | Navigation — which features are visible in the sidebar | Platform admin manually or via tickets | Tickets / one-time purchases unlock higher classes |
-| **Membership Tier** | `users.membership_tier` | Capacity — how much you can create commercially | Platform admin manually or via billing event | Recurring subscription sets and maintains the tier |
+| **Role** | `users.role` + context arrays | Authority — what actions you can perform within the platform | Platform admin manually, or by joining a circle/container in a specific role | Unchanged — roles are operational, not commercial |
+| **User Class** | `users.user_class` (1–10) | Capacity — how much you can access and create across content, containers, and circles | Platform admin manually or via tickets | Tickets / one-time purchases unlock higher classes |
+| **Membership Tier** | `users.membership_tier` | Platform subscription level — access to platform-level features outside of content, containers, and circles (e.g. analytics, API, storage, advanced admin, support) | Platform admin manually or via billing event | Recurring subscription sets and maintains the tier |
 
 ---
 
@@ -64,15 +64,17 @@ A user can hold different contextual roles in different circles/programs simulta
 
 ---
 
-## 2. User Class — Navigation Access
+## 2. User Class — Capacity
 
 ### What it is
-User class is a **number from 1 to 10** that controls which features appear in the sidebar navigation. It represents the user's level of engagement and access within the community — separate from their billing status.
+User class is a **number from 1 to 10** that controls how much a user can access and create across content, containers, and circles. It represents their earned or purchased level of engagement within the community — separate from their billing status.
+
+Higher class = more containers visible, more creation rights, deeper community access. The sidebar navigation reflects this by showing only the features the user's class has unlocked.
 
 ### Class thresholds (current defaults)
 
-| Class | Nav items unlocked |
-|-------|--------------------|
+| Class | Containers and features unlocked |
+|-------|----------------------------------|
 | 0+ | Home, News, Circles, Calendar |
 | 3+ | Tables, Meetings, Libraries, Lists |
 | 7+ | Standups, Sprints |
@@ -92,10 +94,12 @@ These thresholds are overridable per item via `/platform-admin/container-configu
 
 ---
 
-## 3. Membership Tier — Commercial Capacity
+## 3. Membership Tier — Platform Subscription Level
 
 ### What it is
-Membership tier is a **string** (`free` | `member` | `premium`) that controls how much a user can create commercially — specifically around market access and company/offering limits.
+Membership tier is a **string** (`free` | `member` | `premium`) that controls access to **platform-level features** — capabilities that sit above and outside of content, containers, and circles. Think of it as the subscription layer: what the platform itself offers the user as part of their plan.
+
+Current examples include market access and company/offering limits, but the intended scope is broader: analytics access, API access, storage quotas, advanced admin features, and support level. These are the features that vary with a recurring subscription, not with community participation.
 
 ### Current tier limits (from `membership_tier_permissions` table, with hardcoded fallbacks)
 
@@ -127,9 +131,9 @@ A concrete example for a user who is a `member` on the platform, `user_class = 7
 | Capability | System | Result |
 |-----------|--------|--------|
 | Can access /platform-admin | Role (`member`) | ❌ No |
-| Sees Standups in sidebar | User class (7) | ✅ Yes |
+| Sees Standups in sidebar | User class (7 — capacity) | ✅ Yes |
 | Sees Elevators in sidebar | User class (7, needs 10) | ❌ No |
-| Can create a company | Membership tier (`member`) | ✅ Yes (max 1) |
+| Can create a company | Membership tier (`member` — platform feature) | ✅ Yes (max 1) |
 | Can create a second company | Membership tier (`member`) | ❌ No (limit 1) |
 | Can post in their circle | Contextual role (`admin` of that circle) | ✅ Yes |
 | Can delete others' posts in their circle | Contextual role (`admin`) | ✅ Yes |
@@ -154,7 +158,7 @@ subscription renews         →  no change needed
 - Graceful downgrade logic (what happens to companies/offerings over the new limit when a user downgrades)
 
 ### User Class → Tickets & One-Time Purchases
-User class advances are unlocked by tickets or milestone events, not subscription status:
+User class (capacity) advances are unlocked by tickets or milestone events, not subscription status:
 
 ```
 purchase "Community Access" ticket  →  user_class = 3  (Tables, Meetings, Libraries, Lists)
